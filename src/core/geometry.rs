@@ -13,14 +13,14 @@ macro_rules! strip_plus {
 
 #[macro_export]
 macro_rules! match_index {
-    ($index:ident, $n:expr,[$($indexes:expr),+], [$($arms:expr),+]) => {
+    ($index:ident, $n:expr,[$($indexes:expr),+], [$($arms:expr),+],) => {
         match $index {
             $(i if i == $indexes => $arms,)+
             _ => panic!("Out of index")
         }
     };
     ($index:ident, $n:expr, [$($indexes:expr),*], [$($arms:expr)*], $arm:expr $(;$rest:expr)*) => {
-        $crate::match_index!($index, $n+1, [$($indexes,)* $n], [$($arms,)* $arm] $(,$rest);*)
+        $crate::match_index!($index, $n+1, [$($indexes,)* $n], [$($arms,)* $arm], $($rest);*)
     };
     ($index:ident, $($arms:expr);+) => {
         $crate::match_index!($index, 0, [], [], $($arms);+)
