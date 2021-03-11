@@ -61,7 +61,7 @@ pub struct Options {
         default_value = "0",
         about = "Use specified number of threads for rendering."
     )]
-    pub threads: i32,
+    pub threads: usize,
     #[clap(
         short = 'r',
         long,
