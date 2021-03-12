@@ -192,6 +192,105 @@ pub type Point3i = Point3<i32>;
 pub type Normal3<T> = Vector3<T>;
 pub type Normal3f = Normal3<Float>;
 
+macro_rules! make_extent {
+    ($o:ident, $($fields:ident),+) => {
+        make_extent!($o, 0, $($fields,)+ []);
+    };
+    ($o:ident, $extent:expr, $field:ident, $($before:ident),* [$($after:ident),*]) => {
+        if $($o.$field > $o.$before ) && * $(&& $o.$field > $o.$after)* {
+            $extent
+        }
+        make_extent($o, $extent + 1, $($before,)+ [$($after,)* $field]);
+    };
+    ($o:ident, [$($fields:ident,)+]) => {unreachable!()};
+}
+
+macro_rules! make_bounds {
+    ($name:ident, $p:ident, $v:ident, $($field:ident),+) => {
+        pub struct $name<T> {
+            min: $p<T>,
+            max: $p<T>,
+        }
+
+        impl<T: RealNum<T>> $name<T> {
+            pub fn new() -> Self {
+                Self {
+                    min: $p {
+                        $($field: T::min_value(),)+
+                    },
+                    max: $p {
+                        $($field: T::max_value(),)+
+                    }
+                }
+            }
+
+            pub fn diagonal(&self) -> $v<T> {
+                &self.max - &self.min
+            }
+
+            pub fn lerp(&self, t: &$p<T>) -> $p<T> {
+                $p {
+                    $($field: super::lerp(t.$field, self.min.$field, self.max.$field),)+
+                }
+            }
+
+            pub fn offset(&self, p: &$p<T>) -> $v<T> {
+                let mut o = p - &self.min;
+
+                $(if self.max.$field > self.min.$field {
+                    o.$field /= self.max.$field - self.min.$field;
+                })+
+                o
+            }
+
+            pub fn inside(&self, pt: &$p<T>) -> bool {
+                $(pt.$field >= self.min.$field && pt.$field <= self.max.$field) && +
+            }
+
+            pub fn bounding_sphere(&self, c: &mut $p<T>, rad: &mut T) {
+                *c = (&self.min + &self.max) / T::two();
+                if self.inside(c) {
+                    *rad = c.distance(&self.max);
+                } else {
+                    *rad = T::zero();
+                }
+            }
+
+            pub fn maximum_extent(&self) -> usize {
+                let diag = self.diagonal();
+                0
+                //make_extent!(diag, $($field),+);
+            }
+        }
+
+        impl<T: RealNum<T>> From<$p<T>> for $name<T> {
+            fn from(p: $p<T>) -> Self {
+                Self {
+                    min: p.clone(),
+                    max: p,
+                }
+            }
+        }
+        impl<T: RealNum<T>> From<($p<T>, $p<T>)> for $name<T> {
+            fn from(ps: ($p<T>, $p<T>)) -> Self {
+                Self {
+                    min: $p{
+                        $($field:ps.0.$field.min(ps.1.$field),)+
+                    },
+                    max: $p{
+                        $($field:ps.0.$field.max(ps.1.$field),)+
+                    },
+                }
+            }
+        }
+    };
+}
+
+make_bounds!(Bounds2, Point2, Vector2, x, y);
+
+make_bounds!(Bounds3, Point3, Vector3, x, y, z);
+
+/*
 pub struct Bounds2<T> {
     min: Point2<T>,
     max: Point2<T>,
@@ -267,3 +366,4 @@ impl<T: RealNum<T>> From<(Point2<T>, Point2<T>)> for Bounds2<T> {
         }
     }
 }
+ */

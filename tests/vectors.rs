@@ -82,3 +82,34 @@ fn num() {
     //inner_test(1);
     inner_test(1.0);
 }
+
+#[test]
+fn macro_test() {
+    macro_rules! make_extent {
+        ($o:ident, $($fields:ident),+) => {
+            make_extent!($o, 0, $($fields,)+ []);
+        };
+        ($o:ident, $extent:expr, $field:ident, $($before:ident),* [$($after:ident),*]) => {
+            if $($o.$field > $o.$before ) && * $(&& $o.$field > $o.$after)* {
+                $extent
+            }
+            make_extent!($o, $extent + 1, $($before,)* [$($after,)* $field]);
+        };
+        ($o:ident, $extent:expr, [$($fields:ident,)+]) => {unreachable!()};
+    }
+
+    struct Vector3 {
+        x: f32,
+        y: f32,
+        z: f32,
+    }
+
+    let a = Vector3 {
+        x: 1.0,
+        y: 2.0,
+        z: 3.0,
+    };
+
+    let n = { make_extent!(a, x, y, z) };
+    assert_eq!(n, 2);
+}
