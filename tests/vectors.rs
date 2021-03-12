@@ -87,15 +87,21 @@ fn num() {
 fn macro_test() {
     macro_rules! make_extent {
         ($o:ident, $($fields:ident),+) => {
-            make_extent!($o, 0, $($fields,)+ []);
+            make_extent!($o, 0, $($fields,)+ [])
         };
-        ($o:ident, $extent:expr, $field:ident, $($before:ident),* [$($after:ident),*]) => {
-            if $($o.$field > $o.$before ) && * $(&& $o.$field > $o.$after)* {
+        ($o:ident, $extent:expr, $field:ident, [$($after:ident),*]) => {
+            if $($o.$field > $o.$after)&& * {
                 $extent
-            }
-            make_extent!($o, $extent + 1, $($before,)* [$($after,)* $field]);
+            } else
+            {make_extent!($o, $extent+1, [$($after,)* $field])}
         };
-        ($o:ident, $extent:expr, [$($fields:ident,)+]) => {unreachable!()};
+        ($o:ident, $extent:expr, $field:ident, $($before:ident,)+ [$($after:ident),*]) => {
+            if $($o.$field > $o.$before) && * $(&& $o.$field > $o.$after)* {
+                $extent
+            } else
+            {make_extent!($o, $extent+1, $($before,)* [$($after,)* $field])}
+        };
+        ($o:ident, $extent:expr, [$($fields:ident),+]) => {unreachable!()};
     }
 
     struct Vector3 {
