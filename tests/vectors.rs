@@ -1,6 +1,9 @@
+use pbrt::core::RealNum;
+use std::ops::Mul;
+
 #[test]
 fn test_vectors() {
-    use pbrt::core::geometry::{Vector2f, Vector3f, Vector4f};
+    use pbrt::core::geometry::{Vector2f, Vector3f};
 
     let a = Vector2f::new(1.0, 2.0);
     assert_eq!(a[0], 1.0);
@@ -11,15 +14,71 @@ fn test_vectors() {
     assert_eq!(b[1], 2.0);
     assert_eq!(b[2], 3.0);
 
-    let c = Vector4f::new(1.0, 2.0, 3.0, 4.0);
-    assert_eq!(c[0], 1.0);
-    assert_eq!(c[1], 2.0);
-    assert_eq!(c[2], 3.0);
-    assert_eq!(c[3], 4.0);
-
     let a1 = Vector2f::new(1.0, 2.0);
     assert_eq!(a1, a);
     let a2 = Vector2f::new(2.0, 1.0);
     assert_ne!(a2, a);
     if a1 == a {}
+}
+
+#[test]
+fn test_mul() {
+    struct Vector {
+        x: f32,
+        y: f32,
+    }
+
+    impl Mul<f32> for Vector {
+        type Output = Vector;
+
+        fn mul(self, rhs: f32) -> Self::Output {
+            Vector {
+                x: self.x * rhs,
+                y: self.y * rhs,
+            }
+        }
+    }
+
+    impl Mul for &Vector {
+        type Output = Vector;
+
+        fn mul(self, rhs: Self) -> Self::Output {
+            Vector {
+                x: self.x * rhs.x,
+                y: self.y * rhs.y,
+            }
+        }
+    }
+
+    let mut a = Vector { x: 1.0, y: 2.0 };
+    a = a * 2.0;
+
+    a = &a * &a;
+}
+
+#[test]
+fn from() {
+    struct Point {
+        x: f32,
+        y: f32,
+    }
+
+    impl From<f32> for Point {
+        fn from(p: f32) -> Self {
+            println!("from invoked");
+            Point { x: p, y: p }
+        }
+    }
+
+    let mut a = Point { x: 1.0, y: 1.0 };
+    a = Point::from(1.0f32);
+}
+fn inner_test<T: RealNum<T>>(a: T) -> T {
+    a.sqrt()
+}
+
+#[test]
+fn num() {
+    //inner_test(1);
+    inner_test(1.0);
 }
