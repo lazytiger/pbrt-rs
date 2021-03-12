@@ -1,12 +1,6 @@
 use clap::Clap;
 use pbrt::core::{pbrt_cleanup, pbrt_init, pbrt_parse_file};
-use pbrt::make_vector;
-use pbrt::Float;
 use pbrt::Options;
-use std::cmp::Eq;
-use std::ops::{
-    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
-};
 
 fn main() {
     log4rs::init_file("log4rs.yml", Default::default()).unwrap();
@@ -21,14 +15,5 @@ fn main() {
     for f in opts.scenes {
         pbrt_parse_file(f);
     }
-    make_vector!(struct Vector4, x, y);
     pbrt_cleanup();
-}
-
-fn test(index: usize) -> usize {
-    match index {
-        x if x == 0 => 0,
-        x if x == 0 + 1 => 1,
-        _ => panic!("Hello"),
-    }
 }

@@ -1,42 +1,39 @@
 use crate::Float;
-use std::cmp::Eq;
 use std::ops::{
     Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
-#[macro_export]
 macro_rules! strip_plus {
     (+ $($rest:expr)+) => {
         $($rest)+
     };
 }
 
-#[macro_export]
 macro_rules! match_index {
     ($index:ident, $n:expr,[$($indexes:expr),+], [$($arms:expr),+],) => {
         match $index {
-            $(i if i == $indexes => $arms,)+
+            $(_i if _i == $indexes => $arms,)+
             _ => panic!("Out of index")
         }
     };
-    ($index:ident, $n:expr, [$($indexes:expr),*], [$($arms:expr)*], $arm:expr $(;$rest:expr)*) => {
-        $crate::match_index!($index, $n+1, [$($indexes,)* $n], [$($arms,)* $arm], $($rest);*)
+    ($index:ident, $n:expr, [$($indexes:expr),*], [$($arms:expr),*], $arm:expr $(;$rest:expr)*) => {
+        match_index!($index, $n+1, [$($indexes,)* $n], [$($arms,)* $arm], $($rest);*)
     };
     ($index:ident, $($arms:expr);+) => {
-        $crate::match_index!($index, 0, [], [], $($arms);+)
+        match_index!($index, 0, [], [], $($arms);+)
     }
 }
 
-#[macro_export]
 macro_rules! make_vector {
     (struct $name:ident, $($field:ident),+) => {
 
+        #[derive(Debug)]
         pub struct $name<T> {
             $($field:T,)+
         }
 
         impl<T> $name<T> {
-            fn new($($field:T),+) ->Self  {
+            pub fn new($($field:T),+) ->Self  {
                $name { $($field:$field,)+}
             }
         }
@@ -125,26 +122,35 @@ macro_rules! make_vector {
             type Output = T;
 
             fn index(&self, index: usize) -> &Self::Output {
-                $crate::match_index!(index, $(&self.$field);+)
+                match_index!(index, $(&self.$field);+)
             }
         }
 
         impl<T> IndexMut<usize> for $name<T> {
             fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-                $crate::match_index!(index, $(&mut self.$field);+)
+                match_index!(index, $(&mut self.$field);+)
             }
         }
 
         impl<T: Mul<Output = T> + Add<Output = T> + Copy> $name<T> {
-            fn length_squared(&self) -> T {
-                $crate::strip_plus!($(+ self.$field * self.$field)+)
+            pub fn length_squared(&self) -> T {
+                strip_plus!($(+ self.$field * self.$field)+)
             }
         }
 
         impl $name<Float> {
-            fn length(&self) -> Float {
+            pub fn length(&self) -> Float {
                 self.length_squared().sqrt()
             }
         }
     };
 }
+
+make_vector!(struct Vector2, x, y);
+pub type Vector2f = Vector2<Float>;
+
+make_vector!(struct Vector3, x, y, z);
+pub type Vector3f = Vector3<Float>;
+
+make_vector!(struct Vector4, x, y, z, w);
+pub type Vector4f = Vector4<Float>;
