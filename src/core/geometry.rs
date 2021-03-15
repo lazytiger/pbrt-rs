@@ -27,6 +27,31 @@ macro_rules! match_index {
     }
 }
 
+macro_rules! make_extent {
+    ($o:ident, $($fields:ident),+) => {
+        make_extent!($o, 0, $($fields),+)
+    };
+    ($o:ident, $extent:expr, $field:ident, $($rest:ident),+) => {
+        if $($o.$field > $o.$rest ) && * {
+            $extent
+        } else {
+            make_extent!($o, $extent + 1, $($rest),+)
+        }
+    };
+    ($o:ident, $extent:expr, $field:ident) => {
+        $extent
+    };
+}
+
+macro_rules! make_component {
+    ($o:ident, $m:ident, $left:ident, $right:ident) => {
+        $o.$left.$m($o.$right)
+    };
+    ($o:ident, $m:ident, $field:ident, $($rest:ident),+) => {
+        $o.$field.$m(make_component!($o, $m, $($rest),+))
+    };
+}
+
 macro_rules! make_vector {
     (struct $name:ident, $($field:ident),+) => {
 
@@ -50,6 +75,52 @@ macro_rules! make_vector {
 
             pub fn distance(&self, p:&$name<T>) -> T {
                 (self - p).length()
+            }
+
+            pub fn max_dimension(&self) -> usize {
+                make_extent!(self, $($field),+)
+            }
+
+            pub fn max_component(&self) -> T {
+                make_component!(self, max, $($field),+)
+            }
+
+            pub fn min_component(&self) -> T {
+                make_component!(self, min, $($field),+)
+            }
+
+            pub fn abs(&self) -> $name<T> {
+                $name {
+                    $($field: self.$field.abs(),)+
+                }
+            }
+
+            pub fn dot(&self, v:&$name<T>) -> $name<T> {
+                self * v
+            }
+
+            pub fn abs_dot(&self, v:&$name<T>) -> $name<T> {
+                (self * v).abs()
+            }
+
+            pub fn normalize(&self) -> $name<T> {
+                self / self.length()
+            }
+
+            pub fn min(&self, v: &$name<T>) -> $name<T> {
+                $name {
+                    $($field: self.$field.min(v.$field),)+
+                }
+            }
+
+            pub fn max(&self, v: &$name<T>) -> $name<T> {
+                $name {
+                    $($field: self.$field.max(v.$field),)+
+                }
+            }
+
+            pub fn permute(&self, $($field:usize),+) -> $name<T> {
+                $name::new($(self[$field]),+)
             }
         }
 
@@ -263,6 +334,16 @@ macro_rules! make_vector {
             }
         }
 
+        impl<T: RealNum<T>> Div<T> for &$name<T> {
+            type Output = $name<T>;
+
+            fn div(self, rhs: T) -> Self::Output {
+                $name {
+                    $($field:self.$field / rhs,)+
+                }
+            }
+        }
+
         impl<T: RealNum<T>> DivAssign for $name<T> {
             fn div_assign(&mut self, rhs: Self) {
                 $(self.$field /= rhs.$field;)+
@@ -331,27 +412,6 @@ pub type Point3i = Point3<i32>;
 pub type Normal3<T> = Vector3<T>;
 pub type Normal3f = Normal3<Float>;
 
-macro_rules! make_extent {
-    ($o:ident, $($fields:ident),+) => {
-        make_extent!($o, 0, $($fields,)+ [])
-    };
-    ($o:ident, $extent:expr, $field:ident, $($before:ident,)+ [$($after:ident),*]) => {
-        if $($o.$field > $o.$before ) && * $(&& $o.$field > $o.$after)* {
-            $extent
-        } else {
-            make_extent!($o, $extent + 1, $($before,)+ [$($after,)* $field])
-        }
-    };
-    ($o:ident, $extent:expr, $field:ident, [$($after:ident),*]) => {
-        if $($o.$field > $o.$after) && * {
-            $extent
-        } else {
-            make_extent!($o, $extent + 1, [$($after,)* $field])
-        }
-    };
-    ($o:ident, $extent:expr, [$($fields:ident),+]) => {unreachable!()};
-}
-
 macro_rules! make_bounds {
     ($name:ident, $p:ident, $v:ident, $($field:ident),+) => {
         pub struct $name<T> {
@@ -405,8 +465,9 @@ macro_rules! make_bounds {
 
             pub fn maximum_extent(&self) -> usize {
                 let diag = self.diagonal();
-                make_extent!(diag, $($field),+)
+                diag.max_dimension()
             }
+
         }
 
         impl<T: RealNum<T>> From<$p<T>> for $name<T> {

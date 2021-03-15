@@ -33,10 +33,11 @@ pub trait RealNum<T>:
     fn min(self, t: Self) -> Self;
     fn max(self, t: Self) -> Self;
     fn sqrt(self) -> Self;
+    fn abs(self) -> Self;
 }
 
 macro_rules! implement_real_num {
-    ($t:ty, $sqrt:ident, $zero:expr, $one:expr, $two:expr) => {
+    ($t:ident, $sqrt:ident, $zero:expr, $one:expr, $two:expr) => {
         impl RealNum<$t> for $t {
             fn zero() -> Self {
                 $zero
@@ -57,8 +58,13 @@ macro_rules! implement_real_num {
             fn min(self, t: Self) -> Self {
                 std::cmp::min(self, t)
             }
+
             fn max(self, t: Self) -> Self {
                 std::cmp::max(self, t)
+            }
+
+            fn abs(self) -> Self {
+                $t::abs(self)
             }
         }
     };
@@ -83,8 +89,13 @@ macro_rules! implement_real_num {
             fn min(self, t: Self) -> Self {
                 $t::min(self, t)
             }
+
             fn max(self, t: Self) -> Self {
                 $t::min(self, t)
+            }
+
+            fn abs(self) -> Self {
+                $t::abs(self)
             }
         }
     };

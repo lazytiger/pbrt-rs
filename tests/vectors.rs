@@ -1,3 +1,4 @@
+use pbrt::core::geometry::Vector3f;
 use pbrt::core::RealNum;
 use std::ops::Mul;
 
@@ -81,27 +82,36 @@ fn inner_test<T: RealNum<T>>(a: T) -> T {
 fn num() {
     //inner_test(1);
     inner_test(1.0);
+    let p = Vector3f::new(1.0, 2.0, 3.0);
+    let p = &p / p.length();
+    println!("{}", p.max_component());
 }
 
 #[test]
 fn macro_test() {
     macro_rules! make_extent {
         ($o:ident, $($fields:ident),+) => {
-            make_extent!($o, 0, $($fields,)+ [])
+            make_extent!($o, 0, $($fields),+)
         };
-        ($o:ident, $extent:expr, $field:ident, [$($after:ident),*]) => {
-            if $($o.$field > $o.$after)&& * {
+        ($o:ident, $extent:expr, $field:ident, $($rest:ident),+) => {
+            if $($o.$field > $o.$rest ) && * {
                 $extent
-            } else
-            {make_extent!($o, $extent+1, [$($after,)* $field])}
+            } else {
+                make_extent!($o, $extent + 1, $($rest),+)
+            }
         };
-        ($o:ident, $extent:expr, $field:ident, $($before:ident,)+ [$($after:ident),*]) => {
-            if $($o.$field > $o.$before) && * $(&& $o.$field > $o.$after)* {
-                $extent
-            } else
-            {make_extent!($o, $extent+1, $($before,)* [$($after,)* $field])}
+        ($o:ident, $extent:expr, $field:ident) => {
+            $extent
         };
-        ($o:ident, $extent:expr, [$($fields:ident),+]) => {unreachable!()};
+    }
+
+    macro_rules! make_component {
+        ($o:ident, $m:ident, $left:ident, $right:ident) => {
+            $o.$left.$m($o.$right)
+        };
+        ($o:ident, $m:ident, $field:ident, $($rest:ident),+) => {
+            $o.$field.$m(make_component!($o, $m, $($rest),+))
+        };
     }
 
     struct Vector3 {
@@ -116,6 +126,8 @@ fn macro_test() {
         z: 3.0,
     };
 
-    let n = { make_extent!(a, x, y, z) };
-    assert_eq!(n, 2);
+    //let n = { make_extent!(a, x, y, z) };
+    //assert_eq!(n, 2);
+
+    make_component!(a, min, x, y, z);
 }
