@@ -57,7 +57,7 @@ macro_rules! make_vector {
 
         #[derive(Debug)]
         pub struct $name<T> {
-            $($field:T,)+
+            $(pub $field:T,)+
         }
 
         impl<T:RealNum<T>> $name<T> {

@@ -1,6 +1,7 @@
 use crate::Options;
 
 pub mod geometry;
+pub mod transform;
 
 pub fn pbrt_init(opts: &Options) {}
 pub fn pbrt_parse_file(f: String) {}

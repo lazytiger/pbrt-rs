@@ -1,5 +1,8 @@
-use pbrt::core::geometry::Vector3f;
+#![allow(dead_code)]
+use pbrt::core::geometry::{Point3, Point3f, Vector3f};
+use pbrt::core::transform::{Point3Ref, Transform};
 use pbrt::core::RealNum;
+use pbrt::Float;
 use std::ops::Mul;
 
 #[test]
@@ -130,4 +133,11 @@ fn macro_test() {
     //assert_eq!(n, 2);
 
     make_component!(a, min, x, y, z);
+}
+
+#[test]
+fn test_matrix() {
+    let t = Transform::<Float>::new();
+    let p = Point3f::new(0.0, 0.0, 0.0);
+    let x: Point3f = t * Point3Ref(&p);
 }
