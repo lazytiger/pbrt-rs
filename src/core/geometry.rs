@@ -598,3 +598,5 @@ impl Ray {
         self.differentials.is_some()
     }
 }
+
+pub struct SurfaceInteraction {}
