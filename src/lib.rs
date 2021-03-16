@@ -10,6 +10,7 @@ pub mod lights;
 pub mod materials;
 pub mod media;
 pub mod samplers;
+#[macro_use]
 pub mod shapes;
 pub mod textures;
 

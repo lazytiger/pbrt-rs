@@ -333,3 +333,5 @@ impl<'a, T: RealNum<T>> Mul<Normal3Ref<'a, T>> for &Transform<T> {
         )
     }
 }
+
+pub type Transformf = Transform<Float>;
