@@ -35,6 +35,8 @@ pub trait RealNum<T>:
     fn max(self, t: Self) -> Self;
     fn sqrt(self) -> Self;
     fn abs(self) -> Self;
+    fn delta() -> Self;
+    fn not_one(self) -> bool;
 }
 
 macro_rules! implement_real_num {
@@ -67,9 +69,17 @@ macro_rules! implement_real_num {
             fn abs(self) -> Self {
                 $t::abs(self)
             }
+
+            fn delta() -> Self {
+                $zero
+            }
+
+            fn not_one(self) -> bool {
+                self != $one
+            }
         }
     };
-    ($t:ident, $sqrt:ident; $zero:expr, $one:expr, $two:expr) => {
+    ($t:ident, $sqrt:ident; $zero:expr, $one:expr, $two:expr, $delta:expr) => {
         impl RealNum<$t> for $t {
             fn zero() -> Self {
                 $zero
@@ -98,12 +108,20 @@ macro_rules! implement_real_num {
             fn abs(self) -> Self {
                 $t::abs(self)
             }
+
+            fn delta() -> Self {
+                $delta
+            }
+
+            fn not_one(self) -> bool {
+                (self - $one).abs() > $delta
+            }
         }
     };
 }
 
-implement_real_num!(f32, f32; 0.0, 1.0, 2.0);
-implement_real_num!(f64, f64; 0.0, 1.0, 2.0);
+implement_real_num!(f32, f32; 0.0, 1.0, 2.0, 0.00001);
+implement_real_num!(f64, f64; 0.0, 1.0, 2.0, 0.00001);
 implement_real_num!(i8, Roots, 0, 1, 2);
 implement_real_num!(i16, Roots, 0, 1, 2);
 implement_real_num!(i32, Roots, 0, 1, 2);
