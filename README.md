@@ -1,6 +1,6 @@
 # pbrt-rs
 
-[![Build Status](https://travis-ci.com/lazytiger/pbrt-rs.svg?branch=master)](https://travis-ci.com/lazytiger/pbrt-rs)
+[![Build Status](https://img.shields.io/travis/com/lazytiger/pbrt-rs/main)](https://travis-ci.com/lazytiger/pbrt-rs)
 [![GitHub issues](https://img.shields.io/github/issues/lazytiger/pbrt-rs)](https://github.com/lazytiger/pbrt-rs/issues)
 [![GitHub license](https://img.shields.io/github/license/lazytiger/pbrt-rs)](https://github.com/lazytiger/pbrt-rs/blob/master/LICENSE)
 [![Releases](https://img.shields.io/github/v/release/lazytiger/pbrt-rs.svg?include_prereleases)](https://github.com/lazytiger/pbrt-rs/releases)
