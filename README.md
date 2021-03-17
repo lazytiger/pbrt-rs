@@ -64,3 +64,13 @@ You can find more detail examples in core::interaction module.
 * Polymorphism can be achieved by trait object. 
 So if we want some polymorphism we should always extract a trait,
 and implement it for all opaque types. You can find some example in shapes module.
+  
+* Generics is another approach when inheritance occurred in parameters. We can add a trait bound for functions like this
+```Rust
+pub trait Primitive {
+    fn world_bound(&self) -> Bounds3f;
+    fn intersect<T: Shape, P: Primitive>(&self, r: &Ray, si: &mut SurfaceInteraction<T, P>)
+        -> bool;
+    fn intersect_p(&self, r: &Ray) -> bool;
+}
+```
