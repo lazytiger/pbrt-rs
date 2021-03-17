@@ -1,7 +1,8 @@
 # pbrt-rs
 This is rust language port based on pbrt project.
 
-# Operators in C++ and How I implement in Rust
+### Operators in C++ and How I implement in Rust
+
 C++|Rust
 ---|----
 operator() | From
@@ -16,7 +17,7 @@ operator/= | DivAssign
 operator < | PartialOrd
 operator == | PartialEq
 
-# Inheritance in Rust and C++
+### Inheritance in Rust and C++
 Essentially, Rust is not an OOP language, so inheritance can't be fully implemented in rust, it can only be simulated.
 Inheritance has two key features, composition and polymorphism. 
 * Composition can be achieved by Deref trait, and the following code shows that.
