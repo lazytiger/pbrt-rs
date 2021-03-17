@@ -1,4 +1,4 @@
-use crate::Options;
+use crate::{Float, Options, PI};
 
 pub mod geometry;
 pub mod interaction;
@@ -157,4 +157,12 @@ macro_rules! inherit {
             }
         }
     };
+}
+
+pub fn radians(deg: Float) -> Float {
+    PI / 180.0 * deg
+}
+
+pub fn degrees(rad: Float) -> Float {
+    180.0 / PI * rad
 }

@@ -412,6 +412,22 @@ pub type Point3i = Point3<i32>;
 pub type Normal3<T> = Vector3<T>;
 pub type Normal3f = Normal3<Float>;
 
+impl<T: RealNum<T>> Vector3<T> {
+    pub fn cross(&self, v: &Vector3<T>) -> Self {
+        let v1x = self.x;
+        let v1y = self.y;
+        let v1z = self.z;
+        let v2x = v.x;
+        let v2y = v.y;
+        let v2z = v.z;
+        Vector3::new(
+            v1y * v2z - v1z * v2y,
+            v1z * v2x - v1x * v2z,
+            v1x * v2y - v1y * v2x,
+        )
+    }
+}
+
 macro_rules! make_bounds {
     ($name:ident, $p:ident, $v:ident, $($field:ident),+) => {
         pub struct $name<T> {

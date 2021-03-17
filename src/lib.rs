@@ -14,10 +14,15 @@ pub mod samplers;
 pub mod shapes;
 pub mod textures;
 
-#[cfg(feature = "float64")]
-pub type Float = f64;
-#[cfg(not(feature = "float64"))]
-pub type Float = f32;
+cfg_if::cfg_if! {
+   if #[cfg(feature = "float64")] {
+        pub type Float = f64;
+        pub const PI: f64 = std::f64::consts::PI;
+   } else {
+        pub type Float = f32;
+        pub const PI: f32 = std::f32::consts::PI;
+   }
+}
 
 #[derive(Debug)]
 pub struct CropWindow {

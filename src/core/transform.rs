@@ -1,5 +1,5 @@
-use crate::core::geometry::{Normal3, Point3, Vector3};
-use crate::core::RealNum;
+use crate::core::geometry::{Normal3, Point3, Point3f, Vector3, Vector3f};
+use crate::core::{radians, RealNum};
 use crate::Float;
 use std::cmp::Ordering;
 use std::mem::swap;
@@ -154,6 +154,8 @@ impl<T: RealNum<T>> Mul for &Matrix4x4<T> {
         r
     }
 }
+
+pub type Matrix4x4f = Matrix4x4<Float>;
 
 impl<T: RealNum<T>> Mul for Matrix4x4<T> {
     type Output = Matrix4x4<T>;
@@ -335,3 +337,140 @@ impl<'a, T: RealNum<T>> Mul<Normal3Ref<'a, T>> for &Transform<T> {
 }
 
 pub type Transformf = Transform<Float>;
+
+impl Transformf {
+    pub fn translate(delta: &Vector3f) -> Self {
+        let m: Matrix4x4f = [
+            [1.0, 0.0, 0.0, delta.x],
+            [0.0, 1.0, 0.0, delta.y],
+            [0.0, 0.0, 1.0, delta.z],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+        .into();
+        let m_inv: Matrix4x4f = [
+            [1.0, 0.0, 0.0, -delta.x],
+            [0.0, 1.0, 0.0, -delta.y],
+            [0.0, 0.0, 1.0, -delta.z],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+        .into();
+        Self { m, m_inv }
+    }
+
+    pub fn scale(x: Float, y: Float, z: Float) -> Self {
+        let m: Matrix4x4f = [
+            [0.0, 0.0, 0.0, x],
+            [0.0, 0.0, 0.0, y],
+            [0.0, 0.0, 0.0, z],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+        .into();
+        let m_inv: Matrix4x4f = [
+            [1.0 / x, 0.0, 0.0, 0.0],
+            [0.0, 1.0 / y, 0.0, 0.0],
+            [0.0, 0.0, 1.0 / z, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+        .into();
+        Self { m, m_inv }
+    }
+
+    pub fn rotate_x(theta: Float) -> Self {
+        let theta = radians(theta);
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let m: Matrix4x4f = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, cos_theta, -sin_theta, 0.0],
+            [0.0, sin_theta, cos_theta, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+        .into();
+        m.into()
+    }
+
+    pub fn rotate_y(theta: Float) -> Self {
+        let theta = radians(theta);
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let m: Matrix4x4f = [
+            [cos_theta, 0.0, sin_theta, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [-sin_theta, 0.0, cos_theta, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+        .into();
+        m.into()
+    }
+
+    pub fn rotate_z(theta: Float) -> Self {
+        let theta = radians(theta);
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let m: Matrix4x4f = [
+            [cos_theta, -sin_theta, 0.0, 0.0],
+            [sin_theta, cos_theta, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+        .into();
+        m.into()
+    }
+
+    pub fn rotate(theta: Float, axis: &Vector3f) -> Self {
+        let a = axis.normalize();
+        let theta = radians(theta);
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let mut m = Matrix4x4f::new();
+        m.m[0][0] = a.x * a.y + (1.0 - a.x * a.x) * cos_theta;
+        m.m[0][1] = a.x * a.y * (1.0 - cos_theta) - a.z * sin_theta;
+        m.m[0][2] = a.x * a.z * (1.0 - cos_theta) + a.y * sin_theta;
+        m.m[0][3] = 0.0;
+
+        m.m[1][0] = a.x * a.y * (1.0 - cos_theta) + a.z * sin_theta;
+        m.m[1][1] = a.y * a.y + (1.0 - a.y * a.y) * cos_theta;
+        m.m[1][2] = a.y * a.z * (1.0 - cos_theta) - a.x * sin_theta;
+        m.m[1][3] = 0.0;
+
+        m.m[2][0] = a.x * a.z * (1.0 - cos_theta) - a.y * sin_theta;
+        m.m[2][1] = a.y * a.z * (1.0 - cos_theta) + a.x * sin_theta;
+        m.m[2][2] = a.z * a.z + (1.0 - a.z * a.z) * cos_theta;
+        m.m[2][3] = 0.0;
+
+        m.into()
+    }
+
+    pub fn look_at(pos: &Point3f, look: &Point3f, up: &Vector3f) -> Self {
+        let mut camera_to_world = Matrix4x4f::new();
+
+        camera_to_world.m[0][3] = pos.x;
+        camera_to_world.m[1][3] = pos.y;
+        camera_to_world.m[2][3] = pos.z;
+        camera_to_world.m[3][3] = 1.0;
+
+        let dir = (look - pos).normalize();
+        let right = up.normalize().cross(&dir);
+        if right.length() == 0.0 {
+            panic!("invalid parameter");
+        }
+
+        let right = right.normalize();
+        let up = dir.cross(&right);
+
+        camera_to_world.m[0][0] = right.x;
+        camera_to_world.m[1][0] = right.y;
+        camera_to_world.m[2][0] = right.z;
+        camera_to_world.m[3][0] = 0.;
+        camera_to_world.m[0][1] = up.x;
+        camera_to_world.m[1][1] = up.y;
+        camera_to_world.m[2][1] = up.z;
+        camera_to_world.m[3][1] = 0.;
+        camera_to_world.m[0][2] = dir.x;
+        camera_to_world.m[1][2] = dir.y;
+        camera_to_world.m[2][2] = dir.z;
+        camera_to_world.m[3][2] = 0.;
+
+        (camera_to_world.inverse(), camera_to_world).into()
+    }
+}
