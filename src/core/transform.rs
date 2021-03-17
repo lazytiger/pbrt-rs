@@ -1,9 +1,12 @@
-use crate::core::geometry::{Normal3, Point3, Point3f, Vector3, Vector3f};
+use crate::core::geometry::{
+    Bounds3f, Normal3, Point3, Point3f, SurfaceInteraction, Vector3, Vector3f,
+};
 use crate::core::{radians, RealNum};
-use crate::Float;
+use crate::{Float, PI};
+use num::zero;
 use std::cmp::Ordering;
 use std::mem::swap;
-use std::ops::Mul;
+use std::ops::{Add, Mul, Sub};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Matrix4x4<T> {
@@ -472,5 +475,269 @@ impl Transformf {
         camera_to_world.m[3][2] = 0.;
 
         (camera_to_world.inverse(), camera_to_world).into()
+    }
+
+    pub fn swap_handedness(&self) -> bool {
+        let m = &self.m.m;
+        let det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+            - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+            + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+        det < 0.0
+    }
+
+    pub fn orthographic(near: Float, far: Float) -> Self {
+        &Self::scale(1.0, 1.0, 1.0 / (far - near))
+            * &Self::translate(&Vector3f::new(0.0, 0.0, -near))
+    }
+
+    pub fn perspective(fov: Float, n: Float, f: Float) -> Self {
+        let persp: Matrix4x4f = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, f / (f - n), -f * n / (f - n)],
+            [0.0, 0.0, 1.0, 0.0],
+        ]
+        .into();
+        let inv_tan_ang = 1.0 / (radians(fov) / 2.0).tan();
+        let trans: Transformf = persp.into();
+        &Self::scale(inv_tan_ang, inv_tan_ang, 1.0) * &trans
+    }
+}
+
+impl Mul<&Bounds3f> for &Transformf {
+    type Output = Bounds3f;
+
+    fn mul(self, rhs: &Bounds3f) -> Self::Output {
+        let p = Point3f::new(rhs.min.x, rhs.min.y, rhs.min.z);
+        let p = self * Point3Ref(&p);
+        let ret: Bounds3f = p.into();
+
+        let p = Point3f::new(rhs.max.x, rhs.min.y, rhs.min.z);
+        let p = self * Point3Ref(&p);
+        let ret = ret.union_point(&p);
+
+        let p = Point3f::new(rhs.min.x, rhs.max.y, rhs.min.z);
+        let p = self * Point3Ref(&p);
+        let ret = ret.union_point(&p);
+
+        let p = Point3f::new(rhs.min.x, rhs.min.y, rhs.max.z);
+        let p = self * Point3Ref(&p);
+        let ret = ret.union_point(&p);
+
+        let p = Point3f::new(rhs.min.x, rhs.max.y, rhs.max.z);
+        let p = self * Point3Ref(&p);
+        let ret = ret.union_point(&p);
+
+        let p = Point3f::new(rhs.max.x, rhs.max.y, rhs.min.z);
+        let p = self * Point3Ref(&p);
+        let ret = ret.union_point(&p);
+
+        let p = Point3f::new(rhs.max.x, rhs.min.y, rhs.max.z);
+        let p = self * Point3Ref(&p);
+        let ret = ret.union_point(&p);
+
+        let p = Point3f::new(rhs.max.x, rhs.max.y, rhs.max.z);
+        let p = self * Point3Ref(&p);
+        let ret = ret.union_point(&p);
+
+        ret
+    }
+}
+
+impl Mul for &Transformf {
+    type Output = Transformf;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Transformf {
+            m: self.m * rhs.m,
+            m_inv: rhs.m_inv * self.m,
+        }
+    }
+}
+
+impl Mul<&SurfaceInteraction> for &Transformf {
+    type Output = SurfaceInteraction;
+
+    fn mul(self, rhs: &SurfaceInteraction) -> Self::Output {
+        //TODO
+        SurfaceInteraction {}
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Interval {
+    low: Float,
+    high: Float,
+}
+
+impl Interval {
+    pub fn new(v0: Float, v1: Float) -> Self {
+        Self {
+            low: v0.min(v1),
+            high: v0.max(v1),
+        }
+    }
+
+    pub fn sin(&self) -> Interval {
+        let mut sin_low = self.low.sin();
+        let mut sin_high = self.high.sin();
+        if sin_low > sin_high {
+            swap(&mut sin_low, &mut sin_high);
+        }
+        if self.low < PI / 2.0 && self.high > PI / 2.0 {
+            sin_high = 1.0;
+        }
+        if self.low < 3.0 / 2.0 * PI && self.high > 3.0 / 2.0 * PI {
+            sin_low = -1.0;
+        }
+        Self {
+            low: sin_low,
+            high: sin_high,
+        }
+    }
+
+    pub fn cos(&self) -> Interval {
+        let mut cos_low = self.low.cos();
+        let mut cos_high = self.high.cos();
+        if cos_low > cos_high {
+            swap(&mut cos_high, &mut cos_low);
+        }
+        if self.low > PI && self.high > PI {
+            cos_low = -1.0;
+        }
+        Interval {
+            low: cos_low,
+            high: cos_high,
+        }
+    }
+}
+
+impl Add for &Interval {
+    type Output = Interval;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            low: self.low + rhs.low,
+            high: self.high + rhs.high,
+        }
+    }
+}
+
+impl Add for Interval {
+    type Output = Interval;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        &self + &rhs
+    }
+}
+
+impl Sub for &Interval {
+    type Output = Interval;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            low: self.low - rhs.low,
+            high: self.high - rhs.high,
+        }
+    }
+}
+
+impl Sub for Interval {
+    type Output = Interval;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        &self - &rhs
+    }
+}
+
+impl Mul for &Interval {
+    type Output = Interval;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            low: (self.low * rhs.low)
+                .min(self.low * rhs.high)
+                .min(self.high * rhs.high)
+                .min(self.high * rhs.low),
+            high: (self.low * rhs.low)
+                .max(self.low * rhs.high)
+                .max(self.high * rhs.high)
+                .max(self.high * rhs.low),
+        }
+    }
+}
+
+impl Mul for Interval {
+    type Output = Interval;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        &self * &rhs
+    }
+}
+
+pub fn interval_find_zeros(
+    c1: Float,
+    c2: Float,
+    c3: Float,
+    c4: Float,
+    c5: Float,
+    theta: Float,
+    interval: Interval,
+    zeros: &mut Vec<Float>,
+    depth: i32,
+) {
+    let cc1 = Interval::new(c1, c1);
+    let cc2 = Interval::new(c2, c2);
+    let cc3 = Interval::new(c3, c3);
+    let cc4 = Interval::new(c4, c4);
+    let cc5 = Interval::new(c5, c5);
+    let theta2 = Interval::new(2.0 * theta, 2.0 * theta);
+    let range = cc1
+        + (cc2 + (cc3 * interval) * (theta2 * interval).cos())
+        + (cc4 + (cc5 * interval) * (theta2 * interval).sin());
+    if range.low > 0.0 || range.high < 0.0 || range.low == range.high {
+        return;
+    }
+    if depth > 0 {
+        let mid = (interval.high + interval.low) * 0.5;
+        interval_find_zeros(
+            c1,
+            c2,
+            c3,
+            c4,
+            c5,
+            theta,
+            Interval::new(interval.low, mid),
+            zeros,
+            depth - 1,
+        );
+        interval_find_zeros(
+            c1,
+            c2,
+            c3,
+            c4,
+            c5,
+            theta,
+            Interval::new(mid, interval.high),
+            zeros,
+            depth - 1,
+        );
+    } else {
+        let mut t_newton = (interval.low + interval.high) * 0.5;
+        for i in 0..4 {
+            let f_newton = c1
+                + (c2 + c3 * t_newton) * (2.0 * theta * t_newton).cos()
+                + (c4 + c5 * t_newton) * (2.0 * theta * t_newton).sin();
+            let f_prime_newton = (c3 + 2.0 * (c4 + c5 * t_newton) * theta)
+                * (2.0 * t_newton * theta).cos()
+                + (c5 - 2.0 * (c2 + c3 * t_newton) * theta) * (2.0 * t_newton * theta).sin();
+            if f_newton == 0.0 || f_prime_newton == 0.0 {
+                break;
+            }
+            t_newton = t_newton - f_newton / f_prime_newton;
+        }
+        if t_newton >= interval.low - 1e-3 && t_newton < interval.high + 1e-3 {
+            zeros.push(t_newton);
+        }
     }
 }

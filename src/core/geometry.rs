@@ -431,8 +431,8 @@ impl<T: RealNum<T>> Vector3<T> {
 macro_rules! make_bounds {
     ($name:ident, $p:ident, $v:ident, $($field:ident),+) => {
         pub struct $name<T> {
-            min: $p<T>,
-            max: $p<T>,
+            pub min: $p<T>,
+            pub max: $p<T>,
         }
 
         impl<T: RealNum<T>> $name<T> {
@@ -482,6 +482,20 @@ macro_rules! make_bounds {
             pub fn maximum_extent(&self) -> usize {
                 let diag = self.diagonal();
                 diag.max_dimension()
+            }
+
+            pub fn union_point(&self, p:&$p<T>) -> Self {
+                Self {
+                    min:self.min.min(p),
+                    max:self.max.max(p),
+                }
+            }
+
+            pub fn union(&self, b:&Self) -> Self {
+                Self {
+                    min:self.min.min(&b.min),
+                    max:self.max.max(&b.max),
+                }
             }
 
         }
