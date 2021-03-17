@@ -1,6 +1,9 @@
 use crate::Options;
 
 pub mod geometry;
+pub mod interaction;
+pub mod medium;
+pub mod primitive;
 pub mod shape;
 pub mod transform;
 
@@ -132,4 +135,26 @@ implement_real_num!(isize, Roots, 0, 1, 2);
 
 pub fn lerp<T: RealNum<T>>(t: T, v1: T, v2: T) -> T {
     (T::one() - t) * v1 + t * v2
+}
+
+#[macro_export]
+macro_rules! inherit {
+    ($child:ident, $base:ident, $field:ident) => {
+        impl Deref for $child {
+            type Target = $base;
+
+            fn deref(&self) -> &Self::Target {
+                &self.$field
+            }
+        }
+    };
+    ($child:ident, $base:ident, $field:ident, $bound:ident) => {
+        impl<T: $bound> Deref for $child<T> {
+            type Target = $base;
+
+            fn deref(&self) -> &Self::Target {
+                &self.$field
+            }
+        }
+    };
 }

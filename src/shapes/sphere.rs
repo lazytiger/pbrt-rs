@@ -7,6 +7,9 @@ pub struct Sphere {
     base: BaseShape,
 }
 
+/*
 impl Shape for Sphere {
     impl_base_shape!();
 }
+
+ */

@@ -3,7 +3,7 @@ use pbrt::core::geometry::{Point3, Point3f, Vector3f};
 use pbrt::core::transform::{Point3Ref, Transform};
 use pbrt::core::RealNum;
 use pbrt::Float;
-use std::ops::Mul;
+use std::ops::{Deref, Mul};
 
 #[test]
 fn test_vectors() {
@@ -139,5 +139,42 @@ fn macro_test() {
 fn test_matrix() {
     let t = Transform::<Float>::new();
     let p = Point3f::new(0.0, 0.0, 0.0);
-    let x: Point3f = t * Point3Ref(&p);
+    let x: Point3f = &t * Point3Ref(&p);
+}
+
+#[test]
+fn deref_test() {
+    struct Base {}
+
+    impl Base {
+        fn say_hello(&self) {
+            println!("Hello");
+        }
+    }
+
+    struct Upper {
+        base: Base,
+    }
+
+    impl Upper {
+        fn say_world(&self) {
+            println!("World");
+        }
+
+        fn say_hello(&self) {
+            println!("Hello, World");
+        }
+    }
+
+    impl Deref for Upper {
+        type Target = Base;
+
+        fn deref(&self) -> &Self::Target {
+            &self.base
+        }
+    }
+
+    let u = Upper { base: Base {} };
+    u.say_hello();
+    u.say_world();
 }
