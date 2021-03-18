@@ -1,10 +1,10 @@
 use crate::core::clamp;
 use crate::core::geometry::Vector3f;
-use crate::core::transform::Transformf;
+use crate::core::transform::{Matrix4x4f, Transformf};
 use crate::Float;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Quaternion {
     pub v: Vector3f,
     pub w: Float,
@@ -87,6 +87,14 @@ impl Mul<Float> for Quaternion {
     }
 }
 
+impl Mul for Quaternion {
+    type Output = Float;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.dot(&rhs)
+    }
+}
+
 impl MulAssign<Float> for Quaternion {
     fn mul_assign(&mut self, rhs: Float) {
         self.v *= rhs;
@@ -112,10 +120,20 @@ impl DivAssign<Float> for Quaternion {
     }
 }
 
-impl From<&Transformf> for Quaternion {
-    fn from(t: &Transformf) -> Self {
+impl Neg for Quaternion {
+    type Output = Quaternion;
+
+    fn neg(self) -> Self::Output {
+        Self::Output {
+            w: -self.w,
+            v: -self.v,
+        }
+    }
+}
+
+impl From<&Matrix4x4f> for Quaternion {
+    fn from(m: &Matrix4x4f) -> Self {
         let mut q = Quaternion::default();
-        let m = &t.m;
         let trace = m.m[0][0] + m.m[1][1] + m.m[2][2];
         if trace > 0.0 {
             let mut s = (trace + 1.0).sqrt();

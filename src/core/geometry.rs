@@ -55,7 +55,7 @@ macro_rules! make_component {
 macro_rules! make_vector {
     (struct $name:ident, $($field:ident),+) => {
 
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy, Clone, Default)]
         pub struct $name<T> {
             $(pub $field:T,)+
         }
