@@ -55,7 +55,7 @@ macro_rules! make_component {
 macro_rules! make_vector {
     (struct $name:ident, $($field:ident),+) => {
 
-        #[derive(Debug)]
+        #[derive(Debug, Copy, Clone)]
         pub struct $name<T> {
             $(pub $field:T,)+
         }
@@ -95,11 +95,11 @@ macro_rules! make_vector {
                 }
             }
 
-            pub fn dot(&self, v:&$name<T>) -> $name<T> {
+            pub fn dot(&self, v:&$name<T>) -> T {
                 self * v
             }
 
-            pub fn abs_dot(&self, v:&$name<T>) -> $name<T> {
+            pub fn abs_dot(&self, v:&$name<T>) -> T {
                 (self * v).abs()
             }
 
@@ -247,22 +247,18 @@ macro_rules! make_vector {
         }
 
         impl<T: RealNum<T>> Mul for $name<T> {
-            type Output = $name<T>;
+            type Output = T;
 
             fn mul(self, rhs: Self) -> Self::Output {
-                $name {
-                    $($field:self.$field * rhs.$field,)+
-                }
+                strip_plus!($(+ self.$field * rhs.$field)+)
             }
         }
 
         impl<T: RealNum<T>> Mul for &$name<T> {
-            type Output = $name<T>;
+            type Output = T;
 
             fn mul(self, rhs: Self) -> Self::Output {
-                $name {
-                    $($field:self.$field * rhs.$field,)+
-                }
+                strip_plus!($(+ self.$field * rhs.$field)+)
             }
         }
 
@@ -370,14 +366,6 @@ macro_rules! make_vector {
                     $($field: -self.$field,)+
                 }
             }
-        }
-
-        impl<T: RealNum<T>> Clone for $name<T> {
-               fn clone(&self) -> Self {
-                    Self {
-                        $($field:self.$field.clone(),)+
-                    }
-               }
         }
 
         impl<T> Index<usize> for $name<T> {

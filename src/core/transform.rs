@@ -1,6 +1,7 @@
 use crate::core::geometry::{
     Bounds3f, Normal3, Point3, Point3f, SurfaceInteraction, Vector3, Vector3f,
 };
+use crate::core::quaternion::Quaternion;
 use crate::core::{radians, RealNum};
 use crate::{Float, PI};
 use num::zero;
@@ -10,7 +11,7 @@ use std::ops::{Add, Mul, Sub};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Matrix4x4<T> {
-    m: [[T; 4]; 4],
+    pub m: [[T; 4]; 4],
 }
 
 impl<T: RealNum<T>> Matrix4x4<T> {
@@ -170,8 +171,8 @@ impl<T: RealNum<T>> Mul for Matrix4x4<T> {
 
 #[derive(PartialEq)]
 pub struct Transform<T> {
-    m: Matrix4x4<T>,
-    m_inv: Matrix4x4<T>,
+    pub m: Matrix4x4<T>,
+    pub m_inv: Matrix4x4<T>,
 }
 
 impl<T: RealNum<T>> Transform<T> {
@@ -561,6 +562,33 @@ impl Mul<&SurfaceInteraction> for &Transformf {
     fn mul(self, rhs: &SurfaceInteraction) -> Self::Output {
         //TODO
         SurfaceInteraction {}
+    }
+}
+
+impl From<&Quaternion> for Transformf {
+    fn from(q: &Quaternion) -> Self {
+        let xx = q.v.x * q.v.x;
+        let yy = q.v.y * q.v.y;
+        let zz = q.v.z * q.v.z;
+        let xy = q.v.x * q.v.y;
+        let xz = q.v.x * q.v.z;
+        let yz = q.v.y * q.v.z;
+        let wx = q.v.x * q.w;
+        let wy = q.v.y * q.w;
+        let wz = q.v.z * q.w;
+
+        let mut m = Matrix4x4f::new();
+        m.m[0][0] = 1.0 - 2.0 * (yy + zz);
+        m.m[0][1] = 2.0 * (xy + wz);
+        m.m[0][2] = 2.0 * (xz - wy);
+        m.m[1][0] = 2.0 * (xy - wz);
+        m.m[1][1] = 1.0 - 2.0 * (xx + zz);
+        m.m[1][2] = 2.0 * (yz + wx);
+        m.m[2][0] = 2.0 * (xz + wy);
+        m.m[2][1] = 2.0 * (yz - wx);
+        m.m[2][2] = 1.0 - 2.0 * (xx + yy);
+
+        (m.transpose(), m).into()
     }
 }
 

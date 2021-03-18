@@ -4,6 +4,7 @@ pub mod geometry;
 pub mod interaction;
 pub mod medium;
 pub mod primitive;
+pub mod quaternion;
 pub mod shape;
 pub mod transform;
 
@@ -165,4 +166,14 @@ pub fn radians(deg: Float) -> Float {
 
 pub fn degrees(rad: Float) -> Float {
     180.0 / PI * rad
+}
+
+pub fn clamp<T: RealNum<T>>(val: T, low: T, high: T) -> T {
+    if val < low {
+        low
+    } else if val > high {
+        high
+    } else {
+        val
+    }
 }
