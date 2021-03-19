@@ -1,4 +1,4 @@
-use crate::{Float, Options, PI};
+use crate::{Float, FloatUnion, Options, PI};
 
 pub mod geometry;
 pub mod interaction;
@@ -198,4 +198,41 @@ pub fn clamp<T: RealNum<T>>(val: T, low: T, high: T) -> T {
 
 pub fn gamma(n: Float) -> Float {
     n * Float::epsilon() / (1.0 - n * Float::epsilon())
+}
+
+pub fn next_float_up(mut n: Float) -> Float {
+    if n.is_infinite() && n > 0.0 {
+        return n;
+    }
+    if n == -0.0 {
+        n = 0.0;
+    }
+    let mut u = FloatUnion { f: n };
+    unsafe {
+        if n > 0.0 {
+            u.u += 1;
+        } else {
+            u.u -= 1;
+        }
+        u.f
+    }
+}
+
+pub fn next_float_down(mut n: Float) -> Float {
+    if n.is_infinite() && n < 0.0 {
+        return n;
+    }
+    if n == 0.0 {
+        n = -0.0;
+    }
+
+    let mut u = FloatUnion { f: n };
+    unsafe {
+        if n > 0.0 {
+            u.u -= 1;
+        } else {
+            u.u += 1;
+        }
+        u.f
+    }
 }

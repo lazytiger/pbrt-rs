@@ -11,12 +11,14 @@ pub struct Interaction {
     time: Float,
     error: Vector3f,
     wo: Vector3f,
+    n: Normal3f,
     medium_interface: MediumInterface,
 }
 
 impl Interaction {
     pub fn new(
         p: Point3f,
+        n: Normal3f,
         time: Float,
         error: Vector3f,
         wo: Vector3f,
@@ -24,11 +26,16 @@ impl Interaction {
     ) -> Self {
         Self {
             p,
+            n,
             time,
             error,
             wo,
             medium_interface,
         }
+    }
+
+    pub fn is_surface_interaction(&self) -> bool {
+        self.n != Normal3f::default()
     }
 }
 

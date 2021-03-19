@@ -3,8 +3,8 @@ use std::ops::{
 };
 
 use super::RealNum;
-use crate::core::gamma;
 use crate::core::transform::{AnimatedTransform, Point3Ref, Transformf};
+use crate::core::{gamma, next_float_down, next_float_up};
 use crate::Float;
 use num::Bounded;
 use std::mem::swap;
@@ -691,3 +691,20 @@ impl From<(&Transformf, &Ray)> for Ray {
 }
 
 pub struct SurfaceInteraction {}
+
+pub fn offset_ray_origin(p: &Point3f, p_error: &Vector3f, n: &Normal3f, w: &Vector3f) -> Point3f {
+    let d = n.abs().dot(p_error);
+    let mut offset = *n * d;
+    if w.dot(n) < 0.0 {
+        offset = -offset;
+    }
+    let mut po = *p + offset;
+    for i in 0..3 {
+        if offset[i] > 0.0 {
+            po[i] = next_float_up(po[i]);
+        } else if offset[i] < 0.0 {
+            po[i] = next_float_down(po[i]);
+        }
+    }
+    po
+}
