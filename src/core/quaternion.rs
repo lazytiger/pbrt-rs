@@ -131,8 +131,8 @@ impl Neg for Quaternion {
     }
 }
 
-impl From<&Matrix4x4f> for Quaternion {
-    fn from(m: &Matrix4x4f) -> Self {
+impl From<Matrix4x4f> for Quaternion {
+    fn from(m: Matrix4x4f) -> Self {
         let mut q = Quaternion::default();
         let trace = m.m[0][0] + m.m[1][1] + m.m[2][2];
         if trace > 0.0 {

@@ -1,8 +1,8 @@
 use crate::core::geometry::{
-    Bounds3f, Normal3, Point3, Point3f, SurfaceInteraction, Vector3, Vector3f,
+    Bounds3f, Normal3, Point3, Point3f, Ray, SurfaceInteraction, Vector3, Vector3f,
 };
 use crate::core::quaternion::Quaternion;
-use crate::core::{clamp, radians, RealNum};
+use crate::core::{clamp, lerp, radians, RealNum};
 use crate::{Float, PI};
 use num::zero;
 use std::cmp::Ordering;
@@ -169,7 +169,7 @@ impl<T: RealNum<T>> Mul for Matrix4x4<T> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy, Default)]
 pub struct Transform<T> {
     pub m: Matrix4x4<T>,
     pub m_inv: Matrix4x4<T>,
@@ -273,7 +273,7 @@ impl Matrix4x4f {
         }
 
         let s = r.inverse() * m;
-        let r: Quaternion = (&r).into();
+        let r: Quaternion = r.into();
         (t, r, s)
     }
 }
@@ -493,7 +493,7 @@ impl Transformf {
         camera_to_world.m[2][3] = pos.z;
         camera_to_world.m[3][3] = 1.0;
 
-        let dir = (look - pos).normalize();
+        let dir = (*look - *pos).normalize();
         let right = up.normalize().cross(&dir);
         if right.length() == 0.0 {
             panic!("invalid parameter");
@@ -527,8 +527,7 @@ impl Transformf {
     }
 
     pub fn orthographic(near: Float, far: Float) -> Self {
-        &Self::scale(1.0, 1.0, 1.0 / (far - near))
-            * &Self::translate(&Vector3f::new(0.0, 0.0, -near))
+        Self::scale(1.0, 1.0, 1.0 / (far - near)) * Self::translate(&Vector3f::new(0.0, 0.0, -near))
     }
 
     pub fn perspective(fov: Float, n: Float, f: Float) -> Self {
@@ -541,7 +540,7 @@ impl Transformf {
         .into();
         let inv_tan_ang = 1.0 / (radians(fov) / 2.0).tan();
         let trans: Transformf = persp.into();
-        &Self::scale(inv_tan_ang, inv_tan_ang, 1.0) * &trans
+        Self::scale(inv_tan_ang, inv_tan_ang, 1.0) * trans
     }
 }
 
@@ -585,7 +584,7 @@ impl Mul<&Bounds3f> for &Transformf {
     }
 }
 
-impl Mul for &Transformf {
+impl Mul for Transformf {
     type Output = Transformf;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -605,8 +604,8 @@ impl Mul<&SurfaceInteraction> for &Transformf {
     }
 }
 
-impl From<&Quaternion> for Transformf {
-    fn from(q: &Quaternion) -> Self {
+impl From<Quaternion> for Transformf {
+    fn from(q: Quaternion) -> Self {
         let xx = q.v.x * q.v.x;
         let yy = q.v.y * q.v.y;
         let zz = q.v.z * q.v.z;
@@ -1613,7 +1612,7 @@ impl AnimatedTransform {
 
             at.c1[2] = DerivativeTerm::new(
                 -t0z + t1z,
-                (qperpw * qperpy * s000
+                qperpw * qperpy * s000
                     - qperpx * qperpz * s000
                     - q0y * q0z * s010
                     - qperpw * qperpx * s010
@@ -1633,8 +1632,8 @@ impl AnimatedTransform {
                     + s120
                     - q0y * q0y * s120
                     - qperpx * qperpx * s120
-                    - qperpy * qperpy * s120),
-                (qperpw * qperpy * s001
+                    - qperpy * qperpy * s120,
+                qperpw * qperpy * s001
                     - qperpx * qperpz * s001
                     - q0y * q0z * s011
                     - qperpw * qperpx * s011
@@ -1654,8 +1653,8 @@ impl AnimatedTransform {
                     + s121
                     - q0y * q0y * s121
                     - qperpx * qperpx * s121
-                    - qperpy * qperpy * s121),
-                (qperpw * qperpy * s002
+                    - qperpy * qperpy * s121,
+                qperpw * qperpy * s002
                     - qperpx * qperpz * s002
                     - q0y * q0z * s012
                     - qperpw * qperpx * s012
@@ -1675,12 +1674,12 @@ impl AnimatedTransform {
                     + s122
                     - q0y * q0y * s122
                     - qperpx * qperpx * s122
-                    - qperpy * qperpy * s122),
+                    - qperpy * qperpy * s122,
             );
 
             at.c2[2] = DerivativeTerm::new(
                 0.,
-                (q0w * q0y * s000 - q0x * q0z * s000 - qperpw * qperpy * s000
+                q0w * q0y * s000 - q0x * q0z * s000 - qperpw * qperpy * s000
                     + qperpx * qperpz * s000
                     - q0w * q0x * s010
                     - q0y * q0z * s010
@@ -1711,8 +1710,8 @@ impl AnimatedTransform {
                     + 2.0 * q0z * qperpy * s010 * theta
                     + 2.0 * q0y * qperpz * s010 * theta
                     - 4.0 * q0x * qperpx * s020 * theta
-                    - 4.0 * q0y * qperpy * s020 * theta),
-                (q0w * q0y * s001 - q0x * q0z * s001 - qperpw * qperpy * s001
+                    - 4.0 * q0y * qperpy * s020 * theta,
+                q0w * q0y * s001 - q0x * q0z * s001 - qperpw * qperpy * s001
                     + qperpx * qperpz * s001
                     - q0w * q0x * s011
                     - q0y * q0z * s011
@@ -1743,8 +1742,8 @@ impl AnimatedTransform {
                     + 2.0 * q0z * qperpy * s011 * theta
                     + 2.0 * q0y * qperpz * s011 * theta
                     - 4.0 * q0x * qperpx * s021 * theta
-                    - 4.0 * q0y * qperpy * s021 * theta),
-                (q0w * q0y * s002 - q0x * q0z * s002 - qperpw * qperpy * s002
+                    - 4.0 * q0y * qperpy * s021 * theta,
+                q0w * q0y * s002 - q0x * q0z * s002 - qperpw * qperpy * s002
                     + qperpx * qperpz * s002
                     - q0w * q0x * s012
                     - q0y * q0z * s012
@@ -1775,7 +1774,7 @@ impl AnimatedTransform {
                     + 2.0 * q0z * qperpy * s012 * theta
                     + 2.0 * q0y * qperpz * s012 * theta
                     - 4.0 * q0x * qperpx * s022 * theta
-                    - 4.0 * q0y * qperpy * s022 * theta),
+                    - 4.0 * q0y * qperpy * s022 * theta,
             );
 
             at.c3[2] = DerivativeTerm::new(
@@ -1983,5 +1982,86 @@ impl AnimatedTransform {
             );
         }
         at
+    }
+
+    pub fn interpolate(&self, time: Float) -> Transformf {
+        let mut t: Transformf = Default::default();
+        if !self.actually_animated || time <= self.start_time {
+            t = self.start_transform;
+            return t;
+        }
+        if time >= self.end_time {
+            t = self.end_transform;
+            return t;
+        }
+        let dt = (time - self.start_time) / (self.end_time - self.start_time);
+        let trans = self.t[0] * (1.0 - dt) + self.t[1] * dt;
+        let rotate = self.r[0].slerp(dt, &self.r[1]);
+        let mut scale: Matrix4x4f = Default::default();
+        for i in 0..3 {
+            for j in 0..3 {
+                scale.m[i][j] = lerp(dt, self.s[0].m[i][j], self.s[1].m[i][j]);
+            }
+        }
+        let t = Transformf::translate(&trans);
+        let r: Transformf = rotate.into();
+        let s: Transformf = scale.into();
+        t * r * s
+    }
+
+    pub fn motion_bounds(&self, b: &Bounds3f) -> Bounds3f {
+        if !self.actually_animated {
+            &self.start_transform * b
+        } else if !self.has_rotation {
+            (&self.start_transform * b).union(&(&self.end_transform * b))
+        } else {
+            let mut bounds: Bounds3f = Default::default();
+            for corner in 0..8 {
+                bounds = bounds.union(&self.bound_point_motion(&b.corner(corner)));
+            }
+            bounds
+        }
+    }
+
+    pub fn bound_point_motion(&self, p: &Point3f) -> Bounds3f {
+        if !self.actually_animated {
+            (&self.start_transform * Point3Ref(p)).into()
+        } else {
+            let mut bounds: Bounds3f = Default::default();
+            bounds.min = &self.start_transform * Point3Ref(p);
+            bounds.max = &self.end_transform * Point3Ref(p);
+            bounds
+        }
+    }
+}
+
+impl Into<Ray> for (&AnimatedTransform, &Ray) {
+    fn into(self) -> Ray {
+        let at = self.0;
+        let r = self.1;
+        if !at.actually_animated || r.time <= at.start_time {
+            (&at.start_transform, r).into()
+        } else if r.time > at.end_time {
+            (&at.end_transform, r).into()
+        } else {
+            let t = at.interpolate(r.time);
+            (&t, r).into()
+        }
+    }
+}
+
+impl<'a> Into<Point3f> for (&AnimatedTransform, Float, Point3Ref<'a, f32>) {
+    fn into(self) -> Point3f {
+        let at = self.0;
+        let time = self.1;
+        let p = self.2;
+        if !at.actually_animated || time <= at.start_time {
+            &at.start_transform * p
+        } else if time > at.end_time {
+            &at.end_transform * p
+        } else {
+            let t = at.interpolate(time);
+            &t * p
+        }
     }
 }

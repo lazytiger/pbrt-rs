@@ -3,6 +3,7 @@ use std::ops::{
 };
 
 use super::RealNum;
+use crate::core::transform::Transformf;
 use crate::Float;
 use num::Bounded;
 
@@ -74,7 +75,7 @@ macro_rules! make_vector {
             }
 
             pub fn distance(&self, p:&$name<T>) -> T {
-                (self - p).length()
+                (*self - *p).length()
             }
 
             pub fn max_dimension(&self) -> usize {
@@ -96,15 +97,15 @@ macro_rules! make_vector {
             }
 
             pub fn dot(&self, v:&$name<T>) -> T {
-                self * v
+                *self * *v
             }
 
             pub fn abs_dot(&self, v:&$name<T>) -> T {
-                (self * v).abs()
+                self.dot(v).abs()
             }
 
             pub fn normalize(&self) -> $name<T> {
-                self / self.length()
+                *self / self.length()
             }
 
             pub fn min(&self, v: &$name<T>) -> $name<T> {
@@ -121,26 +122,6 @@ macro_rules! make_vector {
 
             pub fn permute(&self, $($field:usize),+) -> $name<T> {
                 $name::new($(self[$field]),+)
-            }
-        }
-
-        impl<T: RealNum<T>> Add for &$name<T> {
-            type Output = $name<T>;
-
-            fn add(self, rhs: Self) -> Self::Output {
-                $name {
-                    $($field:self.$field + rhs.$field,)+
-                }
-            }
-        }
-
-        impl<T: RealNum<T>> Add<T> for &$name<T> {
-            type Output = $name<T>;
-
-            fn add(self, rhs: T) -> Self::Output {
-                $name {
-                    $($field:self.$field + rhs,)+
-                }
             }
         }
 
@@ -170,25 +151,9 @@ macro_rules! make_vector {
             }
         }
 
-        impl<T: RealNum<T>> AddAssign<&$name<T>> for $name<T> {
-            fn add_assign(&mut self, rhs: &$name<T>) {
-                $(self.$field += rhs.$field;)+
-            }
-        }
-
         impl<T: RealNum<T>> AddAssign<T> for $name<T> {
             fn add_assign(&mut self, rhs: T) {
                 $(self.$field += rhs;)+
-            }
-        }
-
-        impl<T: RealNum<T>> Sub for &$name<T> {
-            type Output = $name<T>;
-
-            fn sub(self, rhs: Self) -> Self::Output {
-                $name {
-                    $($field:self.$field - rhs.$field,)+
-                }
             }
         }
 
@@ -212,16 +177,6 @@ macro_rules! make_vector {
             }
         }
 
-        impl<T: RealNum<T>> Sub<T> for &$name<T> {
-            type Output = $name<T>;
-
-            fn sub(self, rhs: T) -> Self::Output {
-                $name {
-                    $($field:self.$field - rhs,)+
-                }
-            }
-        }
-
         impl<T: RealNum<T>> SubAssign for $name<T> {
             fn sub_assign(&mut self, rhs: Self) {
                 $(self.$field -= rhs.$field;)+
@@ -231,12 +186,6 @@ macro_rules! make_vector {
         impl<T: RealNum<T>> SubAssign<T> for $name<T> {
             fn sub_assign(&mut self, rhs: T) {
                 $(self.$field -= rhs;)+
-            }
-        }
-
-        impl<T: RealNum<T>> SubAssign<&$name<T>> for $name<T> {
-            fn sub_assign(&mut self, rhs: &$name<T>) {
-                $(self.$field -= rhs.$field;)+
             }
         }
 
@@ -254,25 +203,7 @@ macro_rules! make_vector {
             }
         }
 
-        impl<T: RealNum<T>> Mul for &$name<T> {
-            type Output = T;
-
-            fn mul(self, rhs: Self) -> Self::Output {
-                strip_plus!($(+ self.$field * rhs.$field)+)
-            }
-        }
-
         impl<T: RealNum<T>> Mul<T> for $name<T> {
-            type Output = $name<T>;
-
-            fn mul(self, rhs: T) -> Self::Output {
-                $name {
-                    $($field:self.$field * rhs,)+
-                }
-            }
-        }
-
-        impl<T: RealNum<T>> Mul<T> for &$name<T> {
             type Output = $name<T>;
 
             fn mul(self, rhs: T) -> Self::Output {
@@ -294,23 +225,7 @@ macro_rules! make_vector {
             }
         }
 
-        impl<T: RealNum<T>> MulAssign<&$name<T>> for $name<T> {
-            fn mul_assign(&mut self, rhs: &$name<T>) {
-                $(self.$field *= rhs.$field;)+
-            }
-        }
-
         impl<T: RealNum<T>> Div for $name<T> {
-            type Output = $name<T>;
-
-            fn div(self, rhs: Self) -> Self::Output {
-                $name {
-                    $($field:self.$field / rhs.$field,)+
-                }
-            }
-        }
-
-        impl<T: RealNum<T>> Div for &$name<T> {
             type Output = $name<T>;
 
             fn div(self, rhs: Self) -> Self::Output {
@@ -330,16 +245,6 @@ macro_rules! make_vector {
             }
         }
 
-        impl<T: RealNum<T>> Div<T> for &$name<T> {
-            type Output = $name<T>;
-
-            fn div(self, rhs: T) -> Self::Output {
-                $name {
-                    $($field:self.$field / rhs,)+
-                }
-            }
-        }
-
         impl<T: RealNum<T>> DivAssign for $name<T> {
             fn div_assign(&mut self, rhs: Self) {
                 $(self.$field /= rhs.$field;)+
@@ -349,12 +254,6 @@ macro_rules! make_vector {
         impl<T: RealNum<T>> DivAssign<T> for $name<T> {
             fn div_assign(&mut self, rhs: T) {
                 $(self.$field /= rhs;)+
-            }
-        }
-
-        impl<T: RealNum<T>> DivAssign<&$name<T>> for $name<T> {
-            fn div_assign(&mut self, rhs: &$name<T>) {
-                $(self.$field /= rhs.$field;)+
             }
         }
 
@@ -418,6 +317,7 @@ impl<T: RealNum<T>> Vector3<T> {
 
 macro_rules! make_bounds {
     ($name:ident, $p:ident, $v:ident, $($field:ident),+) => {
+        #[derive(Copy, Clone)]
         pub struct $name<T> {
             pub min: $p<T>,
             pub max: $p<T>,
@@ -436,7 +336,7 @@ macro_rules! make_bounds {
             }
 
             pub fn diagonal(&self) -> $v<T> {
-                &self.max - &self.min
+                self.max - self.min
             }
 
             pub fn lerp(&self, t: &$p<T>) -> $p<T> {
@@ -446,7 +346,7 @@ macro_rules! make_bounds {
             }
 
             pub fn offset(&self, p: &$p<T>) -> $v<T> {
-                let mut o = p - &self.min;
+                let mut o = *p - self.min;
 
                 $(if self.max.$field > self.min.$field {
                     o.$field /= self.max.$field - self.min.$field;
@@ -459,7 +359,7 @@ macro_rules! make_bounds {
             }
 
             pub fn bounding_sphere(&self, c: &mut $p<T>, rad: &mut T) {
-                *c = (&self.min + &self.max) / T::two();
+                *c = (self.min + self.max) / T::two();
                 if self.inside(c) {
                     *rad = c.distance(&self.max);
                 } else {
@@ -528,6 +428,12 @@ macro_rules! make_bounds {
                 }
             }
         }
+
+        impl<T: RealNum<T>> Default for $name<T> {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
     };
 }
 
@@ -563,11 +469,11 @@ pub struct Differentials {
 }
 
 pub struct Ray {
-    o: Point3f,
-    d: Vector3f,
+    pub o: Point3f,
+    pub d: Vector3f,
     pub t_max: Float,
-    time: Float,
-    differentials: Option<Differentials>,
+    pub time: Float,
+    pub differentials: Option<Differentials>,
 }
 
 impl Ray {
@@ -600,20 +506,28 @@ impl Ray {
     }
 
     pub fn point(&self, t: Float) -> Point3f {
-        &self.o + &(&self.d * t)
+        self.o + (self.d * t)
     }
 
     pub fn scale_differentials(&mut self, s: Float) {
         if let Some(diff) = self.differentials.as_mut() {
-            diff.rx_origin = &self.o + &((&diff.rx_origin - &self.o) * s);
-            diff.ry_origin = &self.o + &((&diff.ry_origin - &self.o) * s);
-            diff.rx_direction = &self.d + &((&diff.rx_direction - &self.d) * s);
-            diff.ry_direction = &self.d + &((&diff.ry_direction - &self.d) * s);
+            diff.rx_origin = self.o + ((diff.rx_origin - self.o) * s);
+            diff.ry_origin = self.o + ((diff.ry_origin - self.o) * s);
+            diff.rx_direction = self.d + ((diff.rx_direction - self.d) * s);
+            diff.ry_direction = self.d + ((diff.ry_direction - self.d) * s);
         }
     }
 
     pub fn has_differentials(&self) -> bool {
         self.differentials.is_some()
+    }
+}
+
+impl From<(&Transformf, &Ray)> for Ray {
+    fn from(data: (&Transformf, &Ray)) -> Self {
+        let t = data.0;
+        let r = data.1;
+        unimplemented!()
     }
 }
 
