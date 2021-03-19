@@ -28,7 +28,7 @@ Essentially, Rust is not an OOP language, so inheritance can't be fully implemen
 Inheritance has two key features, composition and polymorphism. 
 * Composition can be achieved by Deref trait, and the following code shows that.
 ```Rust
-[test]
+#[test]
 fn deref_test() {
 struct Base {}
 
