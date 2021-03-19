@@ -42,6 +42,8 @@ pub trait RealNum<T>:
     fn abs(self) -> Self;
     fn delta() -> Self;
     fn not_one(self) -> bool;
+    fn floor(self) -> Self;
+    fn ceil(self) -> Self;
 }
 
 macro_rules! implement_real_num {
@@ -82,6 +84,14 @@ macro_rules! implement_real_num {
             fn not_one(self) -> bool {
                 self != $one
             }
+
+            fn floor(self) -> Self {
+                self
+            }
+
+            fn ceil(self) -> Self {
+                self
+            }
         }
     };
     ($t:ident, $sqrt:ident; $zero:expr, $one:expr, $two:expr, $delta:expr) => {
@@ -120,6 +130,14 @@ macro_rules! implement_real_num {
 
             fn not_one(self) -> bool {
                 (self - $one).abs() > $delta
+            }
+
+            fn floor(self) -> Self {
+                self.floor()
+            }
+
+            fn ceil(self) -> Self {
+                self.ceil()
             }
         }
     };
@@ -176,4 +194,8 @@ pub fn clamp<T: RealNum<T>>(val: T, low: T, high: T) -> T {
     } else {
         val
     }
+}
+
+pub fn gamma(n: Float) -> Float {
+    n * Float::epsilon() / (1.0 - n * Float::epsilon())
 }

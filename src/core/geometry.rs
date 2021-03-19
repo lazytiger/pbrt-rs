@@ -3,9 +3,11 @@ use std::ops::{
 };
 
 use super::RealNum;
-use crate::core::transform::Transformf;
+use crate::core::gamma;
+use crate::core::transform::{AnimatedTransform, Point3Ref, Transformf};
 use crate::Float;
 use num::Bounded;
+use std::mem::swap;
 
 macro_rules! strip_plus {
     (+ $($rest:expr)+) => {
@@ -78,6 +80,10 @@ macro_rules! make_vector {
                 (*self - *p).length()
             }
 
+            pub fn distance_square(&self, p:&$name<T>) -> T {
+                (*self - *p).length_squared()
+            }
+
             pub fn max_dimension(&self) -> usize {
                 make_extent!(self, $($field),+)
             }
@@ -122,6 +128,22 @@ macro_rules! make_vector {
 
             pub fn permute(&self, $($field:usize),+) -> $name<T> {
                 $name::new($(self[$field]),+)
+            }
+
+            pub fn lerp(&self, t:T, v:$name<T>) -> $name<T> {
+                *self * (T::one()-t) + v * t
+            }
+
+            pub fn floor(&self) -> $name<T> {
+                Self {
+                    $($field: self.$field.floor()),+
+                }
+            }
+
+            pub fn ceil(&self) -> $name<T> {
+                Self {
+                    $($field: self.$field.ceil()),+
+                }
             }
         }
 
@@ -313,6 +335,44 @@ impl<T: RealNum<T>> Vector3<T> {
             v1x * v2y - v1y * v2x,
         )
     }
+
+    pub fn coordinate_system(&self) -> (Vector3<T>, Vector3<T>) {
+        let v2 = if self.x.abs() > self.y.abs() {
+            Vector3::new(-self.z, T::zero(), self.x).normalize()
+        } else {
+            Vector3::new(T::zero(), self.z, -self.y).normalize()
+        };
+        let v3 = self.cross(&v2);
+        (v2, v3)
+    }
+
+    pub fn face_forward(&self, v: Vector3<T>) -> Vector3<T> {
+        if self.dot(&v) < T::zero() {
+            -v
+        } else {
+            v
+        }
+    }
+}
+
+impl<'a> From<(&AnimatedTransform, Float, Point3Ref<'a, f32>)> for Point3f {
+    fn from(data: (&AnimatedTransform, f32, Point3Ref<'_, f32>)) -> Self {
+        let at = data.0;
+        let time = data.1;
+        let p = data.2;
+        if !at.actually_animated || time <= at.start_time {
+            &at.start_transform * p
+        } else if time > at.end_time {
+            &at.end_transform * p
+        } else {
+            let t = at.interpolate(time);
+            &t * p
+        }
+    }
+}
+
+pub trait Union<T> {
+    fn union(&self, u: T) -> Self;
 }
 
 macro_rules! make_bounds {
@@ -372,20 +432,58 @@ macro_rules! make_bounds {
                 diag.max_dimension()
             }
 
-            pub fn union_point(&self, p:&$p<T>) -> Self {
+            pub fn intersect(&self, b:&Self) -> Self {
                 Self {
-                    min:self.min.min(p),
-                    max:self.max.max(p),
+                    min:self.min.max(&b.min),
+                    max:self.max.min(&b.max),
                 }
             }
 
-            pub fn union(&self, b:&Self) -> Self {
+            pub fn overlaps(&self, b:&Self) -> bool {
+                $(if self.max.$field < b.min.x || self.min.x > b.max.x { return false })+
+                true
+            }
+
+            pub fn inside_exclusive(&self, p:&$p<T>) -> bool {
+                $(p.$field >= self.min.$field && p.$field < self.max.$field) && +
+            }
+
+            pub fn expand(&self, delta:T) -> Self {
+                let delta = $v {
+                    $($field:delta,)+
+                };
+                Self {
+                    min: self.min - delta,
+                    max: self.max + delta,
+                }
+            }
+
+            pub fn distance_squared(&self, p:&$p<T>) -> T {
+                $(let $field = T::zero().max(self.min.$field - p.$field).max(p.$field - self.max.$field);)+
+                strip_plus!($(+ $field * $field) +)
+            }
+
+            pub fn distance(&self, p:&$p<T>) -> T {
+                self.distance_squared(p).sqrt()
+            }
+        }
+
+        impl<T: RealNum<T>> Union<&$name<T>> for $name<T> {
+            fn union(&self, b:&Self) -> Self {
                 Self {
                     min:self.min.min(&b.min),
                     max:self.max.max(&b.max),
                 }
             }
+        }
 
+        impl<T: RealNum<T>> Union<&$p<T>> for $name<T> {
+            fn union(&self, p:&$p<T>) -> Self {
+                Self {
+                    min:self.min.min(p),
+                    max:self.max.max(p),
+                }
+            }
         }
 
         impl<T: RealNum<T>> From<$p<T>> for $name<T> {
@@ -459,8 +557,86 @@ impl<T: RealNum<T>> Bounds3<T> {
         d.x * d.y * d.z
     }
 }
+
+pub trait IntersectP<T> {
+    type Output;
+    fn intersect(&self, data: T) -> Self::Output;
+}
+
+impl IntersectP<&Ray> for Bounds3f {
+    type Output = (bool, Float, Float);
+
+    fn intersect(&self, ray: &Ray) -> Self::Output {
+        let mut t0 = 0.0;
+        let mut t1 = ray.t_max;
+        for i in 0..3 {
+            let inv_ray_dir = 1.0 / ray.d[i];
+            let mut t_near = (self.min[i] - ray.o[i]) * inv_ray_dir;
+            let mut t_far = (self.max[i] - ray.o[i]) * inv_ray_dir;
+
+            if t_near > t_far {
+                swap(&mut t_near, &mut t_far);
+            }
+
+            t_far *= 1.0 + 2.0 * gamma(3.0);
+            if t_near > t0 {
+                t0 = t_near;
+            }
+            if t_far < t1 {
+                t1 = t_far;
+            }
+        }
+        (t0 > t1, t0, t1)
+    }
+}
+
+impl IntersectP<(&Ray, &Vector3f, [usize; 3])> for Bounds3f {
+    type Output = bool;
+
+    fn intersect(&self, data: (&Ray, &Vector3f, [usize; 3])) -> Self::Output {
+        let ray = data.0;
+        let inv_dir = data.1;
+        let dir_is_neg = data.2;
+
+        let mut t_min = (self[dir_is_neg[0]].x - ray.o.x) * inv_dir.x;
+        let mut t_max = (self[1 - dir_is_neg[0]].x - ray.o.x) * inv_dir.x;
+        let mut ty_min = (self[dir_is_neg[1]].y - ray.o.y) * inv_dir.y;
+        let mut ty_max = (self[1 - dir_is_neg[1]].y - ray.o.y) * inv_dir.y;
+
+        t_max *= 1.0 + 2.0 * gamma(3.0);
+        ty_max *= 1.0 + 2.0 * gamma(3.0);
+        if t_min > ty_max || ty_min > t_max {
+            return false;
+        }
+
+        if ty_min > t_min {
+            t_min = ty_min;
+        }
+        if ty_max < t_max {
+            t_max = ty_max;
+        }
+
+        let mut tz_min = (self[dir_is_neg[2]].z - ray.o.z) * inv_dir.z;
+        let mut tz_max = (self[1 - dir_is_neg[2]].z - ray.o.z) * inv_dir.z;
+
+        tz_max *= 1.0 + 2.0 + gamma(3.0);
+        if t_min > tz_max || tz_min > t_max {
+            return false;
+        }
+        if tz_min > t_min {
+            t_min = tz_min;
+        }
+        if tz_max < t_max {
+            t_max = tz_max;
+        }
+
+        t_min < ray.t_max && t_max > 0.0
+    }
+}
+
 pub type Bounds3f = Bounds3<Float>;
 
+#[derive(Copy, Clone, Default)]
 pub struct Differentials {
     rx_origin: Point3f,
     ry_origin: Point3f,
@@ -468,6 +644,7 @@ pub struct Differentials {
     ry_direction: Vector3f,
 }
 
+#[derive(Copy, Clone, Default)]
 pub struct Ray {
     pub o: Point3f,
     pub d: Vector3f,
@@ -477,24 +654,6 @@ pub struct Ray {
 }
 
 impl Ray {
-    pub fn default() -> Ray {
-        Ray {
-            o: Point3f {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
-            },
-            d: Vector3f {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
-            },
-            t_max: Float::max_value(),
-            time: 0.0,
-            differentials: None,
-        }
-    }
-
     pub fn new(o: Point3f, d: Vector3f, t_max: Float, time: Float) -> Ray {
         Ray {
             o,

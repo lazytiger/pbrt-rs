@@ -1,5 +1,5 @@
 use crate::core::geometry::{
-    Bounds3f, Normal3, Point3, Point3f, Ray, SurfaceInteraction, Vector3, Vector3f,
+    Bounds3f, Normal3, Point3, Point3f, Ray, SurfaceInteraction, Union, Vector3, Vector3f,
 };
 use crate::core::quaternion::Quaternion;
 use crate::core::{clamp, lerp, radians, RealNum};
@@ -554,31 +554,31 @@ impl Mul<&Bounds3f> for &Transformf {
 
         let p = Point3f::new(rhs.max.x, rhs.min.y, rhs.min.z);
         let p = self * Point3Ref(&p);
-        let ret = ret.union_point(&p);
+        let ret = ret.union(&p);
 
         let p = Point3f::new(rhs.min.x, rhs.max.y, rhs.min.z);
         let p = self * Point3Ref(&p);
-        let ret = ret.union_point(&p);
+        let ret = ret.union(&p);
 
         let p = Point3f::new(rhs.min.x, rhs.min.y, rhs.max.z);
         let p = self * Point3Ref(&p);
-        let ret = ret.union_point(&p);
+        let ret = ret.union(&p);
 
         let p = Point3f::new(rhs.min.x, rhs.max.y, rhs.max.z);
         let p = self * Point3Ref(&p);
-        let ret = ret.union_point(&p);
+        let ret = ret.union(&p);
 
         let p = Point3f::new(rhs.max.x, rhs.max.y, rhs.min.z);
         let p = self * Point3Ref(&p);
-        let ret = ret.union_point(&p);
+        let ret = ret.union(&p);
 
         let p = Point3f::new(rhs.max.x, rhs.min.y, rhs.max.z);
         let p = self * Point3Ref(&p);
-        let ret = ret.union_point(&p);
+        let ret = ret.union(&p);
 
         let p = Point3f::new(rhs.max.x, rhs.max.y, rhs.max.z);
         let p = self * Point3Ref(&p);
-        let ret = ret.union_point(&p);
+        let ret = ret.union(&p);
 
         ret
     }
@@ -828,11 +828,11 @@ impl DerivativeTerm {
 }
 
 pub struct AnimatedTransform {
-    start_transform: Transformf,
-    end_transform: Transformf,
-    start_time: Float,
-    end_time: Float,
-    actually_animated: bool,
+    pub(crate) start_transform: Transformf,
+    pub(crate) end_transform: Transformf,
+    pub(crate) start_time: Float,
+    pub(crate) end_time: Float,
+    pub(crate) actually_animated: bool,
     t: [Vector3f; 2],
     r: [Quaternion; 2],
     s: [Matrix4x4f; 2],
@@ -2003,10 +2003,7 @@ impl AnimatedTransform {
                 scale.m[i][j] = lerp(dt, self.s[0].m[i][j], self.s[1].m[i][j]);
             }
         }
-        let t = Transformf::translate(&trans);
-        let r: Transformf = rotate.into();
-        let s: Transformf = scale.into();
-        t * r * s
+        Transformf::translate(&trans) * Transformf::from(rotate) * Transformf::from(scale)
     }
 
     pub fn motion_bounds(&self, b: &Bounds3f) -> Bounds3f {
@@ -2030,6 +2027,30 @@ impl AnimatedTransform {
             let mut bounds: Bounds3f = Default::default();
             bounds.min = &self.start_transform * Point3Ref(p);
             bounds.max = &self.end_transform * Point3Ref(p);
+            let cos_theta = self.r[0] * self.r[1];
+            let theta = clamp(cos_theta, -1.0, 1.0).acos();
+            for c in 0..3 {
+                let mut zeros = Vec::new();
+                interval_find_zeros(
+                    self.c1[c].eval(p),
+                    self.c2[c].eval(p),
+                    self.c3[c].eval(p),
+                    self.c4[c].eval(p),
+                    self.c5[c].eval(p),
+                    theta,
+                    Interval::new(0.0, 1.0),
+                    &mut zeros,
+                    8,
+                );
+                for i in 0..zeros.len() {
+                    let pz = Point3f::from((
+                        self,
+                        lerp(zeros[i], self.start_time, self.end_time),
+                        Point3Ref(&p),
+                    ));
+                    bounds = bounds.union(&pz);
+                }
+            }
             bounds
         }
     }
@@ -2046,22 +2067,6 @@ impl Into<Ray> for (&AnimatedTransform, &Ray) {
         } else {
             let t = at.interpolate(r.time);
             (&t, r).into()
-        }
-    }
-}
-
-impl<'a> Into<Point3f> for (&AnimatedTransform, Float, Point3Ref<'a, f32>) {
-    fn into(self) -> Point3f {
-        let at = self.0;
-        let time = self.1;
-        let p = self.2;
-        if !at.actually_animated || time <= at.start_time {
-            &at.start_transform * p
-        } else if time > at.end_time {
-            &at.end_transform * p
-        } else {
-            let t = at.interpolate(time);
-            &t * p
         }
     }
 }
