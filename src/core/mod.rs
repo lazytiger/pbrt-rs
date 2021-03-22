@@ -2,10 +2,13 @@ use crate::{Float, FloatUnion, Options, PI};
 
 pub mod geometry;
 pub mod interaction;
+pub mod light;
+pub mod material;
 pub mod medium;
 pub mod primitive;
 pub mod quaternion;
 pub mod shape;
+pub mod spectrum;
 pub mod transform;
 
 pub fn pbrt_init(opts: &Options) {}
@@ -166,6 +169,12 @@ macro_rules! inherit {
                 &self.$field
             }
         }
+
+        impl DerefMut for $child {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.$field
+            }
+        }
     };
     ($child:ident, $base:ident, $field:ident, $bound:ident) => {
         impl<T: $bound> Deref for $child<T> {
@@ -209,7 +218,7 @@ pub fn next_float_up(mut n: Float) -> Float {
     }
     let mut u = FloatUnion { f: n };
     unsafe {
-        if n > 0.0 {
+        if n >= 0.0 {
             u.u += 1;
         } else {
             u.u -= 1;

@@ -18,6 +18,7 @@ cfg_if::cfg_if! {
    if #[cfg(feature = "float64")] {
         pub type Float = f64;
         pub const PI: f64 = std::f64::consts::PI;
+        pub const ShadowEpsilon:f64 = 0.0001;
         #[repr(C)]
         pub(crate) union FloatUnion  {
             f:f64,
@@ -26,6 +27,7 @@ cfg_if::cfg_if! {
    } else {
         pub type Float = f32;
         pub const PI: f32 = std::f32::consts::PI;
+        pub const SHADOW_EPSILON:f32 = 0.0001;
         #[repr(C)]
         pub(crate) union FloatUnion {
             f:f32,
