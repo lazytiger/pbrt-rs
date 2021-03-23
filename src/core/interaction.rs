@@ -7,6 +7,7 @@ use crate::Float;
 use crate::{inherit, SHADOW_EPSILON};
 use std::ops::{Deref, DerefMut};
 
+#[derive(Default)]
 pub struct Interaction {
     p: Point3f,
     time: Float,
@@ -88,6 +89,7 @@ struct Shading {
     dndv: Normal3f,
 }
 
+#[derive(Default)]
 pub struct SurfaceInteraction {
     base: Interaction,
     uv: Point2f,

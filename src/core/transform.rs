@@ -1,6 +1,5 @@
-use crate::core::geometry::{
-    Bounds3f, Normal3, Point3, Point3f, Ray, SurfaceInteraction, Union, Vector3, Vector3f,
-};
+use crate::core::geometry::{Bounds3f, Normal3, Point3, Point3f, Ray, Union, Vector3, Vector3f};
+use crate::core::interaction::SurfaceInteraction;
 use crate::core::quaternion::Quaternion;
 use crate::core::{clamp, lerp, radians, RealNum};
 use crate::{Float, PI};
@@ -600,7 +599,7 @@ impl Mul<&SurfaceInteraction> for &Transformf {
 
     fn mul(self, rhs: &SurfaceInteraction) -> Self::Output {
         //TODO
-        SurfaceInteraction {}
+        Default::default()
     }
 }
 

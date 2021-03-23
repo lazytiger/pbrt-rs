@@ -8,4 +8,5 @@ pub trait PhaseFunction {
 }
 pub struct Medium {}
 
+#[derive(Default)]
 pub struct MediumInterface {}

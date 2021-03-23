@@ -690,8 +690,6 @@ impl From<(&Transformf, &Ray)> for Ray {
     }
 }
 
-pub struct SurfaceInteraction {}
-
 pub fn offset_ray_origin(p: &Point3f, p_error: &Vector3f, n: &Normal3f, w: &Vector3f) -> Point3f {
     let d = n.abs().dot(p_error);
     let mut offset = *n * d;

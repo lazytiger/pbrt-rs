@@ -1,4 +1,5 @@
-use crate::core::geometry::{Bounds3, Bounds3f, Point3f, Ray, SurfaceInteraction};
+use crate::core::geometry::{Bounds3, Bounds3f, Point3f, Ray};
+use crate::core::interaction::SurfaceInteraction;
 use crate::core::transform::Transformf;
 use crate::Float;
 

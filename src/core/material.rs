@@ -1,4 +1,4 @@
-use crate::core::geometry::SurfaceInteraction;
+use crate::core::interaction::SurfaceInteraction;
 
 pub enum TransportMode {
     Radiance,

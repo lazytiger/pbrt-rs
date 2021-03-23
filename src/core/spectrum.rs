@@ -1,8 +1,16 @@
+use crate::Float;
+
 struct CoefficientSpectrum {}
 
-struct SampledSpectrum {}
+pub struct SampledSpectrum {}
 
-struct RGBSpectrum {}
+pub struct RGBSpectrum {}
+
+impl RGBSpectrum {
+    pub fn new(f: Float) -> RGBSpectrum {
+        RGBSpectrum {}
+    }
+}
 
 #[cfg(not(feature = "sampled_spectrum"))]
 pub type Spectrum = RGBSpectrum;
