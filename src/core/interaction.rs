@@ -100,7 +100,7 @@ pub struct SurfaceInteraction {
     dndv: Normal3f,
     shape: Option<Box<dyn Shape>>,
     shading: Shading,
-    primitive: Option<Box<dyn Primitive>>,
+    pub primitive: Option<&dyn Primitive>,
     dpdx: Vector3f,
     dpdy: Vector3f,
     dudx: Float,
@@ -182,7 +182,7 @@ impl SurfaceInteraction {
     }
 
     pub fn le(&self, w: &Vector3f) -> Spectrum {
-        if let Some(primitive) = &self.primitive {
+        if let Some(primitive) = self.primitive {
             let area = primitive.get_area_light();
             if let Some(area) = area {
                 return area.l(self, w);

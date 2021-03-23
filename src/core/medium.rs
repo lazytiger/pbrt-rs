@@ -4,6 +4,7 @@ use std::any::Any;
 use std::sync::Arc;
 
 pub trait PhaseFunction {
+    fn as_any(&self) -> &dyn Any;
     fn p(&self, wo: &Vector3f, wi: &Vector3f) -> Float;
     fn sample_p(&self, wo: &Vector3f, wi: &mut Vector3f, u: &Point2f) -> Float;
     fn to_string(&self) -> String;
