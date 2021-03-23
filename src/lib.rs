@@ -1,4 +1,7 @@
+#![feature(raw)]
 use clap::Clap;
+use std::any::Any;
+use std::raw::TraitObject;
 use std::str::FromStr;
 
 pub mod accelerators;
@@ -36,6 +39,12 @@ cfg_if::cfg_if! {
         }
         pub const ONEMINUSEPSILON:Float = 0.99999994;
    }
+}
+
+pub fn any_equal(a1: &dyn Any, a2: &dyn Any) -> bool {
+    let to1: TraitObject = unsafe { std::mem::transmute(a1) };
+    let to2: TraitObject = unsafe { std::mem::transmute(a2) };
+    to1.data == to2.data
 }
 
 #[derive(Debug)]

@@ -5,6 +5,7 @@ use crate::core::shape::Shape;
 use crate::core::spectrum::Spectrum;
 use crate::Float;
 use crate::{inherit, SHADOW_EPSILON};
+use std::env::home_dir;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Default)]
@@ -132,7 +133,7 @@ impl SurfaceInteraction {
                 time,
                 error,
                 wo,
-                MediumInterface {},
+                Default::default(),
             ),
             uv,
             dpdu,

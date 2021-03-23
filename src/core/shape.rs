@@ -4,10 +4,11 @@ use crate::core::lowdiscrepancy::radical_inverse;
 use crate::core::medium::MediumInterface;
 use crate::core::transform::Transformf;
 use crate::Float;
+use std::any::Any;
 
 pub trait Shape {
+    fn as_any(&self) -> &dyn Any;
     fn object_bound(&self) -> Bounds3f;
-
     fn world_bound(&self) -> Bounds3f {
         self.object_to_world() * &self.object_bound()
     }
@@ -60,7 +61,7 @@ pub trait Shape {
             0.0,
             Default::default(),
             Vector3f::new(0.0, 0.0, 1.0),
-            MediumInterface {},
+            Default::default(),
         );
         let mut solid_angle = 0.0;
         for i in 0..samples {

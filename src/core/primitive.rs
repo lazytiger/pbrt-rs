@@ -3,8 +3,10 @@ use crate::core::interaction::SurfaceInteraction;
 use crate::core::light::AreaLight;
 use crate::core::material::{Material, TransportMode};
 use crate::core::shape::Shape;
+use std::any::Any;
 
 pub trait Primitive {
+    fn as_any(&self) -> &dyn Any;
     fn world_bound(&self) -> Bounds3f;
     fn intersect(&self, r: &Ray, si: &mut SurfaceInteraction) -> bool;
     fn intersect_p(&self, r: &Ray) -> bool;
