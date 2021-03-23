@@ -3,6 +3,7 @@ use crate::{Float, FloatUnion, Options, PI};
 pub mod geometry;
 pub mod interaction;
 pub mod light;
+pub mod lowdiscrepancy;
 pub mod material;
 pub mod medium;
 pub mod primitive;

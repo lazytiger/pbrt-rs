@@ -9,12 +9,12 @@ use std::ops::{Deref, DerefMut};
 
 #[derive(Default)]
 pub struct Interaction {
-    p: Point3f,
-    time: Float,
-    error: Vector3f,
-    wo: Vector3f,
-    n: Normal3f,
-    medium_interface: MediumInterface,
+    pub p: Point3f,
+    pub time: Float,
+    pub error: Vector3f,
+    pub wo: Vector3f,
+    pub n: Normal3f,
+    pub medium_interface: MediumInterface,
 }
 
 pub trait SpawnRayTo<T> {

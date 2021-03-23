@@ -178,3 +178,6 @@ fn deref_test() {
     u.say_hello();
     u.say_world();
 }
+
+#[test]
+fn generic_test() {}

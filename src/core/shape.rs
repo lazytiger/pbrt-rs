@@ -1,29 +1,75 @@
-use crate::core::geometry::{Bounds3, Bounds3f, Point3f, Ray};
-use crate::core::interaction::SurfaceInteraction;
+use crate::core::geometry::{Bounds3, Bounds3f, Point2f, Point3f, Ray, Vector3f};
+use crate::core::interaction::{Interaction, SurfaceInteraction};
+use crate::core::lowdiscrepancy::radical_inverse;
+use crate::core::medium::MediumInterface;
 use crate::core::transform::Transformf;
 use crate::Float;
 
 pub trait Shape {
     fn object_bound(&self) -> Bounds3f;
+
     fn world_bound(&self) -> Bounds3f {
-        //self.object_to_world() * self.object_bound()
-        Bounds3f::new()
+        self.object_to_world() * &self.object_bound()
     }
-    fn intersect(
-        &self,
-        ray: &Ray,
-        hit: &mut Option<Float>,
-        isect: &mut Option<SurfaceInteraction>,
-        test_alpha_texture: bool,
-    ) -> bool;
+    fn intersect(&self, ray: &Ray, test_alpha_texture: bool) -> (bool, Float, SurfaceInteraction);
     fn intersect_p(&self, ray: &Ray, test_alpha_texture: bool) -> bool {
-        self.intersect(ray, &mut None, &mut None, test_alpha_texture)
+        let (ret, _, _) = self.intersect(ray, test_alpha_texture);
+        ret
+    }
+    fn area(&self) -> Float;
+    fn sample(&self, u: &Point2f) -> (Interaction, Float);
+    fn pdf(&self, si: &Interaction) -> Float {
+        1.0 / self.area()
+    }
+    fn sample2(&self, it: &Interaction, u: &Point2f) -> (Interaction, Float) {
+        let (intr, mut pdf) = self.sample(u);
+        let mut wi = intr.p - it.p;
+        if wi.length_squared() == 0.0 {
+            pdf = 0.0;
+        } else {
+            wi = wi.normalize();
+            pdf *= it.p.distance_square(&intr.p) / intr.n.abs_dot(&-wi);
+            if pdf.is_infinite() {
+                pdf = 0.0
+            }
+        }
+        (intr, pdf)
+    }
+    fn pdf2(&self, it: &Interaction, wi: &Vector3f) -> Float {
+        let ray = it.spawn_ray(wi);
+        let (ok, hit, isect_light) = self.intersect(&ray, false);
+        if !ok {
+            return 0.0;
+        }
+
+        let mut pdf =
+            it.p.distance_square(&isect_light.p) / (isect_light.n.abs_dot(&-*wi) * self.area());
+        if pdf.is_infinite() {
+            pdf = 0.0;
+        }
+        pdf
     }
     fn reverse_orientation(&self) -> bool;
     fn transform_swap_handedness(&self) -> bool;
     fn object_to_world(&self) -> &Transformf;
     fn world_to_object(&self) -> &Transformf;
-    fn solid_angle(&self, p: &Point3f, samples: i32) -> Float {
-        0.0
+    fn solid_angle(&self, p: &Point3f, samples: u64) -> Float {
+        let it = Interaction::new(
+            *p,
+            Default::default(),
+            0.0,
+            Default::default(),
+            Vector3f::new(0.0, 0.0, 1.0),
+            MediumInterface {},
+        );
+        let mut solid_angle = 0.0;
+        for i in 0..samples {
+            let u = Point2f::new(radical_inverse(0, i), radical_inverse(1, i));
+            let (it, pdf) = self.sample(&u);
+            if pdf > 0.0 && !self.intersect_p(&Ray::new(*p, it.p - *p, 0.999, 0.0), true) {
+                solid_angle += 1.0 / pdf;
+            }
+        }
+        solid_angle / samples as f32
     }
 }
