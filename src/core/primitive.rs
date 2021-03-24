@@ -4,6 +4,7 @@ use crate::core::light::AreaLight;
 use crate::core::material::{Material, TransportMode};
 use crate::core::medium::MediumInterface;
 use crate::core::shape::Shape;
+use crate::core::transform::{AnimatedTransform, Transform};
 use crate::Float;
 use std::any::Any;
 use std::marker::PhantomData;
@@ -72,15 +73,91 @@ impl Primitive for GeometricPrimitive {
     }
 
     fn intersect_p(&self, r: &Ray) -> bool {
-        unimplemented!()
+        self.shape.intersect_p(r, true)
     }
 
     fn get_area_light(&self) -> Option<Arc<Box<AreaLight>>> {
-        unimplemented!()
+        self.area_light.clone()
     }
 
     fn get_material(&self) -> Option<Arc<Box<Material>>> {
-        unimplemented!()
+        self.material.clone()
+    }
+
+    fn compute_scattering_functions(
+        &self,
+        si: &mut SurfaceInteraction,
+        mode: TransportMode,
+        allow_multiple_lobes: bool,
+    ) {
+        if let Some(material) = &self.material {
+            material.compute_scattering_functions(si, mode, allow_multiple_lobes);
+        }
+    }
+}
+
+struct TransformedPrimitive {
+    primitive: Option<Arc<Box<Primitive>>>,
+    primitive_to_world: AnimatedTransform,
+}
+
+impl TransformedPrimitive {
+    pub fn new(
+        primitive: Option<Arc<Box<Primitive>>>,
+        primitive_to_world: AnimatedTransform,
+    ) -> TransformedPrimitive {
+        TransformedPrimitive {
+            primitive,
+            primitive_to_world,
+        }
+    }
+}
+
+impl Primitive for TransformedPrimitive {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn world_bound(&self) -> Bounds3f {
+        if let Some(primitive) = &self.primitive {
+            self.primitive_to_world
+                .motion_bounds(&primitive.world_bound())
+        } else {
+            Default::default()
+        }
+    }
+
+    fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> bool {
+        let interpolate_prim_to_world = self.primitive_to_world.interpolate(r.time);
+        let mut ray = Ray::from((&interpolate_prim_to_world.inverse(), &*r));
+        if let Some(primitive) = &self.primitive {
+            if !primitive.intersect(&mut ray, si) {
+                return false;
+            }
+            r.t_max = ray.t_max;
+        }
+        if interpolate_prim_to_world.is_identify() {
+            *si = &interpolate_prim_to_world * &*si;
+        }
+        true
+    }
+
+    fn intersect_p(&self, r: &Ray) -> bool {
+        let interpolate_prim_to_world = self.primitive_to_world.interpolate(r.time);
+        let mut ray = Ray::from((&interpolate_prim_to_world.inverse(), &*r));
+        if let Some(primitive) = &self.primitive {
+            primitive.intersect_p(&ray)
+        } else {
+            false
+        }
+    }
+
+    fn get_area_light(&self) -> Option<Arc<Box<dyn AreaLight>>> {
+        None
+    }
+
+    fn get_material(&self) -> Option<Arc<Box<dyn Material>>> {
+        None
     }
 
     fn compute_scattering_functions(

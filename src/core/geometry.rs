@@ -1,10 +1,11 @@
 use std::ops::{
-    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
+    SubAssign,
 };
 
 use super::RealNum;
 use crate::core::medium::Medium;
-use crate::core::transform::{AnimatedTransform, Point3Ref, Transformf};
+use crate::core::transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref};
 use crate::core::{gamma, next_float_down, next_float_up};
 use crate::Float;
 use num::Bounded;
@@ -114,6 +115,10 @@ macro_rules! make_vector {
 
             pub fn normalize(&self) -> $name<T> {
                 *self / self.length()
+            }
+
+            pub fn has_nans(&self) -> bool {
+                $(self.$field.is_nan() )||+
             }
 
             pub fn min(&self, v: &$name<T>) -> $name<T> {
@@ -638,33 +643,39 @@ impl IntersectP<(&Ray, &Vector3f, [usize; 3])> for Bounds3f {
 
 pub type Bounds3f = Bounds3<Float>;
 
-#[derive(Copy, Clone, Default)]
-pub struct Differentials {
-    rx_origin: Point3f,
-    ry_origin: Point3f,
-    rx_direction: Vector3f,
-    ry_direction: Vector3f,
-}
-
 #[derive(Clone, Default)]
 pub struct Ray {
     pub o: Point3f,
     pub d: Vector3f,
     pub t_max: Float,
     pub time: Float,
-    pub differentials: Option<Differentials>,
     pub medium: Option<Arc<Box<Medium>>>,
 }
 
+#[derive(Clone, Default)]
+pub struct RayDifferentials {
+    base: Ray,
+    has_differentials: bool,
+    rx_origin: Point3f,
+    ry_origin: Point3f,
+    rx_direction: Vector3f,
+    ry_direction: Vector3f,
+}
+
 impl Ray {
-    pub fn new(o: Point3f, d: Vector3f, t_max: Float, time: Float) -> Ray {
+    pub fn new(
+        o: Point3f,
+        d: Vector3f,
+        t_max: Float,
+        time: Float,
+        medium: Option<Arc<Box<Medium>>>,
+    ) -> Ray {
         Ray {
             o,
             d,
             t_max,
             time,
-            differentials: None,
-            medium: None,
+            medium,
         }
     }
 
@@ -672,17 +683,69 @@ impl Ray {
         self.o + (self.d * t)
     }
 
-    pub fn scale_differentials(&mut self, s: Float) {
-        if let Some(diff) = self.differentials.as_mut() {
-            diff.rx_origin = self.o + ((diff.rx_origin - self.o) * s);
-            diff.ry_origin = self.o + ((diff.ry_origin - self.o) * s);
-            diff.rx_direction = self.d + ((diff.rx_direction - self.d) * s);
-            diff.ry_direction = self.d + ((diff.ry_direction - self.d) * s);
+    pub fn has_nans(&self) -> bool {
+        self.o.has_nans() || self.d.has_nans() && self.t_max.is_nan()
+    }
+}
+
+impl Deref for RayDifferentials {
+    type Target = Ray;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl DerefMut for RayDifferentials {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+
+impl RayDifferentials {
+    pub fn new(
+        o: Point3f,
+        d: Vector3f,
+        t_max: Float,
+        time: Float,
+        medium: Option<Arc<Box<Medium>>>,
+    ) -> RayDifferentials {
+        Self {
+            base: Ray::new(o, d, t_max, time, medium),
+            has_differentials: false,
+            rx_origin: Default::default(),
+            ry_origin: Default::default(),
+            rx_direction: Default::default(),
+            ry_direction: Default::default(),
         }
     }
+    pub fn scale_differentials(&mut self, s: Float) {
+        self.rx_origin = self.o + ((self.rx_origin - self.o) * s);
+        self.ry_origin = self.o + ((self.ry_origin - self.o) * s);
+        self.rx_direction = self.d + ((self.rx_direction - self.d) * s);
+        self.ry_direction = self.d + ((self.ry_direction - self.d) * s);
+    }
 
-    pub fn has_differentials(&self) -> bool {
-        self.differentials.is_some()
+    pub fn has_nans(&self) -> bool {
+        self.base.has_nans()
+            || self.has_differentials
+                && (self.rx_origin.has_nans()
+                    || self.rx_origin.has_nans()
+                    || self.rx_direction.has_nans()
+                    || self.ry_direction.has_nans())
+    }
+}
+
+impl From<Ray> for RayDifferentials {
+    fn from(ray: Ray) -> Self {
+        Self {
+            base: ray,
+            has_differentials: false,
+            rx_origin: Default::default(),
+            ry_origin: Default::default(),
+            rx_direction: Default::default(),
+            ry_direction: Default::default(),
+        }
     }
 }
 
@@ -690,7 +753,269 @@ impl From<(&Transformf, &Ray)> for Ray {
     fn from(data: (&Transformf, &Ray)) -> Self {
         let t = data.0;
         let r = data.1;
-        unimplemented!()
+        let mut o_error = Vector3f::default();
+        let mut o = Point3f::from((t, Point3Ref(&r.o), &mut o_error));
+        let d = t * Vector3Ref(&r.d);
+        let length_squared = d.length_squared();
+        let mut t_max = r.t_max;
+        if length_squared > 0.0 {
+            let dt = d.abs().dot(&o_error) / length_squared;
+            o += d * dt;
+            t_max -= dt;
+        }
+        Ray::new(o, d, t_max, r.time, r.medium.clone())
+    }
+}
+
+impl From<(&Transformf, &RayDifferentials)> for RayDifferentials {
+    fn from(data: (&Transformf, &RayDifferentials)) -> Self {
+        let t = data.0;
+        let r = data.1;
+        let tr = Ray::from((t, &r.base));
+        let mut ret = RayDifferentials::new(tr.o, tr.d, tr.t_max, tr.time, tr.medium);
+        ret.has_differentials = r.has_differentials;
+        ret.rx_origin = t * Point3Ref(&r.rx_origin);
+        ret.ry_origin = t * Point3Ref(&r.ry_origin);
+        ret.rx_direction = t * Vector3Ref(&r.rx_direction);
+        ret.ry_direction = t * Vector3Ref(&r.ry_direction);
+        ret
+    }
+}
+
+impl<'a, T: RealNum<T>> From<(&Transform<T>, Point3Ref<'a, T>, &mut Vector3<T>)> for Point3<T> {
+    fn from(data: (&Transform<T>, Point3Ref<'a, T>, &mut Vector3<T>)) -> Self {
+        let t = data.0;
+        let p = data.1 .0;
+        let p_error = data.2;
+
+        let x = p.x;
+        let y = p.y;
+        let z = p.z;
+
+        let xp = t.m.m[0][0] * x + t.m.m[0][1] * y + t.m.m[0][2] * z + t.m.m[0][3];
+        let yp = t.m.m[1][0] * x + t.m.m[1][1] * y + t.m.m[1][2] * z + t.m.m[1][3];
+        let zp = t.m.m[2][0] * x + t.m.m[2][1] * y + t.m.m[2][2] * z + t.m.m[2][3];
+        let wp = t.m.m[3][0] * x + t.m.m[3][1] * y + t.m.m[3][2] * z + t.m.m[3][3];
+
+        let x_abs_sum = (t.m.m[0][0] * x).abs()
+            + (t.m.m[0][1] * y).abs()
+            + (t.m.m[0][2] * z).abs()
+            + t.m.m[0][3].abs();
+        let y_abs_sum = (t.m.m[1][0] * x).abs()
+            + (t.m.m[1][1] * y).abs()
+            + (t.m.m[1][2] * z).abs()
+            + t.m.m[1][3].abs();
+        let z_abs_sum = (t.m.m[2][0] * x).abs()
+            + (t.m.m[2][1] * y).abs()
+            + (t.m.m[2][2] * z).abs()
+            + t.m.m[2][3].abs();
+        *p_error = Vector3::new(x_abs_sum, y_abs_sum, z_abs_sum) * gamma(T::three());
+        if wp == T::one() {
+            Point3::new(xp, yp, zp)
+        } else {
+            Point3::new(xp, yp, zp) / wp
+        }
+    }
+}
+
+impl<'a, T: RealNum<T>>
+    From<(
+        &Transform<T>,
+        Point3Ref<'a, T>,
+        &Vector3<T>,
+        &mut Vector3<T>,
+    )> for Point3<T>
+{
+    fn from(
+        data: (
+            &Transform<T>,
+            Point3Ref<'a, T>,
+            &Vector3<T>,
+            &mut Vector3<T>,
+        ),
+    ) -> Self {
+        let t = data.0;
+        let pt = data.1 .0;
+        let pt_error = data.2;
+        let abs_error = data.3;
+
+        let x = pt.x;
+        let y = pt.y;
+        let z = pt.z;
+
+        let xp = t.m.m[0][0] * x + t.m.m[0][1] * y + t.m.m[0][2] * z + t.m.m[0][3];
+        let yp = t.m.m[1][0] * x + t.m.m[1][1] * y + t.m.m[1][2] * z + t.m.m[1][3];
+        let zp = t.m.m[2][0] * x + t.m.m[2][1] * y + t.m.m[2][2] * z + t.m.m[2][3];
+        let wp = t.m.m[3][0] * x + t.m.m[3][1] * y + t.m.m[3][2] * z + t.m.m[3][3];
+        abs_error.x = (gamma(T::three()) + T::one())
+            * ((t.m.m[0][0] * pt_error.x).abs()
+                + (t.m.m[0][1] * pt_error.y).abs()
+                + (t.m.m[0][2] * pt_error.z).abs())
+            + gamma(T::three())
+                * ((t.m.m[0][0] * x).abs()
+                    + (t.m.m[0][1] * y).abs()
+                    + (t.m.m[0][2] * z).abs()
+                    + t.m.m[0][3].abs());
+        abs_error.y = (gamma(T::three()) + T::one())
+            * ((t.m.m[1][0] * pt_error.x).abs()
+                + (t.m.m[1][1] * pt_error.y).abs()
+                + (t.m.m[1][2] * pt_error.z).abs())
+            + gamma(T::three())
+                * ((t.m.m[1][0] * x).abs()
+                    + (t.m.m[1][1] * y).abs()
+                    + (t.m.m[1][2] * z).abs()
+                    + t.m.m[1][3].abs());
+        abs_error.z = (gamma(T::three()) + T::one())
+            * ((t.m.m[2][0] * pt_error.x).abs()
+                + (t.m.m[2][1] * pt_error.y).abs()
+                + (t.m.m[2][2] * pt_error.z).abs())
+            + gamma(T::three())
+                * ((t.m.m[2][0] * x).abs()
+                    + (t.m.m[2][1] * y).abs()
+                    + (t.m.m[2][2] * z).abs()
+                    + t.m.m[2][3].abs());
+
+        if wp == T::one() {
+            Point3::new(xp, yp, zp)
+        } else {
+            Point3::new(xp, yp, zp) / wp
+        }
+    }
+}
+
+impl<'a, T: RealNum<T>> From<(&Transform<T>, Vector3Ref<'a, T>, &mut Vector3<T>)> for Vector3<T> {
+    fn from(data: (&Transform<T>, Vector3Ref<'a, T>, &mut Vector3<T>)) -> Self {
+        let t = data.0;
+        let v = data.1 .0;
+        let abs_error = data.2;
+        let x = v.x;
+        let y = v.y;
+        let z = v.z;
+        abs_error.x = gamma(T::three())
+            * ((t.m.m[0][0] * x).abs() + (t.m.m[0][1] * y).abs() + (t.m.m[0][2] * z).abs());
+        abs_error.y = gamma(T::three())
+            * ((t.m.m[1][0] * x).abs() + (t.m.m[1][1] * y).abs() + (t.m.m[1][2] * z).abs());
+        abs_error.z = gamma(T::three())
+            * ((t.m.m[2][0] * x).abs() + (t.m.m[2][1] * y).abs() + (t.m.m[2][2] * z).abs());
+
+        let xp = t.m.m[0][0] * x + t.m.m[0][1] * y + t.m.m[0][2] * z;
+        let yp = t.m.m[1][0] * x + t.m.m[1][1] * y + t.m.m[1][2] * z;
+        let zp = t.m.m[2][0] * x + t.m.m[2][1] * y + t.m.m[2][2] * z;
+
+        Vector3::new(xp, yp, zp)
+    }
+}
+
+impl<'a, T: RealNum<T>>
+    From<(
+        &Transform<T>,
+        Vector3Ref<'a, T>,
+        &Vector3<T>,
+        &mut Vector3<T>,
+    )> for Vector3<T>
+{
+    fn from(
+        data: (
+            &Transform<T>,
+            Vector3Ref<'a, T>,
+            &Vector3<T>,
+            &mut Vector3<T>,
+        ),
+    ) -> Self {
+        let t = data.0;
+        let v = data.1 .0;
+        let v_error = data.2;
+        let abs_error = data.3;
+
+        let x = v.x;
+        let y = v.y;
+        let z = v.z;
+
+        let xp = t.m.m[0][0] * x + t.m.m[0][1] * y + t.m.m[0][2] * z;
+        let yp = t.m.m[1][0] * x + t.m.m[1][1] * y + t.m.m[1][2] * z;
+        let zp = t.m.m[2][0] * x + t.m.m[2][1] * y + t.m.m[2][2] * z;
+        abs_error.x = (gamma(T::three()) + T::one())
+            * ((t.m.m[0][0] * v_error.x).abs()
+                + (t.m.m[0][1] * v_error.y).abs()
+                + (t.m.m[0][2] * v_error.z).abs())
+            + gamma(T::three())
+                * ((t.m.m[0][0] * x).abs() + (t.m.m[0][1] * y).abs() + (t.m.m[0][2] * z).abs());
+        abs_error.y = (gamma(T::three()) + T::one())
+            * ((t.m.m[1][0] * v_error.x).abs()
+                + (t.m.m[1][1] * v_error.y).abs()
+                + (t.m.m[1][2] * v_error.z).abs())
+            + gamma(T::three())
+                * ((t.m.m[1][0] * x).abs() + (t.m.m[1][1] * y).abs() + (t.m.m[1][2] * z).abs());
+        abs_error.z = (gamma(T::three()) + T::one())
+            * ((t.m.m[2][0] * v_error.x).abs()
+                + (t.m.m[2][1] * v_error.y).abs()
+                + (t.m.m[2][2] * v_error.z).abs())
+            + gamma(T::three())
+                * ((t.m.m[2][0] * x).abs() + (t.m.m[2][1] * y).abs() + (t.m.m[2][2] * z).abs());
+
+        Vector3::new(xp, yp, zp)
+    }
+}
+
+impl From<(&Transformf, &Ray, &mut Vector3f, &mut Vector3f)> for Ray {
+    fn from(data: (&Transformf, &Ray, &mut Vector3f, &mut Vector3f)) -> Self {
+        let t = data.0;
+        let r = data.1;
+        let o_error = data.2;
+        let d_error = data.3;
+
+        let mut error = Vector3f::default();
+        let mut o = Point3f::from((t, Point3Ref(&r.o), &mut error));
+        *o_error = error;
+        let d = Vector3f::from((t, Vector3Ref(&r.d), d_error));
+        let t_max = r.t_max;
+        let length_squared = d.length_squared();
+        if length_squared > 0.0 {
+            let dt = d.abs().dot(o_error) / length_squared;
+            o += d * dt;
+        }
+        Ray::new(o, d, t_max, r.time, r.medium.clone())
+    }
+}
+
+impl
+    From<(
+        &Transformf,
+        &Ray,
+        &Vector3f,
+        &Vector3f,
+        &mut Vector3f,
+        &mut Vector3f,
+    )> for Ray
+{
+    fn from(
+        data: (
+            &Transformf,
+            &Ray,
+            &Vector3f,
+            &Vector3f,
+            &mut Vector3f,
+            &mut Vector3f,
+        ),
+    ) -> Self {
+        let t = data.0;
+        let r = data.1;
+        let o_error_in = data.2;
+        let d_error_in = data.3;
+        let o_error_out = data.4;
+        let d_error_out = data.5;
+
+        let mut error = Vector3f::default();
+        let mut o = Point3f::from((t, Point3Ref(&r.o), o_error_in, &mut error));
+        *o_error_out = error;
+        let d = Vector3f::from((t, Vector3Ref(&r.d), d_error_in, d_error_out));
+        let t_max = r.t_max;
+        let length_squared = d.length_squared();
+        if length_squared > 0.0 {
+            let dt = d.abs().dot(o_error_out) / length_squared;
+            o += d * dt;
+        }
+        Ray::new(o, d, t_max, r.time, r.medium.clone())
     }
 }
 

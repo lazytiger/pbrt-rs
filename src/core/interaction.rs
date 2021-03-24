@@ -50,7 +50,7 @@ impl Interaction {
 
     pub fn spawn_ray(&self, d: &Vector3f) -> Ray {
         let origin = offset_ray_origin(&self.p, &self.error, &self.n, d);
-        Ray::new(origin, *d, Float::INFINITY, self.time)
+        Ray::new(origin, *d, Float::INFINITY, self.time, None)
     }
 }
 
@@ -58,7 +58,7 @@ impl SpawnRayTo<Point3f> for Interaction {
     fn spawn_ray_to(&self, p2: Point3f) -> Ray {
         let d = p2 - self.p;
         let origin = offset_ray_origin(&self.p, &self.error, &self.n, &d);
-        Ray::new(origin, d, 1.0 - SHADOW_EPSILON, self.time)
+        Ray::new(origin, d, 1.0 - SHADOW_EPSILON, self.time, None)
     }
 }
 
@@ -67,7 +67,7 @@ impl SpawnRayTo<&Interaction> for Interaction {
         let origin = offset_ray_origin(&self.p, &self.error, &self.n, &(it.p - self.p));
         let target = offset_ray_origin(&it.p, &it.error, &it.n, &(origin - it.p));
         let d = target - origin;
-        Ray::new(origin, d, 1.0 - SHADOW_EPSILON, self.time)
+        Ray::new(origin, d, 1.0 - SHADOW_EPSILON, self.time, None)
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::{Float, FloatUnion, Options, PI};
 
+pub mod efloat;
 pub mod geometry;
 pub mod interaction;
 pub mod light;
@@ -39,6 +40,7 @@ pub trait RealNum<T>:
 {
     fn one() -> Self;
     fn two() -> Self;
+    fn three() -> Self;
     fn zero() -> Self;
     fn min(self, t: Self) -> Self;
     fn max(self, t: Self) -> Self;
@@ -48,10 +50,12 @@ pub trait RealNum<T>:
     fn not_one(self) -> bool;
     fn floor(self) -> Self;
     fn ceil(self) -> Self;
+    fn is_nan(self) -> bool;
+    fn machine_epsilon() -> Self;
 }
 
 macro_rules! implement_real_num {
-    ($t:ident, $sqrt:ident, $zero:expr, $one:expr, $two:expr) => {
+    ($t:ident, $sqrt:ident, $zero:expr, $one:expr, $two:expr, $three:expr) => {
         impl RealNum<$t> for $t {
             fn zero() -> Self {
                 $zero
@@ -63,6 +67,10 @@ macro_rules! implement_real_num {
 
             fn two() -> Self {
                 $two
+            }
+
+            fn three() -> Self {
+                $three
             }
 
             fn sqrt(self) -> Self {
@@ -96,9 +104,17 @@ macro_rules! implement_real_num {
             fn ceil(self) -> Self {
                 self
             }
+
+            fn is_nan(self) -> bool {
+                false
+            }
+
+            fn machine_epsilon() -> Self {
+                $zero
+            }
         }
     };
-    ($t:ident, $sqrt:ident; $zero:expr, $one:expr, $two:expr, $delta:expr) => {
+    ($t:ident, $sqrt:ident; $zero:expr, $one:expr, $two:expr, $three:expr, $delta:expr, $me:expr) => {
         impl RealNum<$t> for $t {
             fn zero() -> Self {
                 $zero
@@ -110,6 +126,10 @@ macro_rules! implement_real_num {
 
             fn two() -> Self {
                 $two
+            }
+
+            fn three() -> Self {
+                $three
             }
 
             fn sqrt(self) -> Self {
@@ -143,18 +163,26 @@ macro_rules! implement_real_num {
             fn ceil(self) -> Self {
                 self.ceil()
             }
+
+            fn is_nan(self) -> bool {
+                self.is_nan()
+            }
+
+            fn machine_epsilon() -> Self {
+                $me
+            }
         }
     };
 }
 
-implement_real_num!(f32, f32; 0.0, 1.0, 2.0, 0.00001);
-implement_real_num!(f64, f64; 0.0, 1.0, 2.0, 0.00001);
-implement_real_num!(i8, Roots, 0, 1, 2);
-implement_real_num!(i16, Roots, 0, 1, 2);
-implement_real_num!(i32, Roots, 0, 1, 2);
-implement_real_num!(i64, Roots, 0, 1, 2);
-implement_real_num!(i128, Roots, 0, 1, 2);
-implement_real_num!(isize, Roots, 0, 1, 2);
+implement_real_num!(f32, f32; 0.0, 1.0, 2.0, 3.0, 0.00001, f32::EPSILON * 0.5);
+implement_real_num!(f64, f64; 0.0, 1.0, 2.0, 3.0, 0.00001, f64::EPSILON * 0.5);
+implement_real_num!(i8, Roots, 0, 1, 2, 3);
+implement_real_num!(i16, Roots, 0, 1, 2, 3);
+implement_real_num!(i32, Roots, 0, 1, 2, 3);
+implement_real_num!(i64, Roots, 0, 1, 2, 3);
+implement_real_num!(i128, Roots, 0, 1, 2, 3);
+implement_real_num!(isize, Roots, 0, 1, 2, 3);
 
 pub fn lerp<T: RealNum<T>>(t: T, v1: T, v2: T) -> T {
     (T::one() - t) * v1 + t * v2
@@ -178,8 +206,8 @@ pub fn clamp<T: RealNum<T>>(val: T, low: T, high: T) -> T {
     }
 }
 
-pub fn gamma(n: Float) -> Float {
-    n * Float::epsilon() / (1.0 - n * Float::epsilon())
+pub fn gamma<T: RealNum<T>>(n: T) -> T {
+    n * T::machine_epsilon() / (T::one() - n * T::machine_epsilon())
 }
 
 pub fn next_float_up(mut n: Float) -> Float {

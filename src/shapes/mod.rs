@@ -27,5 +27,9 @@ macro_rules! impl_base_shape {
         fn transform_swap_handedness(&self) -> bool {
             self.base.transform_swap_handedness
         }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
     };
 }

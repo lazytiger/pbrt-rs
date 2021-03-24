@@ -32,6 +32,8 @@ cfg_if::cfg_if! {
         pub type Float = f32;
         pub const PI: f32 = std::f32::consts::PI;
         pub const SHADOW_EPSILON:f32 = 0.0001;
+        pub const EPSILON:f32 = f32::EPSILON;
+        pub const MACHINE_EPSILON:f32 = 0.5 * EPSILON;
         #[repr(C)]
         pub(crate) union FloatUnion {
             f:f32,

@@ -75,7 +75,7 @@ pub trait Shape {
         for i in 0..samples {
             let u = Point2f::new(radical_inverse(0, i), radical_inverse(1, i));
             let (it, pdf) = self.sample(&u);
-            if pdf > 0.0 && !self.intersect_p(&Ray::new(*p, it.p - *p, 0.999, 0.0), true) {
+            if pdf > 0.0 && !self.intersect_p(&Ray::new(*p, it.p - *p, 0.999, 0.0, None), true) {
                 solid_angle += 1.0 / pdf;
             }
         }
