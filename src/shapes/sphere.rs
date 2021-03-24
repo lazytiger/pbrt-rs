@@ -169,4 +169,8 @@ impl Shape for Sphere {
     fn sample(&self, u: &Point2f) -> (Interaction, f32) {
         unimplemented!()
     }
+
+    fn intersect_p(&self, r: &Ray, test_alpha_texture: bool) -> bool {
+        true
+    }
 }

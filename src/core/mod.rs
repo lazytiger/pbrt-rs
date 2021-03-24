@@ -1,4 +1,4 @@
-use crate::{Float, FloatUnion, Options, PI};
+use crate::{Float, FloatUnion, Integer, Options, PI};
 
 pub mod efloat;
 pub mod geometry;
@@ -20,6 +20,7 @@ pub fn pbrt_cleanup() {}
 use num::integer::Roots;
 use num::traits::real::Real;
 use num::Bounded;
+use std::intrinsics::transmute;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 pub trait RealNum<T>:
@@ -206,6 +207,8 @@ pub fn clamp<T: RealNum<T>>(val: T, low: T, high: T) -> T {
     }
 }
 
+/// (1+&epsilon;<sub>m</sub>)<sup>n</sup> can be tightly bounded to 1 + &theta;<sub>n</sub>,
+/// where &theta;<sub>n</sub> is this gamma function.
 pub fn gamma<T: RealNum<T>>(n: T) -> T {
     n * T::machine_epsilon() / (T::one() - n * T::machine_epsilon())
 }
@@ -217,6 +220,8 @@ pub fn next_float_up(mut n: Float) -> Float {
     if n == -0.0 {
         n = 0.0;
     }
+    // union may cause UB problem
+    /*
     let mut u = FloatUnion { f: n };
     unsafe {
         if n >= 0.0 {
@@ -225,6 +230,15 @@ pub fn next_float_up(mut n: Float) -> Float {
             u.u -= 1;
         }
         u.f
+    }
+     */
+    unsafe {
+        let u: Integer = transmute(n);
+        if n >= 0.0 {
+            transmute(u + 1)
+        } else {
+            transmute(u - 1)
+        }
     }
 }
 
@@ -236,6 +250,8 @@ pub fn next_float_down(mut n: Float) -> Float {
         n = -0.0;
     }
 
+    //union may cause UB problem
+    /*
     let mut u = FloatUnion { f: n };
     unsafe {
         if n > 0.0 {
@@ -244,5 +260,14 @@ pub fn next_float_down(mut n: Float) -> Float {
             u.u += 1;
         }
         u.f
+    }
+     */
+    unsafe {
+        let u: Integer = transmute(n);
+        if n > 0.0 {
+            transmute(u - 1)
+        } else {
+            transmute(u + 1)
+        }
     }
 }
