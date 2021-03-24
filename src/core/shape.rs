@@ -12,10 +12,17 @@ pub trait Shape {
     fn world_bound(&self) -> Bounds3f {
         self.object_to_world() * &self.object_bound()
     }
-    fn intersect(&self, ray: &Ray, test_alpha_texture: bool) -> (bool, Float, SurfaceInteraction);
+    fn intersect(
+        &self,
+        ray: &Ray,
+        hit: &mut Float,
+        si: &mut SurfaceInteraction,
+        test_alpha_texture: bool,
+    ) -> bool;
     fn intersect_p(&self, ray: &Ray, test_alpha_texture: bool) -> bool {
-        let (ret, _, _) = self.intersect(ray, test_alpha_texture);
-        ret
+        let mut hit: Float = 0.0;
+        let mut si: SurfaceInteraction = Default::default();
+        self.intersect(ray, &mut hit, &mut si, test_alpha_texture)
     }
     fn area(&self) -> Float;
     fn sample(&self, u: &Point2f) -> (Interaction, Float);
@@ -38,8 +45,9 @@ pub trait Shape {
     }
     fn pdf2(&self, it: &Interaction, wi: &Vector3f) -> Float {
         let ray = it.spawn_ray(wi);
-        let (ok, hit, isect_light) = self.intersect(&ray, false);
-        if !ok {
+        let mut hit: Float = 0.0;
+        let mut isect_light = Default::default();
+        if !self.intersect(&ray, &mut hit, &mut isect_light, false) {
             return 0.0;
         }
 

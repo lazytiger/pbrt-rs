@@ -160,34 +160,6 @@ pub fn lerp<T: RealNum<T>>(t: T, v1: T, v2: T) -> T {
     (T::one() - t) * v1 + t * v2
 }
 
-#[macro_export]
-macro_rules! inherit {
-    ($child:ident, $base:ident, $field:ident) => {
-        impl Deref for $child {
-            type Target = $base;
-
-            fn deref(&self) -> &Self::Target {
-                &self.$field
-            }
-        }
-
-        impl DerefMut for $child {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.$field
-            }
-        }
-    };
-    ($child:ident, $base:ident, $field:ident, $bound:ident) => {
-        impl<T: $bound> Deref for $child<T> {
-            type Target = $base;
-
-            fn deref(&self) -> &Self::Target {
-                &self.$field
-            }
-        }
-    };
-}
-
 pub fn radians(deg: Float) -> Float {
     PI / 180.0 * deg
 }

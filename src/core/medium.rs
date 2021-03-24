@@ -13,18 +13,18 @@ pub trait Medium {
     fn as_any(&self) -> &dyn Any;
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct MediumInterface {
     pub inside: Option<Arc<Box<dyn Medium>>>,
     pub outside: Option<Arc<Box<dyn Medium>>>,
 }
 
 impl MediumInterface {
-    pub fn new(inside: Arc<Box<dyn Medium>>, outside: Arc<Box<dyn Medium>>) -> MediumInterface {
-        MediumInterface {
-            inside: Some(inside),
-            outside: Some(outside),
-        }
+    pub fn new(
+        inside: Option<Arc<Box<dyn Medium>>>,
+        outside: Option<Arc<Box<dyn Medium>>>,
+    ) -> MediumInterface {
+        MediumInterface { inside, outside }
     }
 
     pub fn is_medium_transition(&self) -> bool {

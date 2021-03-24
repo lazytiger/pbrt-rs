@@ -4,16 +4,18 @@ use crate::core::light::AreaLight;
 use crate::core::material::{Material, TransportMode};
 use crate::core::medium::MediumInterface;
 use crate::core::shape::Shape;
+use crate::Float;
 use std::any::Any;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 pub trait Primitive {
     fn as_any(&self) -> &dyn Any;
     fn world_bound(&self) -> Bounds3f;
-    fn intersect(&self, r: &mut Ray) -> (bool, SurfaceInteraction);
+    fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> bool;
     fn intersect_p(&self, r: &Ray) -> bool;
-    fn get_area_light(&self) -> Option<&AreaLight>;
-    fn get_material(&self) -> Option<&Material>;
+    fn get_area_light(&self) -> Option<Arc<Box<AreaLight>>>;
+    fn get_material(&self) -> Option<Arc<Box<Material>>>;
     fn compute_scattering_functions(
         &self,
         si: &mut SurfaceInteraction,
@@ -54,24 +56,30 @@ impl Primitive for GeometricPrimitive {
         self.shape.world_bound()
     }
 
-    fn intersect(&self, r: &mut Ray) -> (bool, SurfaceInteraction) {
-        let (ok, hit, mut si) = self.shape.intersect(r, true);
-        if !ok {
-            return (false, si);
+    fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> (bool) {
+        let mut hit: Float = 0.0;
+        if !self.shape.intersect(r, &mut hit, si, true) {
+            return false;
         }
         r.t_max = hit;
         si.primitive = Some(self);
+        if self.medium_interface.is_medium_transition() {
+            si.medium_interface = self.medium_interface.clone();
+        } else {
+            si.medium_interface = MediumInterface::new(r.medium.clone(), r.medium.clone());
+        }
+        true
     }
 
     fn intersect_p(&self, r: &Ray) -> bool {
         unimplemented!()
     }
 
-    fn get_area_light(&self) -> Option<&dyn AreaLight> {
+    fn get_area_light(&self) -> Option<Arc<Box<AreaLight>>> {
         unimplemented!()
     }
 
-    fn get_material(&self) -> Option<&dyn Material> {
+    fn get_material(&self) -> Option<Arc<Box<Material>>> {
         unimplemented!()
     }
 

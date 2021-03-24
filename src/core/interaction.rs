@@ -4,8 +4,7 @@ use crate::core::primitive::Primitive;
 use crate::core::shape::Shape;
 use crate::core::spectrum::Spectrum;
 use crate::Float;
-use crate::{inherit, SHADOW_EPSILON};
-use std::env::home_dir;
+use crate::SHADOW_EPSILON;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Default)]
@@ -79,7 +78,19 @@ pub struct MediumInteraction<T: PhaseFunction> {
 
 impl<T: PhaseFunction> MediumInteraction<T> {}
 
-inherit!(MediumInteraction, Interaction, base, PhaseFunction);
+impl<T: PhaseFunction> Deref for MediumInteraction<T> {
+    type Target = Interaction;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl<T: PhaseFunction> DerefMut for MediumInteraction<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
 
 #[derive(Copy, Clone, Default)]
 struct Shading {
@@ -91,16 +102,16 @@ struct Shading {
 }
 
 #[derive(Default)]
-pub struct SurfaceInteraction {
+pub struct SurfaceInteraction<'a> {
     base: Interaction,
     uv: Point2f,
     dpdu: Vector3f,
     dpdv: Vector3f,
     dndu: Normal3f,
     dndv: Normal3f,
-    shape: Option<Box<dyn Shape>>,
+    shape: Option<&'a dyn Shape>,
     shading: Shading,
-    pub primitive: Option<&dyn Primitive>,
+    pub primitive: Option<*const dyn Primitive>,
     dpdx: Vector3f,
     dpdy: Vector3f,
     dudx: Float,
@@ -110,9 +121,21 @@ pub struct SurfaceInteraction {
     face_index: i32,
 }
 
-inherit!(SurfaceInteraction, Interaction, base);
+impl<'a> Deref for SurfaceInteraction<'a> {
+    type Target = Interaction;
 
-impl SurfaceInteraction {
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl<'a> DerefMut for SurfaceInteraction<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+
+impl<'a> SurfaceInteraction<'a> {
     pub fn new(
         p: Point3f,
         error: Vector3f,
@@ -123,7 +146,7 @@ impl SurfaceInteraction {
         dndu: Normal3f,
         dndv: Normal3f,
         time: Float,
-        shape: Option<Box<dyn Shape>>,
+        shape: Option<&'a dyn Shape>,
         face_index: i32,
     ) -> SurfaceInteraction {
         let mut si = SurfaceInteraction {
@@ -183,6 +206,7 @@ impl SurfaceInteraction {
 
     pub fn le(&self, w: &Vector3f) -> Spectrum {
         if let Some(primitive) = self.primitive {
+            let primitive = unsafe { &*primitive };
             let area = primitive.get_area_light();
             if let Some(area) = area {
                 return area.l(self, w);

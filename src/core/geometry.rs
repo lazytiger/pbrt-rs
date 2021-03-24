@@ -3,11 +3,13 @@ use std::ops::{
 };
 
 use super::RealNum;
+use crate::core::medium::Medium;
 use crate::core::transform::{AnimatedTransform, Point3Ref, Transformf};
 use crate::core::{gamma, next_float_down, next_float_up};
 use crate::Float;
 use num::Bounded;
 use std::mem::swap;
+use std::sync::Arc;
 
 macro_rules! strip_plus {
     (+ $($rest:expr)+) => {
@@ -644,13 +646,14 @@ pub struct Differentials {
     ry_direction: Vector3f,
 }
 
-#[derive(Copy, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct Ray {
     pub o: Point3f,
     pub d: Vector3f,
     pub t_max: Float,
     pub time: Float,
     pub differentials: Option<Differentials>,
+    pub medium: Option<Arc<Box<Medium>>>,
 }
 
 impl Ray {
@@ -661,6 +664,7 @@ impl Ray {
             t_max,
             time,
             differentials: None,
+            medium: None,
         }
     }
 

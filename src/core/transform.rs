@@ -594,10 +594,10 @@ impl Mul for Transformf {
     }
 }
 
-impl Mul<&SurfaceInteraction> for &Transformf {
-    type Output = SurfaceInteraction;
+impl<'a> Mul<&SurfaceInteraction<'a>> for &Transformf {
+    type Output = SurfaceInteraction<'a>;
 
-    fn mul(self, rhs: &SurfaceInteraction) -> Self::Output {
+    fn mul(self, rhs: &SurfaceInteraction<'a>) -> Self::Output {
         //TODO
         Default::default()
     }
