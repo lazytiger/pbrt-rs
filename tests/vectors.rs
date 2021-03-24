@@ -86,7 +86,7 @@ fn num() {
     //inner_test(1);
     inner_test(1.0);
     let p = Vector3f::new(1.0, 2.0, 3.0);
-    let p = &p / p.length();
+    let p = p / p.length();
     println!("{}", p.max_component());
 }
 
