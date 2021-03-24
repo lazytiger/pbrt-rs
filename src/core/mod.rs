@@ -1,4 +1,4 @@
-use crate::{Float, FloatUnion, Integer, Options, PI};
+use crate::{Float, Integer, Options, PI};
 
 pub mod efloat;
 pub mod geometry;
