@@ -9,6 +9,21 @@ pub(crate) struct BaseShape {
     transform_swap_handedness: bool,
 }
 
+impl BaseShape {
+    pub fn new(
+        object_to_world: Transformf,
+        world_to_object: Transformf,
+        reverse_orientation: bool,
+    ) -> BaseShape {
+        BaseShape {
+            object_to_world,
+            world_to_object,
+            reverse_orientation,
+            transform_swap_handedness: false,
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! impl_base_shape {
     () => {

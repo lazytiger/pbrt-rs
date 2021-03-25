@@ -1035,3 +1035,18 @@ pub fn offset_ray_origin(p: &Point3f, p_error: &Vector3f, n: &Normal3f, w: &Vect
     }
     po
 }
+
+pub fn spherical_direction(
+    sin_theta: Float,
+    cos_theta: Float,
+    phi: Float,
+    x: Vector3f,
+    y: Vector3f,
+    z: Vector3f,
+) -> Vector3f {
+    x * sin_theta * phi.cos() + y * sin_theta * phi.sin() + z * cos_theta
+}
+
+pub fn spherical_direction2(sin_theta: Float, cos_theta: Float, phi: Float) -> Vector3f {
+    Vector3f::new(sin_theta * phi.cos(), sin_theta * phi.sin(), cos_theta)
+}

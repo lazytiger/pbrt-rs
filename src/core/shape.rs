@@ -25,23 +25,23 @@ pub trait Shape {
         self.intersect(ray, &mut hit, &mut si, test_alpha_texture)
     }
     fn area(&self) -> Float;
-    fn sample(&self, u: &Point2f) -> (Interaction, Float);
+    fn sample(&self, u: &Point2f, pdf: &mut Float) -> Interaction;
     fn pdf(&self, si: &Interaction) -> Float {
         1.0 / self.area()
     }
-    fn sample2(&self, it: &Interaction, u: &Point2f) -> (Interaction, Float) {
-        let (intr, mut pdf) = self.sample(u);
+    fn sample2(&self, it: &Interaction, u: &Point2f, pdf: &mut Float) -> Interaction {
+        let intr = self.sample(u, pdf);
         let mut wi = intr.p - it.p;
         if wi.length_squared() == 0.0 {
-            pdf = 0.0;
+            *pdf = 0.0;
         } else {
             wi = wi.normalize();
-            pdf *= it.p.distance_square(&intr.p) / intr.n.abs_dot(&-wi);
+            *pdf *= it.p.distance_square(&intr.p) / intr.n.abs_dot(&-wi);
             if pdf.is_infinite() {
-                pdf = 0.0
+                *pdf = 0.0
             }
         }
-        (intr, pdf)
+        intr
     }
     fn pdf2(&self, it: &Interaction, wi: &Vector3f) -> Float {
         let ray = it.spawn_ray(wi);
@@ -74,7 +74,8 @@ pub trait Shape {
         let mut solid_angle = 0.0;
         for i in 0..samples {
             let u = Point2f::new(radical_inverse(0, i), radical_inverse(1, i));
-            let (it, pdf) = self.sample(&u);
+            let mut pdf = 0.0;
+            let it = self.sample(&u, &mut pdf);
             if pdf > 0.0 && !self.intersect_p(&Ray::new(*p, it.p - *p, 0.999, 0.0, None), true) {
                 solid_angle += 1.0 / pdf;
             }

@@ -1,9 +1,13 @@
 use crate::core::efloat::EFloat;
-use crate::core::geometry::{Bounds3f, Normal3, Point2f, Point3f, Ray, Vector3f};
+use crate::core::geometry::{
+    offset_ray_origin, spherical_direction, Bounds3f, Normal3, Normal3f, Point2f, Point3f, Ray,
+    Vector3f,
+};
 use crate::core::interaction::{Interaction, SurfaceInteraction};
+use crate::core::sampling::{uniform_cone_pdf, uniform_sample_sphere};
 use crate::core::shape::Shape;
-use crate::core::transform::Transformf;
-use crate::core::{clamp, gamma};
+use crate::core::transform::{Point3Ref, Transformf};
+use crate::core::{clamp, gamma, radians};
 use crate::shapes::BaseShape;
 use crate::{impl_base_shape, Float, PI};
 use std::any::Any;
@@ -162,15 +166,204 @@ impl Shape for Sphere {
         true
     }
 
-    fn area(&self) -> f32 {
-        unimplemented!()
-    }
-
-    fn sample(&self, u: &Point2f) -> (Interaction, f32) {
-        unimplemented!()
-    }
-
     fn intersect_p(&self, r: &Ray, test_alpha_texture: bool) -> bool {
+        let mut o_err = Vector3f::default();
+        let mut d_err = Vector3f::default();
+        let ray = Ray::from((self.world_to_object(), r, &mut o_err, &mut d_err));
+
+        let ox = EFloat::new(ray.o.x, o_err.x);
+        let oy = EFloat::new(ray.o.y, o_err.y);
+        let oz = EFloat::new(ray.o.z, o_err.z);
+        let dx = EFloat::new(ray.d.x, d_err.x);
+        let dy = EFloat::new(ray.d.y, d_err.y);
+        let dz = EFloat::new(ray.d.z, d_err.z);
+        let a = dx * dx + dy * dy + dz * dz;
+        let b = (dx * ox + dy * oy + dz * oz) * 2.0;
+        let c = ox * ox + oy * oy + oz * oz
+            - EFloat::new(self.radius, 0.0) * EFloat::new(self.radius, 0.0);
+
+        let (ok, t0, t1) = EFloat::quadratic(a, b, c);
+        if !ok {
+            return false;
+        }
+
+        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= 0.0 {
+            return false;
+        }
+
+        let mut t_shape_hit = t0;
+        if t_shape_hit.lower_bound() < 0.0 {
+            t_shape_hit = t1;
+            if t_shape_hit.upper_bound() > ray.t_max {
+                return false;
+            }
+        }
+
+        let mut p_hit = ray.point(t_shape_hit.v);
+        p_hit *= self.radius / p_hit.distance(&Point3f::default());
+        if p_hit.x == 0.0 && p_hit.y == 0.0 {
+            p_hit.x = 1e-5 * self.radius;
+        }
+        let mut phi = p_hit.y.atan2(p_hit.x);
+        if phi < 0.0 {
+            phi += 2.0 * PI;
+        }
+
+        if self.z_min > -self.radius && p_hit.z < self.z_min
+            || self.z_max < self.radius && p_hit.z > self.z_max
+            || phi > self.phi_max
+        {
+            if t_shape_hit == t1 {
+                return false;
+            }
+
+            if t1.upper_bound() > ray.t_max {
+                return false;
+            }
+            t_shape_hit = t1;
+            p_hit = ray.point(t_shape_hit.v);
+
+            p_hit *= self.radius / p_hit.distance(&Point3f::default());
+            if p_hit.x == 0.0 && p_hit.y == 0.0 {
+                p_hit.x = 1e-5 * self.radius;
+            }
+            phi = p_hit.y.atan2(p_hit.z);
+            if phi < 0.0 {
+                phi += 2.0 * PI;
+            }
+            if self.z_min > -self.radius && p_hit.z < self.z_min
+                || self.z_max < self.radius && p_hit.z > self.z_max
+                || phi > self.phi_max
+            {
+                return false;
+            }
+        }
         true
+    }
+
+    fn area(&self) -> Float {
+        self.phi_max * self.radius * (self.z_max - self.z_min)
+    }
+
+    fn sample(&self, u: &Point2f, pdf: &mut Float) -> Interaction {
+        let mut obj = Point3f::default() + uniform_sample_sphere(u) * self.radius;
+        let mut it = Interaction::default();
+        it.n = self.object_to_world() * Point3Ref(&obj);
+        if self.reverse_orientation() {
+            it.n *= -1.0;
+        }
+        obj *= self.radius / obj.distance(&Point3f::default());
+        let obj_error = obj.abs() * gamma(5.0);
+        it.p = Point3f::from((
+            self.object_to_world(),
+            Point3Ref(&obj),
+            &obj_error,
+            &mut it.error,
+        ));
+        *pdf = 1.0 / self.area();
+        it
+    }
+
+    fn sample2(&self, int: &Interaction, u: &Point2f, pdf: &mut Float) -> Interaction {
+        let p_center = self.object_to_world() * Point3Ref(&Point3f::default());
+        let p_origin = offset_ray_origin(&int.p, &int.error, &int.n, &(p_center - int.p));
+        if p_origin.distance_square(&p_center) <= self.radius * self.radius {
+            let intr = self.sample(u, pdf);
+            let mut wi = intr.p - int.p;
+            if wi.length_squared() == 0.0 {
+                *pdf = 0.0;
+            } else {
+                wi = wi.normalize();
+                *pdf *= int.p.distance_square(&intr.p) / intr.n.abs_dot(&-wi);
+            }
+            if pdf.is_infinite() {
+                *pdf = 0.0;
+            }
+            return intr;
+        }
+        let dc = int.p.distance(&p_center);
+        let inv_dc = 1.0 / dc;
+        let wc = (p_center - int.p) * inv_dc;
+        let (wc_x, wc_y) = wc.coordinate_system();
+
+        let sin_theta_max = self.radius * inv_dc;
+        let sin_theta_max2 = sin_theta_max * sin_theta_max;
+        let inv_sin_theta_max = 1.0 / sin_theta_max;
+        let cos_theta_max = (1.0 - sin_theta_max2).max(0.0).sqrt();
+
+        let mut cos_theta = (cos_theta_max - 1.0) * u[0] + 1.0;
+        let mut sin_theta2 = 1.0 - cos_theta * cos_theta;
+
+        if sin_theta_max2 < 0.00068523 {
+            //sin<sup>2</sup>(1.5 deg)
+            sin_theta2 = sin_theta_max2 * u[0];
+            cos_theta = (1.0 - sin_theta2).sqrt();
+        }
+
+        let cos_alpha = sin_theta2 * inv_sin_theta_max
+            + cos_theta
+                * (1.0 - sin_theta2 * inv_sin_theta_max * inv_sin_theta_max)
+                    .max(0.0)
+                    .sqrt();
+        let sin_alpha = (1.0 - cos_alpha * cos_alpha).max(0.0).sqrt();
+        let phi = u[1] * 2.0 * PI;
+        let n_world = spherical_direction(sin_alpha, cos_alpha, phi, -wc_x, -wc_y, -wc);
+        let p_world = p_center + n_world * self.radius;
+
+        let mut it = Interaction::default();
+        it.p = p_world;
+        it.error = p_world.abs() * gamma(5.0);
+        it.n = n_world;
+        if self.reverse_orientation() {
+            it.n *= -1.0;
+        }
+
+        *pdf = 1.0 / (2.0 * PI * (1.0 - cos_theta_max));
+        it
+    }
+
+    fn pdf2(&self, int: &Interaction, wi: &Vector3f) -> Float {
+        let p_center = self.object_to_world() * Point3Ref(&Point3f::default());
+        let p_origin = offset_ray_origin(&int.p, &int.error, &int.n, &(p_center - int.p));
+        if p_origin.distance_square(&p_center) < self.radius * self.radius {
+            Shape::pdf2(self, int, wi)
+        } else {
+            let sin_theta_max2 = self.radius * self.radius / int.p.distance_square(&p_center);
+            let cos_theta_max = (1.0 - sin_theta_max2).max(0.0).sqrt();
+            uniform_cone_pdf(cos_theta_max)
+        }
+    }
+
+    fn solid_angle(&self, p: &Point3f, n_samples: u64) -> Float {
+        let p_center = self.object_to_world() * Point3Ref(&Point3f::default());
+        if p.distance_square(&p_center) <= self.radius * self.radius {
+            4.0 * PI
+        } else {
+            let sin_theta2 = self.radius * self.radius / p.distance_square(&p_center);
+            let cos_theta = (1.0 - sin_theta2).max(0.0).sqrt();
+            2.0 * PI * (1.0 - cos_theta)
+        }
+    }
+}
+
+impl Sphere {
+    pub fn new(
+        object_to_world: Transformf,
+        world_to_object: Transformf,
+        reverse_orientation: bool,
+        radius: Float,
+        z_min: Float,
+        z_max: Float,
+        phi_max: Float,
+    ) -> Sphere {
+        Sphere {
+            base: BaseShape::new(object_to_world, world_to_object, reverse_orientation),
+            radius,
+            z_min: clamp(z_min.min(z_max), -radius, radius),
+            z_max: clamp(z_max.max(z_min), -radius, radius),
+            theta_min: clamp(z_min.min(z_max) / radius, -1.0, 1.0).acos(),
+            theta_max: clamp(z_max.max(z_min) / radius, -1.0, 1.0).acos(),
+            phi_max: radians(clamp(phi_max, 0.0, 360.0)),
+        }
     }
 }

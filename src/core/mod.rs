@@ -9,6 +9,7 @@ pub mod material;
 pub mod medium;
 pub mod primitive;
 pub mod quaternion;
+pub mod sampling;
 pub mod shape;
 pub mod spectrum;
 pub mod transform;
@@ -270,4 +271,20 @@ pub fn next_float_down(mut n: Float) -> Float {
             transmute(u + 1)
         }
     }
+}
+
+pub fn find_interval<T: Fn(usize) -> bool>(size: usize, pred: T) -> usize {
+    let mut first = 0;
+    let mut len = size;
+    while len > 0 {
+        let half = len >> 1;
+        let middle = first + half;
+        if pred(middle) {
+            first = middle + 1;
+            len -= half + 1;
+        } else {
+            len = half;
+        }
+    }
+    clamp((first - 1) as isize, 0, (size - 2) as isize) as usize
 }
