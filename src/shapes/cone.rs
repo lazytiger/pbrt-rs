@@ -1,0 +1,195 @@
+use crate::core::efloat::EFloat;
+use crate::core::geometry::{Bounds3f, Point2f, Point3f, Ray, Vector3f};
+use crate::core::interaction::{Interaction, SurfaceInteraction};
+use crate::core::shape::Shape;
+use crate::core::transform::Transformf;
+use crate::core::{clamp, radians};
+use crate::shapes::{compute_normal_differential, BaseShape};
+use crate::Float;
+use crate::{impl_base_shape, PI};
+use std::any::Any;
+use std::panic::PanicInfo;
+use std::sync::atomic::spin_loop_hint;
+
+pub struct Cone {
+    base: BaseShape,
+    radius: Float,
+    height: Float,
+    phi_max: Float,
+}
+
+impl Cone {
+    pub fn new(
+        o2w: Transformf,
+        w2o: Transformf,
+        reverse_orientation: bool,
+        height: Float,
+        radius: Float,
+        phi_max: Float,
+    ) -> Cone {
+        Cone {
+            base: BaseShape::new(o2w, w2o, reverse_orientation),
+            radius,
+            height,
+            phi_max: radians(clamp(phi_max, 0.0, 360.0)),
+        }
+    }
+
+    fn compute_intersect(
+        &self,
+        r: &Ray,
+    ) -> (
+        bool,
+        Point3f,
+        Float,
+        EFloat,
+        EFloat,
+        EFloat,
+        EFloat,
+        EFloat,
+        EFloat,
+        EFloat,
+        Ray,
+    ) {
+        let err = (
+            false,
+            Point3f::default(),
+            0.0,
+            EFloat::default(),
+            EFloat::default(),
+            EFloat::default(),
+            EFloat::default(),
+            EFloat::default(),
+            EFloat::default(),
+            EFloat::default(),
+            Ray::default(),
+        );
+        let mut o_err = Vector3f::default();
+        let mut d_err = Vector3f::default();
+        let ray = Ray::from((self.world_to_object(), r, &mut o_err, &mut d_err));
+
+        let ox = EFloat::new(ray.o.x, o_err.x);
+        let oy = EFloat::new(ray.o.y, o_err.y);
+        let oz = EFloat::new(ray.o.z, o_err.z);
+        let dx = EFloat::new(ray.d.x, d_err.x);
+        let dy = EFloat::new(ray.d.y, d_err.y);
+        let dz = EFloat::new(ray.d.z, d_err.z);
+        let k = EFloat::new(self.radius, 0.0) / EFloat::new(self.height, 0.0);
+        let k = k * k;
+        let a = dx * dx + dy * dy - k * dz * dz;
+        let b = (dx * ox + dy * oy - k * dz * (oz - self.height)) * 2.0;
+        let c = ox * ox + oy * oy - k * (oz - self.height) * (oz - self.height);
+        let (ok, t0, t1) = EFloat::quadratic(a, b, c);
+        if !ok {
+            return err;
+        }
+        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= 0.0 {
+            return err;
+        }
+        let mut t_shape_hit = t0;
+        if t_shape_hit.lower_bound() <= 0.0 {
+            t_shape_hit = t1;
+            if t_shape_hit.upper_bound() > ray.t_max {
+                return err;
+            }
+        }
+
+        let mut p_hit = ray.point(t_shape_hit.v);
+        let mut phi = p_hit.y.atan2(p_hit.x);
+        if phi < 0.0 {
+            phi += 2.0 * PI;
+        }
+
+        if p_hit.z < 0.0 || p_hit.z > self.height || phi > self.phi_max {
+            if t_shape_hit == t1 {
+                return err;
+            }
+            t_shape_hit = t1;
+            if t1.upper_bound() > ray.t_max {
+                return err;
+            }
+            p_hit = ray.point(t_shape_hit.v);
+            phi = p_hit.y.atan2(p_hit.x);
+            if phi < 0.0 {
+                phi += 2.0 * PI;
+                if p_hit.z < 0.0 || p_hit.z > self.height || phi > self.phi_max {
+                    return err;
+                }
+            }
+        }
+        (true, p_hit, phi, ox, oy, oz, t_shape_hit, dx, dy, dz, ray)
+    }
+}
+
+impl Shape for Cone {
+    impl_base_shape!();
+
+    fn object_bound(&self) -> Bounds3f {
+        let p1 = Point3f::new(-self.radius, -self.radius, 0.0);
+        let p2 = Point3f::new(self.radius, self.radius, self.height);
+        Bounds3f::from((p1, p2))
+    }
+
+    fn intersect(
+        &self,
+        r: &Ray,
+        hit: &mut f32,
+        si: &mut SurfaceInteraction,
+        test_alpha_texture: bool,
+    ) -> bool {
+        let (ok, p_hit, phi, ox, oy, oz, t_shape_hit, dx, dy, dz, ray) = self.compute_intersect(r);
+        if !ok {
+            return false;
+        }
+
+        let u = phi / self.phi_max;
+        let v = p_hit.z / self.height;
+
+        let dpdu = Vector3f::new(-self.phi_max * p_hit.y, self.phi_max * p_hit.x, 0.0);
+        let dpdv = Vector3f::new(-p_hit.x / (1.0 - v), -p_hit.y / (1.0 - v), self.height);
+
+        let d2pduu = Vector3f::new(p_hit.x, p_hit.y, 0.0) * (-self.phi_max * self.phi_max);
+        let d2pduv = Vector3f::new(p_hit.y, -p_hit.x, 0.0) * (self.phi_max / (1.0 - v));
+        let d2pdvv = Vector3f::default();
+
+        let (dndu, dndv) = compute_normal_differential(&dpdu, &dpdv, &d2pduu, &d2pduv, &d2pdvv);
+        let px = ox + t_shape_hit * dx;
+        let py = oy + t_shape_hit * dy;
+        let pz = oz + t_shape_hit * dz;
+        let p_error = Vector3f::new(
+            px.get_absolute_error(),
+            py.get_absolute_error(),
+            pz.get_absolute_error(),
+        );
+        let osi = SurfaceInteraction::new(
+            p_hit,
+            p_error,
+            Point2f::new(u, v),
+            -ray.d,
+            dpdu,
+            dpdv,
+            dndu,
+            dndv,
+            ray.time,
+            None,
+            0,
+        );
+        *si = self.object_to_world() * &osi;
+        *hit = t_shape_hit.v;
+        true
+    }
+
+    fn intersect_p(&self, r: &Ray, test_alpha_texture: bool) -> bool {
+        let (ok, _, _, _, _, _, _, _, _, _, _) = self.compute_intersect(r);
+        ok
+    }
+
+    fn area(&self) -> f32 {
+        self.radius * (self.height * self.height + self.radius + self.radius).sqrt() * self.phi_max
+            / 2.0
+    }
+
+    fn sample(&self, u: &Point2f, pdf: &mut f32) -> Interaction {
+        unimplemented!()
+    }
+}

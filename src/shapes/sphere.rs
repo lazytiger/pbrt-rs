@@ -8,7 +8,7 @@ use crate::core::sampling::{uniform_cone_pdf, uniform_sample_sphere};
 use crate::core::shape::Shape;
 use crate::core::transform::{Point3Ref, Transformf};
 use crate::core::{clamp, gamma, radians};
-use crate::shapes::BaseShape;
+use crate::shapes::{compute_normal_differential, BaseShape};
 use crate::{impl_base_shape, Float, PI};
 use std::any::Any;
 
@@ -39,78 +39,10 @@ impl Shape for Sphere {
         si: &mut SurfaceInteraction,
         test_alpha_texture: bool,
     ) -> bool {
-        let mut o_err = Vector3f::default();
-        let mut d_err = Vector3f::default();
-        let ray = Ray::from((self.world_to_object(), r, &mut o_err, &mut d_err));
-
-        let ox = EFloat::new(ray.o.x, o_err.x);
-        let oy = EFloat::new(ray.o.y, o_err.y);
-        let oz = EFloat::new(ray.o.z, o_err.z);
-        let dx = EFloat::new(ray.d.x, d_err.x);
-        let dy = EFloat::new(ray.d.y, d_err.y);
-        let dz = EFloat::new(ray.d.z, d_err.z);
-        let a = dx * dx + dy * dy + dz * dz;
-        let b = (dx * ox + dy * oy + dz * oz) * 2.0;
-        let c = ox * ox + oy * oy + oz * oz
-            - EFloat::new(self.radius, 0.0) * EFloat::new(self.radius, 0.0);
-
-        let (ok, t0, t1) = EFloat::quadratic(a, b, c);
+        let (ok, p_hit, phi, ray, t_shape_hit) = self.compute_intersect(r);
         if !ok {
             return false;
         }
-
-        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= 0.0 {
-            return false;
-        }
-
-        let mut t_shape_hit = t0;
-        if t_shape_hit.lower_bound() < 0.0 {
-            t_shape_hit = t1;
-            if t_shape_hit.upper_bound() > ray.t_max {
-                return false;
-            }
-        }
-
-        let mut p_hit = ray.point(t_shape_hit.v);
-        p_hit *= self.radius / p_hit.distance(&Point3f::default());
-        if p_hit.x == 0.0 && p_hit.y == 0.0 {
-            p_hit.x = 1e-5 * self.radius;
-        }
-        let mut phi = p_hit.y.atan2(p_hit.x);
-        if phi < 0.0 {
-            phi += 2.0 * PI;
-        }
-
-        if self.z_min > -self.radius && p_hit.z < self.z_min
-            || self.z_max < self.radius && p_hit.z > self.z_max
-            || phi > self.phi_max
-        {
-            if t_shape_hit == t1 {
-                return false;
-            }
-
-            if t1.upper_bound() > ray.t_max {
-                return false;
-            }
-            t_shape_hit = t1;
-            p_hit = ray.point(t_shape_hit.v);
-
-            p_hit *= self.radius / p_hit.distance(&Point3f::default());
-            if p_hit.x == 0.0 && p_hit.y == 0.0 {
-                p_hit.x = 1e-5 * self.radius;
-            }
-            phi = p_hit.y.atan2(p_hit.z);
-            if phi < 0.0 {
-                phi += 2.0 * PI;
-            }
-            if self.z_min > -self.radius && p_hit.z < self.z_min
-                || self.z_max < self.radius && p_hit.z > self.z_max
-                || phi > self.phi_max
-            {
-                return false;
-            }
-        }
-
         let u = phi / self.phi_max;
         let theta = clamp(p_hit.z / self.radius, -1.0, 1.0).acos();
         let v = (theta - self.theta_min) / (self.theta_max - self.theta_min);
@@ -134,17 +66,7 @@ impl Shape for Sphere {
             * (self.theta_min - self.theta_max)
             * (self.theta_max - self.theta_min);
 
-        let e = dpdu.dot(&dpdu);
-        let f = dpdu.dot(&dpdv);
-        let g = dpdv.dot(&dpdv);
-        let n = dpdu.cross(&dpdv).normalize();
-        let ee = n.dot(&d2pduu);
-        let ff = n.dot(&d2pduv);
-        let gg = n.dot(&d2pdvv);
-
-        let inv_egf2 = 1.0 / (e * g - f * f);
-        let dndu = dpdu * inv_egf2 * (ff * f - ee * g) + dpdv * inv_egf2 * (ee * f - ff * e);
-        let dndv = dpdu * inv_egf2 * (gg * f - ff * g) + dpdv * inv_egf2 * (ff * f - gg * e);
+        let (dndu, dndv) = compute_normal_differential(&dpdu, &dpdv, &d2pduu, &d2pduv, &d2pdvv);
 
         let p_error = p_hit.abs() * gamma(5.0);
 
@@ -167,78 +89,8 @@ impl Shape for Sphere {
     }
 
     fn intersect_p(&self, r: &Ray, test_alpha_texture: bool) -> bool {
-        let mut o_err = Vector3f::default();
-        let mut d_err = Vector3f::default();
-        let ray = Ray::from((self.world_to_object(), r, &mut o_err, &mut d_err));
-
-        let ox = EFloat::new(ray.o.x, o_err.x);
-        let oy = EFloat::new(ray.o.y, o_err.y);
-        let oz = EFloat::new(ray.o.z, o_err.z);
-        let dx = EFloat::new(ray.d.x, d_err.x);
-        let dy = EFloat::new(ray.d.y, d_err.y);
-        let dz = EFloat::new(ray.d.z, d_err.z);
-        let a = dx * dx + dy * dy + dz * dz;
-        let b = (dx * ox + dy * oy + dz * oz) * 2.0;
-        let c = ox * ox + oy * oy + oz * oz
-            - EFloat::new(self.radius, 0.0) * EFloat::new(self.radius, 0.0);
-
-        let (ok, t0, t1) = EFloat::quadratic(a, b, c);
-        if !ok {
-            return false;
-        }
-
-        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= 0.0 {
-            return false;
-        }
-
-        let mut t_shape_hit = t0;
-        if t_shape_hit.lower_bound() < 0.0 {
-            t_shape_hit = t1;
-            if t_shape_hit.upper_bound() > ray.t_max {
-                return false;
-            }
-        }
-
-        let mut p_hit = ray.point(t_shape_hit.v);
-        p_hit *= self.radius / p_hit.distance(&Point3f::default());
-        if p_hit.x == 0.0 && p_hit.y == 0.0 {
-            p_hit.x = 1e-5 * self.radius;
-        }
-        let mut phi = p_hit.y.atan2(p_hit.x);
-        if phi < 0.0 {
-            phi += 2.0 * PI;
-        }
-
-        if self.z_min > -self.radius && p_hit.z < self.z_min
-            || self.z_max < self.radius && p_hit.z > self.z_max
-            || phi > self.phi_max
-        {
-            if t_shape_hit == t1 {
-                return false;
-            }
-
-            if t1.upper_bound() > ray.t_max {
-                return false;
-            }
-            t_shape_hit = t1;
-            p_hit = ray.point(t_shape_hit.v);
-
-            p_hit *= self.radius / p_hit.distance(&Point3f::default());
-            if p_hit.x == 0.0 && p_hit.y == 0.0 {
-                p_hit.x = 1e-5 * self.radius;
-            }
-            phi = p_hit.y.atan2(p_hit.z);
-            if phi < 0.0 {
-                phi += 2.0 * PI;
-            }
-            if self.z_min > -self.radius && p_hit.z < self.z_min
-                || self.z_max < self.radius && p_hit.z > self.z_max
-                || phi > self.phi_max
-            {
-                return false;
-            }
-        }
-        true
+        let (ok, _, _, _, _) = self.compute_intersect(r);
+        ok
     }
 
     fn area(&self) -> Float {
@@ -365,5 +217,87 @@ impl Sphere {
             theta_max: clamp(z_max.max(z_min) / radius, -1.0, 1.0).acos(),
             phi_max: radians(clamp(phi_max, 0.0, 360.0)),
         }
+    }
+
+    fn compute_intersect(&self, r: &Ray) -> (bool, Point3f, Float, Ray, EFloat) {
+        let err = (
+            false,
+            Point3f::default(),
+            0.0,
+            Ray::default(),
+            EFloat::default(),
+        );
+        let mut o_err = Vector3f::default();
+        let mut d_err = Vector3f::default();
+        let ray = Ray::from((self.world_to_object(), r, &mut o_err, &mut d_err));
+
+        let ox = EFloat::new(ray.o.x, o_err.x);
+        let oy = EFloat::new(ray.o.y, o_err.y);
+        let oz = EFloat::new(ray.o.z, o_err.z);
+        let dx = EFloat::new(ray.d.x, d_err.x);
+        let dy = EFloat::new(ray.d.y, d_err.y);
+        let dz = EFloat::new(ray.d.z, d_err.z);
+        let a = dx * dx + dy * dy + dz * dz;
+        let b = (dx * ox + dy * oy + dz * oz) * 2.0;
+        let c = ox * ox + oy * oy + oz * oz
+            - EFloat::new(self.radius, 0.0) * EFloat::new(self.radius, 0.0);
+
+        let (ok, t0, t1) = EFloat::quadratic(a, b, c);
+        if !ok {
+            return err;
+        }
+
+        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= 0.0 {
+            return err;
+        }
+
+        let mut t_shape_hit = t0;
+        if t_shape_hit.lower_bound() < 0.0 {
+            t_shape_hit = t1;
+            if t_shape_hit.upper_bound() > ray.t_max {
+                return err;
+            }
+        }
+
+        let mut p_hit = ray.point(t_shape_hit.v);
+        p_hit *= self.radius / p_hit.distance(&Point3f::default());
+        if p_hit.x == 0.0 && p_hit.y == 0.0 {
+            p_hit.x = 1e-5 * self.radius;
+        }
+        let mut phi = p_hit.y.atan2(p_hit.x);
+        if phi < 0.0 {
+            phi += 2.0 * PI;
+        }
+
+        if self.z_min > -self.radius && p_hit.z < self.z_min
+            || self.z_max < self.radius && p_hit.z > self.z_max
+            || phi > self.phi_max
+        {
+            if t_shape_hit == t1 {
+                return err;
+            }
+
+            if t1.upper_bound() > ray.t_max {
+                return err;
+            }
+            t_shape_hit = t1;
+            p_hit = ray.point(t_shape_hit.v);
+
+            p_hit *= self.radius / p_hit.distance(&Point3f::default());
+            if p_hit.x == 0.0 && p_hit.y == 0.0 {
+                p_hit.x = 1e-5 * self.radius;
+            }
+            phi = p_hit.y.atan2(p_hit.z);
+            if phi < 0.0 {
+                phi += 2.0 * PI;
+            }
+            if self.z_min > -self.radius && p_hit.z < self.z_min
+                || self.z_max < self.radius && p_hit.z > self.z_max
+                || phi > self.phi_max
+            {
+                return err;
+            }
+        }
+        (ok, p_hit, phi, ray, t_shape_hit)
     }
 }

@@ -1,5 +1,7 @@
+use crate::core::geometry::{Normal3f, Vector3f};
 use crate::core::transform::Transformf;
 
+pub mod cone;
 pub mod sphere;
 
 pub(crate) struct BaseShape {
@@ -47,4 +49,25 @@ macro_rules! impl_base_shape {
             self
         }
     };
+}
+
+pub fn compute_normal_differential(
+    dpdu: &Vector3f,
+    dpdv: &Vector3f,
+    d2pduu: &Vector3f,
+    d2pduv: &Vector3f,
+    d2pdvv: &Vector3f,
+) -> (Normal3f, Normal3f) {
+    let e = dpdu.dot(&dpdu);
+    let f = dpdu.dot(&dpdv);
+    let g = dpdv.dot(&dpdv);
+    let n = dpdu.cross(&dpdv).normalize();
+    let ee = n.dot(&d2pduu);
+    let ff = n.dot(&d2pduv);
+    let gg = n.dot(&d2pdvv);
+
+    let inv_egf2 = 1.0 / (e * g - f * f);
+    let dndu = *dpdu * inv_egf2 * (ff * f - ee * g) + *dpdv * inv_egf2 * (ee * f - ff * e);
+    let dndv = *dpdu * inv_egf2 * (gg * f - ff * g) + *dpdv * inv_egf2 * (ff * f - gg * e);
+    (dndu, dndv)
 }
