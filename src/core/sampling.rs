@@ -165,3 +165,8 @@ pub fn concentric_sample_disk(u: &Point2f) -> Point2f {
     };
     Point2f::new(theta.cos(), theta.sin()) * r
 }
+
+pub fn uniform_sample_triangle(u: &Point2f) -> Point2f {
+    let su0 = u[0].sqrt();
+    Point2f::new(1.0 - su0, u[1] * su0)
+}

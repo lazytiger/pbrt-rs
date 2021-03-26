@@ -1,4 +1,5 @@
 #![feature(raw)]
+#![feature(destructuring_assignment)]
 use clap::Clap;
 use std::any::Any;
 use std::raw::TraitObject;

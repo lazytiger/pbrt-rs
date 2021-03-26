@@ -186,7 +186,7 @@ impl Shape for Sphere {
         }
     }
 
-    fn solid_angle(&self, p: &Point3f, n_samples: u64) -> Float {
+    fn solid_angle(&self, p: Point3f, n_samples: u64) -> Float {
         let p_center = self.object_to_world() * Point3Ref(&Point3f::default());
         if p.distance_square(&p_center) <= self.radius * self.radius {
             4.0 * PI

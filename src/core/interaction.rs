@@ -93,8 +93,8 @@ impl<T: PhaseFunction> DerefMut for MediumInteraction<T> {
 }
 
 #[derive(Copy, Clone, Default)]
-struct Shading {
-    n: Normal3f,
+pub struct Shading {
+    pub n: Normal3f,
     dpdu: Vector3f,
     dpdv: Vector3f,
     dndu: Normal3f,
@@ -105,12 +105,12 @@ struct Shading {
 pub struct SurfaceInteraction<'a> {
     base: Interaction,
     uv: Point2f,
-    dpdu: Vector3f,
+    pub(crate) dpdu: Vector3f,
     dpdv: Vector3f,
     dndu: Normal3f,
     dndv: Normal3f,
     shape: Option<&'a dyn Shape>,
-    shading: Shading,
+    pub shading: Shading,
     pub primitive: Option<*const dyn Primitive>,
     dpdx: Vector3f,
     dpdy: Vector3f,
