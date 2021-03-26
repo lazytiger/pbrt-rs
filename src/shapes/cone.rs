@@ -35,33 +35,13 @@ impl Cone {
         }
     }
 
-    fn compute_intersect(
-        &self,
-        r: &Ray,
-    ) -> (
-        bool,
-        Point3f,
-        Float,
-        EFloat,
-        EFloat,
-        EFloat,
-        EFloat,
-        EFloat,
-        EFloat,
-        EFloat,
-        Ray,
-    ) {
+    fn compute_intersect(&self, r: &Ray) -> (bool, Point3f, Float, EFloat, Vector3f, Ray) {
         let err = (
             false,
             Point3f::default(),
             0.0,
             EFloat::default(),
-            EFloat::default(),
-            EFloat::default(),
-            EFloat::default(),
-            EFloat::default(),
-            EFloat::default(),
-            EFloat::default(),
+            Vector3f::default(),
             Ray::default(),
         );
         let mut o_err = Vector3f::default();
@@ -104,8 +84,20 @@ impl Cone {
             t_shape_hit = *t;
             break;
         }
+        let p_error = if hit {
+            let px = ox + t_shape_hit * dx;
+            let py = oy + t_shape_hit * dy;
+            let pz = oz + t_shape_hit * dz;
+            Vector3f::new(
+                px.get_absolute_error(),
+                py.get_absolute_error(),
+                pz.get_absolute_error(),
+            )
+        } else {
+            Vector3f::default()
+        };
 
-        (hit, p_hit, phi, ox, oy, oz, t_shape_hit, dx, dy, dz, ray)
+        (hit, p_hit, phi, t_shape_hit, p_error, ray)
     }
 }
 
@@ -125,7 +117,7 @@ impl Shape for Cone {
         si: &mut SurfaceInteraction,
         test_alpha_texture: bool,
     ) -> bool {
-        let (ok, p_hit, phi, ox, oy, oz, t_shape_hit, dx, dy, dz, ray) = self.compute_intersect(r);
+        let (ok, p_hit, phi, t_shape_hit, p_error, ray) = self.compute_intersect(r);
         if !ok {
             return false;
         }
@@ -141,14 +133,6 @@ impl Shape for Cone {
         let d2pdvv = Vector3f::default();
 
         let (dndu, dndv) = compute_normal_differential(&dpdu, &dpdv, &d2pduu, &d2pduv, &d2pdvv);
-        let px = ox + t_shape_hit * dx;
-        let py = oy + t_shape_hit * dy;
-        let pz = oz + t_shape_hit * dz;
-        let p_error = Vector3f::new(
-            px.get_absolute_error(),
-            py.get_absolute_error(),
-            pz.get_absolute_error(),
-        );
         let osi = SurfaceInteraction::new(
             p_hit,
             p_error,
@@ -168,7 +152,7 @@ impl Shape for Cone {
     }
 
     fn intersect_p(&self, r: &Ray, test_alpha_texture: bool) -> bool {
-        let (ok, _, _, _, _, _, _, _, _, _, _) = self.compute_intersect(r);
+        let (ok, _, _, _, _, _) = self.compute_intersect(r);
         ok
     }
 

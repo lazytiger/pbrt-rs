@@ -39,7 +39,7 @@ impl Shape for Sphere {
         si: &mut SurfaceInteraction,
         test_alpha_texture: bool,
     ) -> bool {
-        let (ok, p_hit, phi, ray, t_shape_hit) = self.compute_intersect(r);
+        let (ok, p_hit, phi, ray, t_shape_hit) = self.intersect_test(r);
         if !ok {
             return false;
         }
@@ -89,7 +89,7 @@ impl Shape for Sphere {
     }
 
     fn intersect_p(&self, r: &Ray, test_alpha_texture: bool) -> bool {
-        let (ok, _, _, _, _) = self.compute_intersect(r);
+        let (ok, _, _, _, _) = self.intersect_test(r);
         ok
     }
 
@@ -219,7 +219,7 @@ impl Sphere {
         }
     }
 
-    fn compute_intersect(&self, r: &Ray) -> (bool, Point3f, Float, Ray, EFloat) {
+    fn intersect_test(&self, r: &Ray) -> (bool, Point3f, Float, Ray, EFloat) {
         let err = (
             false,
             Point3f::default(),

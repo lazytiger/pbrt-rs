@@ -2,9 +2,17 @@ use crate::core::geometry::{Normal3f, Vector3f};
 use crate::core::transform::Transformf;
 
 pub mod cone;
+pub mod curve;
 pub mod cylinder;
 pub mod disk;
+pub mod heightfield;
+pub mod hyperboloid;
+pub mod loopsubdiv;
+pub mod nurbs;
+pub mod paraboloid;
+pub mod plymesh;
 pub mod sphere;
+pub mod triangle;
 
 pub(crate) struct BaseShape {
     object_to_world: Transformf,
