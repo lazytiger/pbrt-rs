@@ -2,6 +2,7 @@ use crate::core::geometry::{Normal3f, Vector3f};
 use crate::core::transform::Transformf;
 
 pub mod cone;
+pub mod cylinder;
 pub mod sphere;
 
 pub(crate) struct BaseShape {
@@ -45,7 +46,7 @@ macro_rules! impl_base_shape {
             self.base.transform_swap_handedness
         }
 
-        fn as_any(&self) -> &dyn Any {
+        fn as_any(&self) -> &dyn std::any::Any {
             self
         }
     };

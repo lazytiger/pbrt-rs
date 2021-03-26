@@ -83,41 +83,29 @@ impl Cone {
         if !ok {
             return err;
         }
-        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= 0.0 {
-            return err;
-        }
-        let mut t_shape_hit = t0;
-        if t_shape_hit.lower_bound() <= 0.0 {
-            t_shape_hit = t1;
-            if t_shape_hit.upper_bound() > ray.t_max {
-                return err;
-            }
-        }
 
-        let mut p_hit = ray.point(t_shape_hit.v);
-        let mut phi = p_hit.y.atan2(p_hit.x);
-        if phi < 0.0 {
-            phi += 2.0 * PI;
-        }
-
-        if p_hit.z < 0.0 || p_hit.z > self.height || phi > self.phi_max {
-            if t_shape_hit == t1 {
-                return err;
+        let mut hit = false;
+        let mut t_shape_hit = EFloat::default();
+        let mut p_hit = Point3f::default();
+        let mut phi = 0.0;
+        for t in &[t0, t1] {
+            if t.lower_bound() < 0.0 || t.upper_bound() > ray.t_max {
+                continue;
             }
-            t_shape_hit = t1;
-            if t1.upper_bound() > ray.t_max {
-                return err;
-            }
-            p_hit = ray.point(t_shape_hit.v);
-            phi = p_hit.y.atan2(p_hit.x);
+            p_hit = ray.point(t.v);
+            let mut phi = p_hit.y.atan2(p_hit.x);
             if phi < 0.0 {
                 phi += 2.0 * PI;
-                if p_hit.z < 0.0 || p_hit.z > self.height || phi > self.phi_max {
-                    return err;
-                }
             }
+            if p_hit.z < 0.0 || p_hit.z > self.height || phi > self.phi_max {
+                continue;
+            }
+            hit = true;
+            t_shape_hit = *t;
+            break;
         }
-        (true, p_hit, phi, ox, oy, oz, t_shape_hit, dx, dy, dz, ray)
+
+        (hit, p_hit, phi, ox, oy, oz, t_shape_hit, dx, dy, dz, ray)
     }
 }
 

@@ -4,6 +4,7 @@ use std::ops::{
 };
 
 use super::RealNum;
+use crate::core::efloat::EFloat;
 use crate::core::medium::Medium;
 use crate::core::transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref};
 use crate::core::{gamma, next_float_down, next_float_up};
@@ -685,6 +686,21 @@ impl Ray {
 
     pub fn has_nans(&self) -> bool {
         self.o.has_nans() || self.d.has_nans() && self.t_max.is_nan()
+    }
+
+    pub fn efloats(
+        &self,
+        o_err: &Vector3f,
+        d_err: &Vector3f,
+    ) -> (EFloat, EFloat, EFloat, EFloat, EFloat, EFloat) {
+        (
+            EFloat::new(self.o.x, o_err.x),
+            EFloat::new(self.o.y, o_err.y),
+            EFloat::new(self.o.z, o_err.z),
+            EFloat::new(self.d.x, d_err.x),
+            EFloat::new(self.d.y, d_err.y),
+            EFloat::new(self.d.z, d_err.z),
+        )
     }
 }
 
