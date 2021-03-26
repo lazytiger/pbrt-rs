@@ -3,6 +3,7 @@ use crate::core::transform::Transformf;
 
 pub mod cone;
 pub mod cylinder;
+pub mod disk;
 pub mod sphere;
 
 pub(crate) struct BaseShape {

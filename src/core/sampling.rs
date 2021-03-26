@@ -1,6 +1,6 @@
-use crate::core::geometry::{Point2f, Vector3f};
+use crate::core::geometry::{Point2f, Vector2f, Vector3f};
 use crate::core::{clamp, find_interval};
-use crate::{Float, PI};
+use crate::{Float, PI, PIOVER2, PIOVER4};
 use std::panic::PanicInfo;
 use std::sync::Arc;
 
@@ -150,4 +150,18 @@ pub fn uniform_sample_sphere(u: &Point2f) -> Vector3f {
 
 pub fn uniform_cone_pdf(cos_theta_max: Float) -> Float {
     1.0 / (2.0 * PI * (1.0 - cos_theta_max))
+}
+
+pub fn concentric_sample_disk(u: &Point2f) -> Point2f {
+    let u_offset = *u * 2.0 - Vector2f::new(1.0, 1.0);
+    if u_offset.x == 0.0 && u_offset.y == 0.0 {
+        return Point2f::default();
+    }
+
+    let (r, theta) = if u_offset.x.abs() > u_offset.y.abs() {
+        (u_offset.x, PIOVER4 * (u_offset.y / u_offset.x))
+    } else {
+        (u_offset.y, PIOVER2 - PIOVER4 * (u_offset.x / u_offset.y))
+    };
+    Point2f::new(theta.cos(), theta.sin()) * r
 }

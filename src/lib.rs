@@ -28,6 +28,8 @@ cfg_if::cfg_if! {
         pub type Float = f32;
         pub type Integer = u32;
         pub const PI: f32 = std::f32::consts::PI;
+        pub const PIOVER2:f32 = PI / 2.0;
+        pub const PIOVER4:f32 = PI / 4.0;
         pub const SHADOW_EPSILON:f32 = 0.0001;
         pub const EPSILON:f32 = f32::EPSILON;
         pub const MACHINE_EPSILON:f32 = 0.5 * EPSILON;
