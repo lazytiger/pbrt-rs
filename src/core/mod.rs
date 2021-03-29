@@ -273,6 +273,10 @@ pub fn next_float_down(mut n: Float) -> Float {
     }
 }
 
+pub fn float_to_bits(f: Float) -> Integer {
+    unsafe { transmute(f) }
+}
+
 pub fn find_interval<T: Fn(usize) -> bool>(size: usize, pred: T) -> usize {
     let mut first = 0;
     let mut len = size;

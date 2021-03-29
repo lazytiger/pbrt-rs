@@ -1066,3 +1066,9 @@ pub fn spherical_direction(
 pub fn spherical_direction2(sin_theta: Float, cos_theta: Float, phi: Float) -> Vector3f {
     Vector3f::new(sin_theta * phi.cos(), sin_theta * phi.sin(), cos_theta)
 }
+
+impl<T> From<Vector3<T>> for Vector2<T> {
+    fn from(v: Vector3<T>) -> Self {
+        Self { x: v.x, y: v.y }
+    }
+}
