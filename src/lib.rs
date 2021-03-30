@@ -1,5 +1,6 @@
 #![feature(raw)]
 #![feature(destructuring_assignment)]
+#![feature(iter_partition_in_place)]
 use clap::Clap;
 use std::any::Any;
 use std::raw::TraitObject;
