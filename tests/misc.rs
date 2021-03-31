@@ -25,3 +25,18 @@ fn test_transmute() {
         println!("{} = {:02x}, {} = {:02x}", *f, u, g, u + 1);
     }
 }
+
+fn test_lifetime() {
+    struct Entity {}
+
+    struct Container<'a> {
+        root_index: usize,
+        entities: &'a mut [Entity],
+    }
+
+    impl<'a> Container<'a> {
+        fn root(&self) -> &'a Entity {
+            &self.entities[self.root_index]
+        }
+    }
+}

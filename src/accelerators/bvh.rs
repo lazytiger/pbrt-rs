@@ -65,7 +65,14 @@ struct MortonPrimitive {
 struct LBVHTreelet<'a> {
     start_index: i32,
     n_primitive: i32,
+    root_index: i32,
     build_nodes: &'a mut [BVHBuildNode<'a>],
+}
+
+impl<'a> LBVHTreelet<'a> {
+    fn root_node(&self) -> &'a BVHBuildNode<'a> {
+        &self.build_nodes[self.root_index as usize]
+    }
 }
 
 #[derive(Default, Copy, Clone)]
@@ -498,6 +505,7 @@ impl BVHAccel {
         if bit_index == -1 || n_primitives < self.max_prims_in_node as usize {
             *total_nodes += 1;
             let node = &mut treelet.build_nodes[offset];
+            treelet.root_index = offset as i32;
             let mut bounds = Bounds3f::default();
             let first_prim_offset =
                 ordered_prims_offset.fetch_add(n_primitives, std::sync::atomic::Ordering::SeqCst);
@@ -555,7 +563,7 @@ impl BVHAccel {
                 ordered_prims_offset,
                 bit_index - 1,
             );
-            let c0 = &treelet.build_nodes[offset];
+            let c0 = treelet.root_node();
             offset = self.emit_lbvh(
                 treelet,
                 offset,
@@ -567,11 +575,12 @@ impl BVHAccel {
                 ordered_prims_offset,
                 bit_index - 1,
             );
-            let c1 = &treelet.build_nodes[offset];
+            let c1 = treelet.root_node();
 
             let axis = bit_index % 3;
             node.init_interior(axis, c0, c1);
-            origin_offset
+            treelet.root_index = origin_offset as i32;
+            offset
         }
     }
 
