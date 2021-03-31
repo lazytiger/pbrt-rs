@@ -453,27 +453,26 @@ impl BVHAccel {
         let mut atomic_total = AtomicI32::new(0);
         let mut ordered_prim_offset = AtomicUsize::new(0);
         //TODO parallel
+        let mut finished_treelets = Vec::with_capacity(treelets_to_build.len());
         for i in 0..treelets_to_build.len() {
             let mut nodes_created = 0;
             let first_bit_index = 29 - 12;
-            let tr = &mut treelets_to_build[i];
-            tr.build_nodes = self.emit_lbvh(
-                tr.build_nodes,
+            let offset = self.emit_lbvh(
+                &mut treelets_to_build[i],
+                0,
                 primitive_info,
-                &morton_prims[tr.start_index as usize..],
-                tr.n_primitive as usize,
+                &morton_prims[treelets_to_build[i].start_index as usize..],
+                treelets_to_build[i].n_primitive as usize,
                 &mut nodes_created,
                 ordered_prims,
                 &mut ordered_prim_offset,
                 first_bit_index,
             );
+            let node = &treelets_to_build[i].build_nodes[offset];
+            finished_treelets.push(node);
             atomic_total.fetch_add(nodes_created as i32, std::sync::atomic::Ordering::SeqCst);
         }
         *total_node = atomic_total.load(std::sync::atomic::Ordering::SeqCst) as usize;
-        let mut finished_treelets = Vec::with_capacity(treelets_to_build.len());
-        for treelet in &treelets_to_build {
-            finished_treelets.push(&treelet.build_nodes[0]);
-        }
 
         self.build_upper_sah(
             arena,
@@ -486,7 +485,8 @@ impl BVHAccel {
 
     fn emit_lbvh<'a>(
         &self,
-        mut build_nodes: &mut [BVHBuildNode<'a>],
+        treelet: &'a mut LBVHTreelet<'a>,
+        mut offset: usize,
         primitive_info: &Vec<BVHPrimitiveInfo>,
         morton_prims: &[MortonPrimitive],
         n_primitives: usize,
@@ -494,11 +494,10 @@ impl BVHAccel {
         ordered_prims: &mut Vec<Arc<Box<Primitive>>>,
         ordered_prims_offset: &mut AtomicUsize,
         bit_index: i32,
-    ) -> &mut [BVHBuildNode<'a>] {
+    ) -> usize {
         if bit_index == -1 || n_primitives < self.max_prims_in_node as usize {
             *total_nodes += 1;
-            let node = &mut build_nodes[0];
-            build_nodes = &mut build_nodes[1..];
+            let node = &mut treelet.build_nodes[offset];
             let mut bounds = Bounds3f::default();
             let first_prim_offset =
                 ordered_prims_offset.fetch_add(n_primitives, std::sync::atomic::Ordering::SeqCst);
@@ -509,14 +508,15 @@ impl BVHAccel {
                 bounds.union(&primitive_info[primitive_index as usize].bounds);
             }
             node.init_leaf(first_prim_offset as i32, n_primitives as i32, bounds);
-            build_nodes
+            offset + 1
         } else {
             let mask = 1 << bit_index;
             if (morton_prims[0].morton_code & mask)
                 == (morton_prims[n_primitives as usize - 1].morton_code & mask)
             {
                 return self.emit_lbvh(
-                    build_nodes,
+                    treelet,
+                    offset,
                     primitive_info,
                     morton_prims,
                     n_primitives,
@@ -542,45 +542,50 @@ impl BVHAccel {
 
             let split_offset = search_end;
             *total_nodes += 1;
-            let node = &mut build_nodes[0];
-            build_nodes = &mut build_nodes[1..];
-            let lbvh = [
-                self.emit_lbvh(
-                    build_nodes,
-                    primitive_info,
-                    morton_prims,
-                    split_offset,
-                    total_nodes,
-                    ordered_prims,
-                    ordered_prims_offset,
-                    bit_index - 1,
-                ),
-                self.emit_lbvh(
-                    build_nodes,
-                    primitive_info,
-                    &morton_prims[split_offset..],
-                    n_primitives - split_offset,
-                    total_nodes,
-                    ordered_prims,
-                    ordered_prims_offset,
-                    bit_index - 1,
-                ),
-            ];
+            let node = &mut treelet.build_nodes[offset];
+            let origin_offset = offset;
+            offset = self.emit_lbvh(
+                treelet,
+                offset + 1,
+                primitive_info,
+                morton_prims,
+                split_offset,
+                total_nodes,
+                ordered_prims,
+                ordered_prims_offset,
+                bit_index - 1,
+            );
+            let c0 = &treelet.build_nodes[offset];
+            offset = self.emit_lbvh(
+                treelet,
+                offset,
+                primitive_info,
+                &morton_prims[split_offset..],
+                n_primitives - split_offset,
+                total_nodes,
+                ordered_prims,
+                ordered_prims_offset,
+                bit_index - 1,
+            );
+            let c1 = &treelet.build_nodes[offset];
 
             let axis = bit_index % 3;
-            node.init_interior(axis, &lbvh[0][0], &lbvh[1][0]);
-            build_nodes
+            node.init_interior(axis, c0, c1);
+            origin_offset
         }
     }
 
-    fn build_upper_sah<'a>(
+    fn build_upper_sah<'a, 'b>(
         &self,
         arena: &'a Arena<BVHBuildNode<'a>>,
-        treelet_roots: &mut [&'a BVHBuildNode<'a>],
+        treelet_roots: &'b mut [&'a BVHBuildNode<'a>],
         start: usize,
         end: usize,
         total_nodes: &mut usize,
-    ) -> &'a BVHBuildNode<'a> {
+    ) -> &'a BVHBuildNode<'a>
+    where
+        'a: 'b,
+    {
         let n_nodes = end - start;
         if n_nodes == 1 {
             return treelet_roots[start as usize];
