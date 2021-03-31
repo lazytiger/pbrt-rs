@@ -1,5 +1,6 @@
 use crate::{Float, Integer, Options, PI};
 
+pub mod arena;
 pub mod efloat;
 pub mod geometry;
 pub mod interaction;
