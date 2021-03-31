@@ -34,7 +34,7 @@ impl BVHPrimitiveInfo {
 #[derive(Default, Clone)]
 struct BVHBuildNode<'a> {
     bounds: Bounds3f,
-    children: [Option<&'a BVHBuildNode<'a>>; 2],
+    children: Option<[&'a BVHBuildNode<'a>; 2]>,
     split_axis: i32,
     first_prim_offset: i32,
     n_primitives: i32,
@@ -49,7 +49,7 @@ impl<'a> BVHBuildNode<'a> {
 
     fn init_interior(&mut self, axis: i32, c0: &'a BVHBuildNode, c1: &'a BVHBuildNode) {
         self.bounds = c0.bounds.union(&c1.bounds);
-        self.children = [Some(c0), Some(c1)];
+        self.children = Some([c0, c1]);
         self.split_axis = axis;
         self.n_primitives = 0;
     }
@@ -411,7 +411,7 @@ impl BVHAccel {
         primitive_info: &Vec<BVHPrimitiveInfo>,
         total_node: &mut usize,
         ordered_prims: &mut Vec<Arc<Box<Primitive>>>,
-    ) -> &'a BVHBuildNode {
+    ) -> &'a BVHBuildNode<'a> {
         let mut bounds = Bounds3f::default();
         for pi in primitive_info {
             bounds.union(&pi.centroid);
@@ -446,7 +446,7 @@ impl BVHAccel {
                 treelets_to_build.push(LBVHTreelet {
                     start_index: start as i32,
                     n_primitive: n_primitives as i32,
-                    build_nodes: nodes.into(),
+                    build_nodes: nodes,
                 });
             }
         }
@@ -486,7 +486,7 @@ impl BVHAccel {
 
     fn emit_lbvh<'a>(
         &self,
-        mut build_nodes: &'a mut [BVHBuildNode<'a>],
+        mut build_nodes: &mut [BVHBuildNode<'a>],
         primitive_info: &Vec<BVHPrimitiveInfo>,
         morton_prims: &[MortonPrimitive],
         n_primitives: usize,
@@ -494,7 +494,7 @@ impl BVHAccel {
         ordered_prims: &mut Vec<Arc<Box<Primitive>>>,
         ordered_prims_offset: &mut AtomicUsize,
         bit_index: i32,
-    ) -> &'a mut [BVHBuildNode<'a>] {
+    ) -> &mut [BVHBuildNode<'a>] {
         if bit_index == -1 || n_primitives < self.max_prims_in_node as usize {
             *total_nodes += 1;
             let node = &mut build_nodes[0];
@@ -680,11 +680,13 @@ impl BVHAccel {
             } else {
                 linear_node.axis = node.split_axis as u8;
                 linear_node.n_primitives = 0;
-                self.flatten_bvh_tree(node.children[0], offset);
-                linear_node.primitive_or_second_child_offset =
-                    self.flatten_bvh_tree(node.children[1], offset);
+                if let Some(children) = &node.children {
+                    self.flatten_bvh_tree(children[0], offset);
+                    linear_node.primitive_or_second_child_offset =
+                        self.flatten_bvh_tree(children[1], offset);
+                }
             }
-            return my_offset;
+            return my_offset as i32;
         }
         0
     }
