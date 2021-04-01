@@ -1,5 +1,5 @@
 use crate::core::arena::{Arena, Indexed};
-use crate::core::geometry::{Bounds3, Bounds3f, Point3f, Ray, Union, Vector3f};
+use crate::core::geometry::{Bounds3, Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f};
 use crate::core::interaction::SurfaceInteraction;
 use crate::core::light::AreaLight;
 use crate::core::material::{Material, TransportMode};
@@ -36,7 +36,7 @@ struct BVHBuildNode {
     bounds: Bounds3f,
     index: usize,
     children: [usize; 2],
-    split_axis: u8,
+    split_axis: usize,
     first_prim_offset: usize,
     n_primitives: usize,
 }
@@ -50,7 +50,7 @@ impl BVHBuildNode {
 
     fn static_init_interior(
         arena: &mut Arena<BVHBuildNode>,
-        axis: u8,
+        axis: usize,
         s: usize,
         c0: usize,
         c1: usize,
@@ -67,7 +67,13 @@ impl BVHBuildNode {
         node.n_primitives = 0;
     }
 
-    fn init_interior(&mut self, arena: &mut Arena<BVHBuildNode>, axis: u8, c0: usize, c1: usize) {
+    fn init_interior(
+        &mut self,
+        arena: &mut Arena<BVHBuildNode>,
+        axis: usize,
+        c0: usize,
+        c1: usize,
+    ) {
         let c0 = arena.get(c0);
         let c1 = arena.get(c1);
         self.bounds = c0.bounds.union(&c1.bounds);
@@ -122,9 +128,9 @@ impl Indexed for BVHBuildNode {
 #[derive(Default, Copy, Clone)]
 struct LinearBVHNode {
     bounds: Bounds3f,
-    primitive_or_second_child_offset: i32,
-    n_primitives: u16,
-    axis: u8,
+    primitive_or_second_child_offset: usize,
+    n_primitives: usize,
+    axis: usize,
 }
 
 #[inline]
@@ -197,7 +203,7 @@ pub enum SplitMethod {
 }
 
 pub struct BVHAccel {
-    max_prims_in_node: i32,
+    max_prims_in_node: usize,
     split_method: SplitMethod,
     primitives: Vec<Arc<Box<dyn Primitive>>>,
     nodes: Option<Vec<LinearBVHNode>>,
@@ -206,7 +212,7 @@ pub struct BVHAccel {
 impl BVHAccel {
     pub fn new(
         p: Vec<Arc<Box<dyn Primitive>>>,
-        max_prims_in_node: i32,
+        max_prims_in_node: usize,
         split_method: SplitMethod,
     ) -> BVHAccel {
         let mut accel = BVHAccel {
@@ -248,7 +254,7 @@ impl BVHAccel {
         };
 
         accel.primitives = ordered_prims;
-        accel.nodes = Some(vec![LinearBVHNode::default(); total_nodes as usize]);
+        accel.nodes = Some(vec![LinearBVHNode::default(); total_nodes]);
         let mut offset = 0;
         accel.flatten_bvh_tree(&arena, root, &mut offset);
         if total_nodes != offset {
@@ -270,14 +276,14 @@ impl BVHAccel {
         *total_nodes += 1;
         let mut bounds = Bounds3f::default();
         for i in start..end {
-            bounds = bounds.union(&primitive_info[i as usize].bounds);
+            bounds = bounds.union(&primitive_info[i].bounds);
         }
         let n_primitives = end - start;
         if n_primitives == 1 {
             let first_prim_offset = ordered_prims.len();
             for i in start..end {
-                let prim_num = primitive_info[i as usize].primitive_number;
-                ordered_prims.push(self.primitives[prim_num as usize].clone());
+                let prim_num = primitive_info[i].primitive_number;
+                ordered_prims.push(self.primitives[prim_num].clone());
             }
             arena
                 .get_mut(index)
@@ -286,7 +292,7 @@ impl BVHAccel {
         } else {
             let mut centroid_bounds = Bounds3f::default();
             for i in start..end {
-                centroid_bounds.union(&primitive_info[i as usize].centroid);
+                centroid_bounds.union(&primitive_info[i].centroid);
             }
             let dim = centroid_bounds.maximum_extent();
 
@@ -294,8 +300,8 @@ impl BVHAccel {
             if centroid_bounds.max[dim] == centroid_bounds.min[dim] {
                 let first_prim_offset = ordered_prims.len();
                 for i in start..end {
-                    let prim_num = primitive_info[i as usize].primitive_number;
-                    ordered_prims.push(self.primitives[prim_num as usize].clone());
+                    let prim_num = primitive_info[i].primitive_number;
+                    ordered_prims.push(self.primitives[prim_num].clone());
                 }
                 arena
                     .get_mut(index)
@@ -305,30 +311,26 @@ impl BVHAccel {
                 match self.split_method {
                     SplitMethod::Middle => {
                         let p_mid = (centroid_bounds.min[dim] + centroid_bounds.max[dim]) / 2.0;
-                        mid = *&mut primitive_info[start as usize..end as usize + 1]
+                        mid = *&mut primitive_info[start..end + 1]
                             .iter_mut()
                             .partition_in_place(|&pi| pi.centroid[dim] < p_mid)
                             + start;
                         if mid == start || mid == end {
                             let mid = (start + end) / 2;
-                            floydrivest::nth_element(
-                                primitive_info,
-                                mid as usize,
-                                &mut |p1, p2| {
-                                    if p1.centroid[dim] < p2.centroid[dim] {
-                                        Ordering::Less
-                                    } else if p1.centroid[dim] == p2.centroid[dim] {
-                                        Ordering::Equal
-                                    } else {
-                                        Ordering::Greater
-                                    }
-                                },
-                            );
+                            floydrivest::nth_element(primitive_info, mid, &mut |p1, p2| {
+                                if p1.centroid[dim] < p2.centroid[dim] {
+                                    Ordering::Less
+                                } else if p1.centroid[dim] == p2.centroid[dim] {
+                                    Ordering::Equal
+                                } else {
+                                    Ordering::Greater
+                                }
+                            });
                         }
                     }
                     SplitMethod::EqualCounts => {
                         let mid = (start + end) / 2;
-                        floydrivest::nth_element(primitive_info, mid as usize, &mut |p1, p2| {
+                        floydrivest::nth_element(primitive_info, mid, &mut |p1, p2| {
                             if p1.centroid[dim] < p2.centroid[dim] {
                                 Ordering::Less
                             } else if p1.centroid[dim] == p2.centroid[dim] {
@@ -341,35 +343,29 @@ impl BVHAccel {
                     _ => {
                         if n_primitives <= 2 {
                             let mid = (start + end) / 2;
-                            floydrivest::nth_element(
-                                primitive_info,
-                                mid as usize,
-                                &mut |p1, p2| {
-                                    if p1.centroid[dim] < p2.centroid[dim] {
-                                        Ordering::Less
-                                    } else if p1.centroid[dim] == p2.centroid[dim] {
-                                        Ordering::Equal
-                                    } else {
-                                        Ordering::Greater
-                                    }
-                                },
-                            );
+                            floydrivest::nth_element(primitive_info, mid, &mut |p1, p2| {
+                                if p1.centroid[dim] < p2.centroid[dim] {
+                                    Ordering::Less
+                                } else if p1.centroid[dim] == p2.centroid[dim] {
+                                    Ordering::Equal
+                                } else {
+                                    Ordering::Greater
+                                }
+                            });
                         } else {
                             let n_buckets = 12;
                             let mut buckets = [BucketInfo::default(); 12];
 
                             for i in start..end {
-                                let mut b = n_buckets as Float
-                                    * centroid_bounds.offset(&primitive_info[i as usize].centroid)
-                                        [dim];
-                                if b == n_buckets as Float {
-                                    b = (n_buckets - 1) as Float;
+                                let mut b = n_buckets
+                                    * centroid_bounds.offset(&primitive_info[i].centroid)[dim]
+                                        as usize;
+                                if b == n_buckets {
+                                    b = (n_buckets - 1);
                                 }
 
-                                buckets[b as usize].count += 1;
-                                buckets[b as usize]
-                                    .bounds
-                                    .union(&primitive_info[i as usize].bounds);
+                                buckets[b].count += 1;
+                                buckets[b].bounds.union(&primitive_info[i].bounds);
                             }
 
                             let mut cost = [0.0 as Float; 11];
@@ -405,10 +401,8 @@ impl BVHAccel {
                             );
 
                             let leaf_cost = n_primitives as Float;
-                            if n_primitives > self.max_prims_in_node as usize
-                                || min_cost < leaf_cost
-                            {
-                                mid = *&mut primitive_info[start as usize..end as usize + 1]
+                            if n_primitives > self.max_prims_in_node || min_cost < leaf_cost {
+                                mid = *&mut primitive_info[start..end + 1]
                                     .iter_mut()
                                     .partition_in_place(|pi| {
                                         let mut b = n_buckets as Float
@@ -422,8 +416,8 @@ impl BVHAccel {
                             } else {
                                 let first_prim_offset = ordered_prims.len();
                                 for i in start..end {
-                                    let prim_num = primitive_info[i as usize].primitive_number;
-                                    ordered_prims.push(self.primitives[prim_num as usize].clone());
+                                    let prim_num = primitive_info[i].primitive_number;
+                                    ordered_prims.push(self.primitives[prim_num].clone());
                                 }
                                 arena.get_mut(index).init_leaf(
                                     first_prim_offset,
@@ -451,7 +445,7 @@ impl BVHAccel {
                     total_nodes,
                     ordered_prims,
                 );
-                BVHBuildNode::static_init_interior(arena, dim as u8, index, c0, c1);
+                BVHBuildNode::static_init_interior(arena, dim, index, c0, c1);
             }
         }
 
@@ -528,7 +522,7 @@ impl BVHAccel {
             finished_treelets.push(node.index);
             atomic_total.fetch_add(nodes_created, std::sync::atomic::Ordering::SeqCst);
         }
-        *total_node = atomic_total.load(std::sync::atomic::Ordering::SeqCst) as usize;
+        *total_node = atomic_total.load(std::sync::atomic::Ordering::SeqCst);
 
         let length = finished_treelets.len();
         self.build_upper_sah(
@@ -553,7 +547,7 @@ impl BVHAccel {
         ordered_prims_offset: &mut AtomicUsize,
         bit_index: i32,
     ) -> usize {
-        if bit_index == -1 || n_primitives < self.max_prims_in_node as usize {
+        if bit_index == -1 || n_primitives < self.max_prims_in_node {
             *total_nodes += 1;
             let node = treelet.node_mut(arena, offset);
             treelet.root_index = offset;
@@ -561,17 +555,16 @@ impl BVHAccel {
             let first_prim_offset =
                 ordered_prims_offset.fetch_add(n_primitives, std::sync::atomic::Ordering::SeqCst);
             for i in 0..n_primitives {
-                let primitive_index = morton_prims[i as usize].primitive_index;
-                ordered_prims[first_prim_offset + i] =
-                    self.primitives[primitive_index as usize].clone();
-                bounds.union(&primitive_info[primitive_index as usize].bounds);
+                let primitive_index = morton_prims[i].primitive_index;
+                ordered_prims[first_prim_offset + i] = self.primitives[primitive_index].clone();
+                bounds.union(&primitive_info[primitive_index].bounds);
             }
             node.init_leaf(first_prim_offset, n_primitives, bounds);
             offset + 1
         } else {
             let mask = 1 << bit_index;
             if (morton_prims[0].morton_code & mask)
-                == (morton_prims[n_primitives as usize - 1].morton_code & mask)
+                == (morton_prims[n_primitives - 1].morton_code & mask)
             {
                 return self.emit_lbvh(
                     arena,
@@ -591,8 +584,8 @@ impl BVHAccel {
             let mut search_end = n_primitives - 1;
             while search_start + 1 != search_end {
                 let mid = (search_start + search_end) / 2;
-                if (morton_prims[search_start as usize].morton_code & mask)
-                    == (morton_prims[mid as usize].morton_code & mask)
+                if (morton_prims[search_start].morton_code & mask)
+                    == (morton_prims[mid].morton_code & mask)
                 {
                     search_start = mid;
                 } else {
@@ -630,8 +623,8 @@ impl BVHAccel {
             );
             let c1 = treelet.root_node(arena).index;
 
-            let axis = bit_index % 3;
-            BVHBuildNode::static_init_interior(arena, axis as u8, origin_offset, c0, c1);
+            let axis = (bit_index % 3) as usize;
+            BVHBuildNode::static_init_interior(arena, axis, origin_offset, c0, c1);
             treelet.root_index = origin_offset;
             offset
         }
@@ -647,7 +640,7 @@ impl BVHAccel {
     ) -> usize {
         let n_nodes = end - start;
         if n_nodes == 1 {
-            return treelet_roots[start as usize];
+            return treelet_roots[start];
         }
         *total_nodes += 1;
         let (index, _) = arena.alloc(BVHBuildNode::default());
@@ -726,7 +719,7 @@ impl BVHAccel {
             + start;
         let c0 = self.build_upper_sah(arena, treelet_roots, start, mid, total_nodes);
         let c1 = self.build_upper_sah(arena, treelet_roots, mid, end, total_nodes);
-        BVHBuildNode::static_init_interior(arena, dim as u8, index, c0, c1);
+        BVHBuildNode::static_init_interior(arena, dim, index, c0, c1);
         index
     }
 
@@ -743,11 +736,11 @@ impl BVHAccel {
             let my_offset = *offset;
             *offset += 1;
             if node.n_primitives > 0 {
-                linear_node.primitive_or_second_child_offset = node.first_prim_offset as i32;
-                linear_node.n_primitives = node.n_primitives as u16;
+                linear_node.primitive_or_second_child_offset = node.first_prim_offset;
+                linear_node.n_primitives = node.n_primitives;
                 (true, my_offset)
             } else {
-                linear_node.axis = node.split_axis as u8;
+                linear_node.axis = node.split_axis;
                 linear_node.n_primitives = 0;
                 (false, my_offset)
             }
@@ -762,8 +755,8 @@ impl BVHAccel {
         let primitive_or_second_child_offset =
             self.flatten_bvh_tree(arena, node.children[1], offset);
         if let Some(nodes) = &mut self.nodes {
-            let linear_node = &mut nodes[my_offset as usize];
-            linear_node.primitive_or_second_child_offset = primitive_or_second_child_offset as i32;
+            let linear_node = &mut nodes[my_offset];
+            linear_node.primitive_or_second_child_offset = primitive_or_second_child_offset;
         }
         my_offset
     }
@@ -783,12 +776,110 @@ impl Primitive for BVHAccel {
         Bounds3f::default()
     }
 
-    fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> bool {
-        unimplemented!()
+    fn intersect(&self, ray: &mut Ray, si: &mut SurfaceInteraction) -> bool {
+        if let Some(nodes) = &self.nodes {
+            let mut hit = false;
+            let inv_dir = Vector3f::new(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
+            let dir_is_neg = [
+                if inv_dir.x < 0.0 { 1 } else { 0 } as usize,
+                if inv_dir.y < 0.0 { 1 } else { 0 } as usize,
+                if inv_dir.z < 0.0 { 1 } else { 0 } as usize,
+            ];
+            let mut to_visit_offset = 0;
+            let mut current_node_index = 0;
+            let mut nodes_to_vist = [0; 64];
+            loop {
+                let node = &nodes[current_node_index];
+                if node.bounds.intersect_p((&*ray, &inv_dir, dir_is_neg)) {
+                    if node.n_primitives > 0 {
+                        for i in 0..node.n_primitives {
+                            if self.primitives[node.primitive_or_second_child_offset + i]
+                                .intersect(ray, si)
+                            {
+                                hit = true;
+                            }
+                        }
+                        if to_visit_offset == 0 {
+                            break;
+                        }
+                        to_visit_offset -= 1;
+                        current_node_index = nodes_to_vist[to_visit_offset];
+                    } else {
+                        if dir_is_neg[node.axis] != 0 {
+                            nodes_to_vist[to_visit_offset] = current_node_index + 1;
+                            to_visit_offset += 1;
+                            current_node_index = node.primitive_or_second_child_offset;
+                        } else {
+                            nodes_to_vist[to_visit_offset] = node.primitive_or_second_child_offset;
+                            to_visit_offset += 1;
+                            current_node_index = current_node_index + 1;
+                        }
+                    }
+                } else {
+                    if to_visit_offset == 0 {
+                        break;
+                    }
+                    to_visit_offset -= 1;
+                    current_node_index = nodes_to_vist[to_visit_offset];
+                }
+            }
+            hit
+        } else {
+            false
+        }
     }
 
-    fn intersect_p(&self, r: &Ray) -> bool {
-        unimplemented!()
+    fn intersect_p(&self, ray: &Ray) -> bool {
+        if let Some(nodes) = &self.nodes {
+            let mut hit = false;
+            let inv_dir = Vector3f::new(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
+            let dir_is_neg = [
+                if inv_dir.x < 0.0 { 1 } else { 0 } as usize,
+                if inv_dir.y < 0.0 { 1 } else { 0 } as usize,
+                if inv_dir.z < 0.0 { 1 } else { 0 } as usize,
+            ];
+            let mut to_visit_offset = 0;
+            let mut current_node_index = 0;
+            let mut nodes_to_vist = [0; 64];
+            loop {
+                let node = &nodes[current_node_index];
+                if node.bounds.intersect_p((&*ray, &inv_dir, dir_is_neg)) {
+                    if node.n_primitives > 0 {
+                        for i in 0..node.n_primitives {
+                            if self.primitives[node.primitive_or_second_child_offset + i]
+                                .intersect_p(ray)
+                            {
+                                return true;
+                            }
+                        }
+                        if to_visit_offset == 0 {
+                            break;
+                        }
+                        to_visit_offset -= 1;
+                        current_node_index = nodes_to_vist[to_visit_offset];
+                    } else {
+                        if dir_is_neg[node.axis] != 0 {
+                            nodes_to_vist[to_visit_offset] = current_node_index + 1;
+                            to_visit_offset += 1;
+                            current_node_index = node.primitive_or_second_child_offset;
+                        } else {
+                            nodes_to_vist[to_visit_offset] = node.primitive_or_second_child_offset;
+                            to_visit_offset += 1;
+                            current_node_index = current_node_index + 1;
+                        }
+                    }
+                } else {
+                    if to_visit_offset == 0 {
+                        break;
+                    }
+                    to_visit_offset -= 1;
+                    current_node_index = nodes_to_vist[to_visit_offset];
+                }
+            }
+            hit
+        } else {
+            false
+        }
     }
 
     fn get_area_light(&self) -> Option<Arc<Box<dyn AreaLight>>> {

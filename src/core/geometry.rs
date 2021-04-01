@@ -568,13 +568,13 @@ impl<T: RealNum<T>> Bounds3<T> {
 
 pub trait IntersectP<T> {
     type Output;
-    fn intersect(&self, data: T) -> Self::Output;
+    fn intersect_p(&self, data: T) -> Self::Output;
 }
 
 impl IntersectP<&Ray> for Bounds3f {
     type Output = (bool, Float, Float);
 
-    fn intersect(&self, ray: &Ray) -> Self::Output {
+    fn intersect_p(&self, ray: &Ray) -> Self::Output {
         let mut t0 = 0.0;
         let mut t1 = ray.t_max;
         for i in 0..3 {
@@ -601,7 +601,7 @@ impl IntersectP<&Ray> for Bounds3f {
 impl IntersectP<(&Ray, &Vector3f, [usize; 3])> for Bounds3f {
     type Output = bool;
 
-    fn intersect(&self, data: (&Ray, &Vector3f, [usize; 3])) -> Self::Output {
+    fn intersect_p(&self, data: (&Ray, &Vector3f, [usize; 3])) -> Self::Output {
         let ray = data.0;
         let inv_dir = data.1;
         let dir_is_neg = data.2;
