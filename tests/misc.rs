@@ -26,6 +26,7 @@ fn test_transmute() {
     }
 }
 
+#[test]
 fn test_lifetime() {
     struct Entity {}
 
@@ -35,7 +36,7 @@ fn test_lifetime() {
     }
 
     impl<'a> Container<'a> {
-        fn root(&self) -> &'a Entity {
+        fn root(&self) -> &Entity {
             &self.entities[self.root_index]
         }
     }

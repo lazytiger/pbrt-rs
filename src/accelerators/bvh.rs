@@ -765,7 +765,7 @@ impl BVHAccel {
             let linear_node = &mut nodes[my_offset as usize];
             linear_node.primitive_or_second_child_offset = primitive_or_second_child_offset as i32;
         }
-        0
+        my_offset
     }
 }
 
