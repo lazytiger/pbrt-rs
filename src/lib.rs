@@ -150,3 +150,19 @@ impl Default for Options {
         }
     }
 }
+
+pub fn log_2_int_u32(v: u32) -> i32 {
+    31 - v.leading_zeros() as i32
+}
+
+pub fn log_2_int_i32(v: i32) -> i32 {
+    log_2_int_u32(v as u32)
+}
+
+pub fn log_2_int_u64(v: u64) -> i64 {
+    63 - v.leading_zeros() as i64
+}
+
+pub fn log_2_int_i64(v: i64) -> i64 {
+    log_2_int_u64(v as u64)
+}
