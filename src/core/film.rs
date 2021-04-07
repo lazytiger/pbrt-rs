@@ -1,5 +1,5 @@
 use crate::core::filter::Filter;
-use crate::core::geometry::{Bounds2i, Point2i};
+use crate::core::geometry::{Bounds2f, Bounds2i, Point2f, Point2i, Vector2f};
 use crate::Float;
 use std::sync::Arc;
 
@@ -21,4 +21,13 @@ pub struct Film {
     filter_table: [Float; FILTER_TABLE_WIDTH * FILTER_TABLE_WIDTH],
     scale: Float,
     max_sample_luminance: Float,
+}
+
+impl Film {
+    pub fn get_sample_bounds(&self) -> Bounds2i {
+        let mut float_bounds = Bounds2f::new();
+        float_bounds.min = Point2f::from(self.cropped_pixel_bounds.min).floor()
+            + (Vector2f::new(0.5, 0.5) - *self.filter.radius());
+        float_bounds.into()
+    }
 }

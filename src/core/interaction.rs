@@ -7,7 +7,7 @@ use crate::Float;
 use crate::SHADOW_EPSILON;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Interaction {
     pub p: Point3f,
     pub time: Float,
@@ -68,6 +68,39 @@ impl SpawnRayTo<&Interaction> for Interaction {
         let target = offset_ray_origin(&it.p, &it.error, &it.n, &(origin - it.p));
         let d = target - origin;
         Ray::new(origin, d, 1.0 - SHADOW_EPSILON, self.time, None)
+    }
+}
+
+impl From<(Point3f, Vector3f, Float, MediumInterface)> for Interaction {
+    fn from(data: (Point3f, Vector3f, Float, MediumInterface)) -> Self {
+        let p = data.0;
+        let wo = data.1;
+        let time = data.2;
+        let medium_interface = data.3;
+        Self {
+            p,
+            wo,
+            time,
+            medium_interface,
+            error: Default::default(),
+            n: Default::default(),
+        }
+    }
+}
+
+impl From<(Point3f, Float, MediumInterface)> for Interaction {
+    fn from(data: (Point3f, Float, MediumInterface)) -> Self {
+        let p = data.0;
+        let time = data.1;
+        let medium_interface = data.2;
+        Self {
+            p,
+            time,
+            error: Default::default(),
+            wo: Default::default(),
+            n: Default::default(),
+            medium_interface,
+        }
     }
 }
 

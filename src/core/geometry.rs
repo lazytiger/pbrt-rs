@@ -320,6 +320,15 @@ pub type Point2<T> = Vector2<T>;
 pub type Point2f = Point2<Float>;
 pub type Point2i = Point2<i32>;
 
+impl From<Point2i> for Point2f {
+    fn from(p: Point2i) -> Self {
+        Self {
+            x: p.x as Float,
+            y: p.y as Float,
+        }
+    }
+}
+
 make_vector!(struct Vector3, x, y, z);
 pub type Vector3f = Vector3<Float>;
 pub type Vector3i = Vector3<i32>;
@@ -363,8 +372,24 @@ impl<T: RealNum<T>> Vector3<T> {
     }
 }
 
-impl<'a> From<(&AnimatedTransform, Float, Point3Ref<'a, f32>)> for Point3f {
-    fn from(data: (&AnimatedTransform, f32, Point3Ref<'_, f32>)) -> Self {
+impl<'a> From<(&AnimatedTransform, Float, Point3Ref<'a, Float>)> for Point3f {
+    fn from(data: (&AnimatedTransform, f32, Point3Ref<'_, Float>)) -> Self {
+        let at = data.0;
+        let time = data.1;
+        let p = data.2;
+        if !at.actually_animated || time <= at.start_time {
+            &at.start_transform * p
+        } else if time > at.end_time {
+            &at.end_transform * p
+        } else {
+            let t = at.interpolate(time);
+            &t * p
+        }
+    }
+}
+
+impl<'a> From<(&AnimatedTransform, Float, Vector3Ref<'a, Float>)> for Vector3f {
+    fn from(data: (&AnimatedTransform, f32, Vector3Ref<'a, f32>)) -> Self {
         let at = data.0;
         let time = data.1;
         let p = data.2;
@@ -546,6 +571,24 @@ macro_rules! make_bounds {
 make_bounds!(Bounds2, Point2, Vector2, x, y);
 pub type Bounds2f = Bounds2<Float>;
 pub type Bounds2i = Bounds2<i32>;
+
+impl From<Bounds2i> for Bounds2f {
+    fn from(bounds: Bounds2i) -> Self {
+        Self {
+            min: Point2f::new(bounds.min.x as Float, bounds.min.y as Float),
+            max: Point2f::new(bounds.max.x as Float, bounds.max.y as Float),
+        }
+    }
+}
+
+impl From<Bounds2f> for Bounds2i {
+    fn from(bounds: Bounds2f) -> Self {
+        Self {
+            min: Point2i::new(bounds.min.x as i32, bounds.min.y as i32),
+            max: Point2i::new(bounds.max.x as i32, bounds.max.y as i32),
+        }
+    }
+}
 
 make_bounds!(Bounds3, Point3, Vector3, x, y, z);
 impl<T: RealNum<T>> Bounds3<T> {

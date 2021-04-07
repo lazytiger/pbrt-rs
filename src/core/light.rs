@@ -15,3 +15,9 @@ pub struct VisibilityTester {
     p0: Interaction,
     p1: Interaction,
 }
+
+impl VisibilityTester {
+    pub fn new(p0: Interaction, p1: Interaction) -> VisibilityTester {
+        VisibilityTester { p0, p1 }
+    }
+}
