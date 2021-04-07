@@ -11,9 +11,9 @@ use std::sync::Arc;
 
 #[derive(Default, Copy, Clone)]
 pub struct CameraSample {
-    p_film: Point2f,
-    p_lens: Point2f,
-    time: Float,
+    pub p_film: Point2f,
+    pub p_lens: Point2f,
+    pub time: Float,
 }
 pub trait Camera {
     fn as_any(&self) -> &dyn Any;

@@ -1073,3 +1073,35 @@ impl<T> From<Vector3<T>> for Vector2<T> {
         Self { x: v.x, y: v.y }
     }
 }
+
+impl From<(&AnimatedTransform, &Ray)> for Ray {
+    fn from(data: (&AnimatedTransform, &Ray)) -> Ray {
+        let at = data.0;
+        let r = data.1;
+        if !at.actually_animated || r.time <= at.start_time {
+            (&at.start_transform, r).into()
+        } else if r.time > at.end_time {
+            (&at.end_transform, r).into()
+        } else {
+            let t = at.interpolate(r.time);
+            (&t, r).into()
+        }
+    }
+}
+
+impl From<(&AnimatedTransform, &RayDifferentials)> for RayDifferentials {
+    fn from(data: (&AnimatedTransform, &RayDifferentials)) -> Self {
+        let at = data.0;
+        let r = data.1;
+        let at = data.0;
+        let r = data.1;
+        if !at.actually_animated || r.time <= at.start_time {
+            (&at.start_transform, r).into()
+        } else if r.time > at.end_time {
+            (&at.end_transform, r).into()
+        } else {
+            let t = at.interpolate(r.time);
+            (&t, r).into()
+        }
+    }
+}

@@ -2058,18 +2058,3 @@ impl AnimatedTransform {
         self.start_transform.has_scale() || self.end_transform.has_scale()
     }
 }
-
-impl Into<Ray> for (&AnimatedTransform, &Ray) {
-    fn into(self) -> Ray {
-        let at = self.0;
-        let r = self.1;
-        if !at.actually_animated || r.time <= at.start_time {
-            (&at.start_transform, r).into()
-        } else if r.time > at.end_time {
-            (&at.end_transform, r).into()
-        } else {
-            let t = at.interpolate(r.time);
-            (&t, r).into()
-        }
-    }
-}

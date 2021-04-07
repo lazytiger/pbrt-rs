@@ -1,11 +1,13 @@
 use crate::core::camera::{BaseCamera, Camera, CameraSample};
 use crate::core::film::Film;
-use crate::core::geometry::{Bounds2f, Point2f, Ray, RayDifferentials, Vector3f};
+use crate::core::geometry::{Bounds2f, Point2f, Point3f, Ray, RayDifferentials, Vector3f};
 use crate::core::interaction::Interaction;
+use crate::core::lerp;
 use crate::core::light::VisibilityTester;
 use crate::core::medium::Medium;
+use crate::core::sampling::concentric_sample_disk;
 use crate::core::spectrum::Spectrum;
-use crate::core::transform::{AnimatedTransform, Transform, Transformf, Vector3Ref};
+use crate::core::transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref};
 use crate::{impl_base_camera, Float};
 use log::Level::Trace;
 use std::any::Any;
@@ -69,12 +71,73 @@ impl Camera for OrthographicCamera {
         self
     }
 
-    fn generate_ray(&self, sample: &CameraSample, ray: &mut Ray) -> f32 {
-        unimplemented!()
+    fn generate_ray(&self, sample: &CameraSample, ray: &mut Ray) -> Float {
+        let p_film = Point3f::new(sample.p_film.x, sample.p_film.y, 0.0);
+        let p_camera = &self.raster_to_camera * Point3Ref(&p_film);
+        *ray = Ray::new(
+            p_camera,
+            Vector3f::new(0.0, 0.0, 1.0),
+            Float::INFINITY,
+            0.0,
+            None,
+        );
+        if self.lens_radius > 0.0 {
+            let p_lens = concentric_sample_disk(&sample.p_lens) * self.lens_radius;
+            let ft = self.focal_distance / ray.d.z;
+            let p_focus = ray.point(ft);
+            ray.o = Point3f::new(p_lens.x, p_lens.y, 0.0);
+            ray.d = (p_focus - ray.o).normalize();
+        }
+
+        ray.time = lerp(sample.time, self.shutter_open(), self.shutter_close());
+        ray.medium = Some(self.medium());
+        *ray = (self.camera_to_world(), &*ray).into();
+        1.0
     }
 
-    fn generate_ray_differential(&self, sample: &CameraSample, rd: &mut RayDifferentials) -> f32 {
-        unimplemented!()
+    fn generate_ray_differential(
+        &self,
+        sample: &CameraSample,
+        ray: &mut RayDifferentials,
+    ) -> Float {
+        let p_film = Point3f::new(sample.p_film.x, sample.p_film.y, 0.0);
+        let p_camera = &self.raster_to_camera * Point3Ref(&p_film);
+        *ray = RayDifferentials::new(
+            p_camera,
+            Vector3f::new(0.0, 0.0, 1.0),
+            Float::INFINITY,
+            0.0,
+            None,
+        );
+        if self.lens_radius > 0.0 {
+            let p_lens = concentric_sample_disk(&sample.p_lens) * self.lens_radius;
+            let ft = self.focal_distance / ray.d.z;
+            let p_focus = ray.point(ft);
+            ray.o = Point3f::new(p_lens.x, p_lens.y, 0.0);
+            ray.d = (p_focus - ray.o).normalize();
+        }
+        if self.lens_radius > 0.0 {
+            let p_lens = concentric_sample_disk(&sample.p_lens) * self.lens_radius;
+            let ft = self.focal_distance / ray.d.z;
+            let mut p_focus = p_camera + self.dx_camera + Vector3f::new(0.0, 0.0, 1.0) * ft;
+            ray.rx_origin = Point3f::new(p_lens.x, p_lens.y, 0.0);
+            ray.rx_direction = (p_focus - ray.rx_origin).normalize();
+
+            p_focus = p_camera + self.dy_camera + Vector3f::new(0.0, 0.0, 1.0) * ft;
+            ray.ry_origin = Point3f::new(p_lens.x, p_lens.y, 0.0);
+            ray.ry_direction = (p_focus - ray.ry_origin).normalize();
+        } else {
+            ray.rx_origin = ray.o + self.dx_camera;
+            ray.ry_origin = ray.o + self.dy_camera;
+            ray.rx_direction = ray.d;
+            ray.ry_direction = ray.d;
+        }
+
+        ray.time = lerp(sample.time, self.shutter_open(), self.shutter_close());
+        ray.medium = Some(self.medium());
+        ray.has_differentials = true;
+        *ray = (self.camera_to_world(), &*ray).into();
+        1.0
     }
 
     impl_base_camera!();
