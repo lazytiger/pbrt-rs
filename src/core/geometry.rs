@@ -417,13 +417,13 @@ macro_rules! make_bounds {
         }
 
         impl<T: RealNum<T>> $name<T> {
-            pub fn new() -> Self {
+            pub fn new() -> Self {bo
                 Self {
                     min: $p {
-                        $($field: T::min_value(),)+
+                        $($field: T::max_value(),)+
                     },
                     max: $p {
-                        $($field: T::max_value(),)+
+                        $($field: T::min_value(),)+
                     }
                 }
             }
