@@ -4,6 +4,7 @@
 #![feature(is_sorted)]
 use clap::Clap;
 use std::any::Any;
+use std::mem::swap;
 use std::raw::TraitObject;
 use std::str::FromStr;
 
@@ -166,4 +167,26 @@ pub fn log_2_int_u64(v: u64) -> i64 {
 
 pub fn log_2_int_i64(v: i64) -> i64 {
     log_2_int_u64(v as u64)
+}
+
+#[inline]
+pub fn quadratic(a: Float, b: Float, c: Float, t0: &mut Float, t1: &mut Float) -> bool {
+    let discrim = b as f64 * b as f64 - 4.0 * a as f64 * c as f64;
+    if discrim < 0.0 {
+        return false;
+    }
+    let root_discrim = discrim.sqrt() as Float;
+
+    let q = if b < 0.0 {
+        -0.5 * (b - root_discrim)
+    } else {
+        -0.5 * (b + root_discrim)
+    };
+    *t0 = q / a;
+    *t1 = c / q;
+
+    if *t0 > *t1 {
+        swap(t0, t1)
+    }
+    true
 }

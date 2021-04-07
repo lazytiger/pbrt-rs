@@ -30,4 +30,8 @@ impl Film {
             + (Vector2f::new(0.5, 0.5) - *self.filter.radius());
         float_bounds.into()
     }
+
+    pub fn get_physical_extent(&self) -> Bounds2f {
+        unimplemented!()
+    }
 }

@@ -13,6 +13,7 @@ pub mod material;
 pub mod medium;
 pub mod primitive;
 pub mod quaternion;
+pub mod reflection;
 pub mod sampling;
 pub mod shape;
 pub mod spectrum;

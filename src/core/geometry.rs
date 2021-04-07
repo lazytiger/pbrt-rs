@@ -569,6 +569,12 @@ macro_rules! make_bounds {
 }
 
 make_bounds!(Bounds2, Point2, Vector2, x, y);
+impl<T: RealNum<T>> Bounds2<T> {
+    pub fn area(&self) -> T {
+        let d = self.max - self.min;
+        d.x * d.y
+    }
+}
 pub type Bounds2f = Bounds2<Float>;
 pub type Bounds2i = Bounds2<i32>;
 
