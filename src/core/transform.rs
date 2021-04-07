@@ -2053,6 +2053,10 @@ impl AnimatedTransform {
             bounds
         }
     }
+
+    pub fn has_scale(&self) -> bool {
+        self.start_transform.has_scale() || self.end_transform.has_scale()
+    }
 }
 
 impl Into<Ray> for (&AnimatedTransform, &Ray) {

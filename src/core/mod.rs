@@ -4,6 +4,7 @@ pub mod arena;
 pub mod camera;
 pub mod efloat;
 pub mod film;
+pub mod filter;
 pub mod geometry;
 pub mod interaction;
 pub mod light;

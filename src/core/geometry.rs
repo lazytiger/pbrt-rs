@@ -545,6 +545,7 @@ macro_rules! make_bounds {
 
 make_bounds!(Bounds2, Point2, Vector2, x, y);
 pub type Bounds2f = Bounds2<Float>;
+pub type Bounds2i = Bounds2<i32>;
 
 make_bounds!(Bounds3, Point3, Vector3, x, y, z);
 impl<T: RealNum<T>> Bounds3<T> {

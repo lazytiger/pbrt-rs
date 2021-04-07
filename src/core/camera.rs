@@ -88,6 +88,33 @@ pub(crate) struct BaseCamera {
     pub medium: Arc<Box<dyn Medium>>,
 }
 
+impl BaseCamera {
+    pub fn new(
+        camera_to_world: AnimatedTransform,
+        shutter_open: Float,
+        shutter_close: Float,
+        film: Arc<Film>,
+        medium: Arc<Box<dyn Medium>>,
+    ) -> BaseCamera {
+        if camera_to_world.has_scale() {
+            log::warn!(
+                "scaling detected in world-to-camera transformation!\n\
+             The system has numerous assumptions, implicit and explicit,\n\
+             that this transform will have no scale factors in it.\n\
+             Proceed at your own risk; your image may have errors or \n\
+             the system may crash as a result of this."
+            )
+        }
+        Self {
+            camera_to_world,
+            shutter_open,
+            shutter_close,
+            film,
+            medium,
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! impl_base_camera {
     () => {
