@@ -656,11 +656,11 @@ pub struct Ray {
 #[derive(Clone, Default)]
 pub struct RayDifferentials {
     base: Ray,
-    has_differentials: bool,
-    rx_origin: Point3f,
-    ry_origin: Point3f,
-    rx_direction: Vector3f,
-    ry_direction: Vector3f,
+    pub has_differentials: bool,
+    pub rx_origin: Point3f,
+    pub ry_origin: Point3f,
+    pub rx_direction: Vector3f,
+    pub ry_direction: Vector3f,
 }
 
 impl Ray {

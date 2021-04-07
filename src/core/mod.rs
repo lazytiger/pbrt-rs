@@ -1,7 +1,9 @@
 use crate::{Float, Integer, Options, PI};
 
 pub mod arena;
+pub mod camera;
 pub mod efloat;
+pub mod film;
 pub mod geometry;
 pub mod interaction;
 pub mod light;
