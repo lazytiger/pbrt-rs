@@ -7,8 +7,8 @@ use crate::core::sobolmatrices::{
 };
 use crate::{Float, Integer, ONE_MINUS_EPSILON};
 
-const PRIME_TABLE_SIZE: usize = 1000;
-const PRIMES: [u32; PRIME_TABLE_SIZE + 23] = [
+pub const PRIME_TABLE_SIZE: usize = 1000;
+pub const PRIMES: [u32; PRIME_TABLE_SIZE + 23] = [
     2, 3, 5, 7, 11, // Subsequent prime numbers
     13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
     109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211,
@@ -74,7 +74,7 @@ const PRIMES: [u32; PRIME_TABLE_SIZE + 23] = [
     8039, 8053, 8059, 8069, 8081, 8087, 8089, 8093, 8101, 8111, 8117, 8147, 8161,
 ];
 
-const PRIME_SUMS: [u32; PRIME_TABLE_SIZE] = [
+pub const PRIME_SUMS: [u32; PRIME_TABLE_SIZE] = [
     0, 2, 5, 10, 17, // Subsequent prime sums
     28, 41, 58, 77, 100, 129, 160, 197, 238, 281, 328, 381, 440, 501, 568, 639, 712, 791, 874, 963,
     1060, 1161, 1264, 1371, 1480, 1593, 1720, 1851, 1988, 2127, 2276, 2427, 2584, 2747, 2914, 3087,
@@ -329,7 +329,7 @@ pub fn radical_inverse(base_index: u64, a: u64) -> Float {
     }
 }
 
-pub fn compute_radical_inverse_permutations(rng: &mut RNG) -> Vec<u16> {
+pub fn compute_radical_inverse_permutations(rng: &mut RNG) -> Vec<u64> {
     let mut perms = Vec::new();
     let mut perm_array_size = 0;
     for i in 0..PRIME_TABLE_SIZE {
@@ -339,7 +339,7 @@ pub fn compute_radical_inverse_permutations(rng: &mut RNG) -> Vec<u16> {
     let mut p = perms.as_mut_slice();
     for i in 0..PRIME_TABLE_SIZE {
         for j in 0..PRIMES[i] as usize {
-            p[j] = j as u16;
+            p[j] = j as u64;
         }
         shuffle(p, PRIMES[i] as usize, 1, rng);
         p = &mut p[PRIMES[i] as usize..];

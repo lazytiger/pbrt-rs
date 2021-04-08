@@ -82,7 +82,7 @@ pub trait Sampler {
     fn current_sample_number(&self) -> i64 {
         self.current_pixel_sample_index()
     }
-    fn get_index_for_sample(&self, sample_num: usize) -> i64;
+    fn get_index_for_sample(&mut self, sample_num: usize) -> i64;
     fn sample_dimension(&self, index: i64, dimension: usize) -> Float;
     fn samples_per_pixel(&self) -> i64;
 
@@ -111,6 +111,7 @@ pub trait Sampler {
     fn set_array_2d_offset(&mut self, offset: usize);
 }
 
+#[derive(Clone)]
 pub struct BaseSampler {
     pub samples_per_pixel: i64,
     pub current_pixel: Point2i,
@@ -119,8 +120,8 @@ pub struct BaseSampler {
     pub samples_2d_array_sizes: Vec<usize>,
     pub sample_array_1d: Vec<Vec<Float>>,
     pub sample_array_2d: Vec<Vec<Point2f>>,
-    array_1d_offset: usize,
-    array_2d_offset: usize,
+    pub array_1d_offset: usize,
+    pub array_2d_offset: usize,
 }
 
 impl BaseSampler {
@@ -200,6 +201,7 @@ macro_rules! impl_base_sampler {
     };
 }
 
+#[derive(Clone)]
 pub struct PixelSampler {
     base: BaseSampler,
     pub samples_1d: Vec<Vec<Float>>,
@@ -281,7 +283,7 @@ impl Sampler for PixelSampler {
         Sampler::set_sample_number(self, sample_num)
     }
 
-    fn get_index_for_sample(&self, sample_num: usize) -> i64 {
+    fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {
         unimplemented!()
     }
 
@@ -292,6 +294,7 @@ impl Sampler for PixelSampler {
 
 const ARRAY_START_DIM: usize = 5;
 
+#[derive(Clone)]
 pub struct GlobalSampler {
     base: BaseSampler,
     dimension: usize,
@@ -390,11 +393,26 @@ impl Sampler for GlobalSampler {
         Sampler::set_sample_number(self, sample_num)
     }
 
-    fn get_index_for_sample(&self, sample_num: usize) -> i64 {
+    fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {
         unimplemented!()
     }
 
     fn sample_dimension(&self, index: i64, dimension: usize) -> f32 {
         unimplemented!()
     }
+}
+
+#[macro_export]
+macro_rules! impl_global_sampler {
+    () => {
+        crate::impl_base_sampler!();
+
+        fn get_1d(&mut self) -> Float {
+            self.base.get_1d()
+        }
+
+        fn get_2d(&mut self) -> Point2f {
+            self.base.get_2d()
+        }
+    };
 }
