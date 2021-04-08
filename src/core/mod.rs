@@ -18,6 +18,7 @@ pub mod rng;
 pub mod sampler;
 pub mod sampling;
 pub mod shape;
+pub mod sobolmatrices;
 pub mod spectrum;
 pub mod transform;
 

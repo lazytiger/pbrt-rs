@@ -1,4 +1,5 @@
 use crate::core::geometry::{Point2f, Vector2f, Vector3f};
+use crate::core::rng::RNG;
 use crate::core::{clamp, find_interval};
 use crate::{Float, PI, PIOVER2, PIOVER4};
 use std::panic::PanicInfo;
@@ -169,4 +170,13 @@ pub fn concentric_sample_disk(u: &Point2f) -> Point2f {
 pub fn uniform_sample_triangle(u: &Point2f) -> Point2f {
     let su0 = u[0].sqrt();
     Point2f::new(1.0 - su0, u[1] * su0)
+}
+
+pub fn shuffle<T>(samp: &mut [T], count: usize, n_dimensions: usize, rng: &mut RNG) {
+    for i in 0..count {
+        let other = i + rng.uniform_u32_u32((count - i) as u32) as usize;
+        for j in 0..n_dimensions {
+            samp.swap(n_dimensions * i + j, n_dimensions * other + j);
+        }
+    }
 }

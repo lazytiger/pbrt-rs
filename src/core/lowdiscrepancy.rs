@@ -1,4 +1,11 @@
-use crate::{Float, ONE_MINUS_EPSILON};
+use crate::core::geometry::{Point2f, Point2i};
+use crate::core::rng::RNG;
+use crate::core::sampling::shuffle;
+use crate::core::sobolmatrices::{
+    SOBOL_MATRICES_32, SOBOL_MATRICES_64, SOBOL_MATRIX_SIZE, VDC_SOBOL_MATRICES,
+    VDC_SOBOL_MATRICES_INV,
+};
+use crate::{Float, Integer, ONE_MINUS_EPSILON};
 
 const PRIME_TABLE_SIZE: usize = 1000;
 const PRIMES: [u32; PRIME_TABLE_SIZE + 23] = [
@@ -322,17 +329,232 @@ pub fn radical_inverse(base_index: u64, a: u64) -> Float {
     }
 }
 
-fn reverse_bits64(n: u64) -> u64 {
+pub fn compute_radical_inverse_permutations(rng: &mut RNG) -> Vec<u16> {
+    let mut perms = Vec::new();
+    let mut perm_array_size = 0;
+    for i in 0..PRIME_TABLE_SIZE {
+        perm_array_size += PRIMES[i];
+    }
+    perms.resize(perm_array_size as usize, 0);
+    let mut p = perms.as_mut_slice();
+    for i in 0..PRIME_TABLE_SIZE {
+        for j in 0..PRIMES[i] as usize {
+            p[j] = j as u16;
+        }
+        shuffle(p, PRIMES[i] as usize, 1, rng);
+        p = &mut p[PRIMES[i] as usize..];
+    }
+    perms
+}
+
+pub fn scramble_radical_inverse(base_index: usize, a: u64, perm: &[u64]) -> Float {
+    match base_index {
+        i if i > 0 && i < 1024 => {
+            scramble_radical_inverse_specialized(PRIMES[i as usize] as u64, perm, a)
+        }
+        _ => panic!(
+            "base {} is >= 1024, the limit of scramble_radical_inverse",
+            base_index
+        ),
+    }
+}
+
+#[inline]
+pub fn reverse_bits64(n: u64) -> u64 {
     let n0 = reverse_bits32(n as u32);
     let n1 = reverse_bits32((n >> 32) as u32);
     (n0 as u64) << 32 | n1 as u64
 }
 
-fn reverse_bits32(mut n: u32) -> u32 {
+#[inline]
+pub fn reverse_bits32(mut n: u32) -> u32 {
     n = (n << 16) | n >> 16;
     n = ((n & 0x00ff00ff) << 8) | ((n & 0xff00ff00) >> 8);
     n = ((n & 0x0f0f0f0f) << 4) | ((n & 0xf0f0f0f0) >> 4);
     n = ((n & 0x33333333) << 2) | ((n & 0xcccccccc) >> 2);
     n = ((n & 0x55555555) << 1) | ((n & 0xaaaaaaaa) >> 1);
     n
+}
+
+#[inline]
+pub fn inverse_radical_inverse(base: u64, mut inverse: u64, n_digits: usize) -> u64 {
+    let mut index = 0;
+    for i in 0..n_digits {
+        let digit = inverse % base;
+        inverse /= base;
+        index = index * base + digit;
+    }
+    index
+}
+
+#[inline]
+pub fn multiply_generator(c: &[u32], mut a: u32) -> u32 {
+    let mut v = 0;
+    let mut i = 0;
+    while a != 0 {
+        if a & 1 != 0 {
+            v ^= c[i];
+        }
+        i += 1;
+        a >>= 1;
+    }
+    v
+}
+
+#[inline]
+pub fn sample_generator_matrix(c: &[u32], a: u32, scramble: u32) -> Float {
+    ONE_MINUS_EPSILON.min((multiply_generator(c, a) ^ scramble) as Float * 2.3283064365386963e-10)
+}
+
+#[inline]
+pub fn gray_code(v: u32) -> u32 {
+    (v >> 1) & v
+}
+
+#[inline]
+pub fn gray_code_sample(c: &[u32], n: u32, scramble: u32, p: &mut [Float]) {
+    let mut v = scramble;
+    for i in 0..n as usize {
+        p[i] = ONE_MINUS_EPSILON.min(v as Float * 2.3283064365386963e-10);
+        v ^= c[(i + 1).trailing_zeros() as usize];
+    }
+}
+
+#[inline]
+pub fn gray_code_sample_2d(c0: &[u32], c1: &[u32], n: u32, scramble: &Point2i, p: &mut [Point2f]) {
+    let mut v = [scramble.x as u32, scramble.y as u32];
+    for i in 0..n as usize {
+        p[i].x = ONE_MINUS_EPSILON.min(v[0] as Float * 2.3283064365386963e-10);
+        p[i].y = ONE_MINUS_EPSILON.min(v[1] as Float * 2.3283064365386963e-10);
+        v[0] ^= c0[(i + 1).trailing_zeros() as usize];
+        v[1] ^= c1[(i + 1).trailing_zeros() as usize];
+    }
+}
+
+#[inline]
+pub fn van_der_corput(
+    n_samples_per_pixel_sample: usize,
+    n_pixel_samples: usize,
+    samples: &mut [Float],
+    rng: &mut RNG,
+) {
+    let scramble = rng.uniform_u32();
+    const C_VAN_DER_CORPUT: [u32; 32] = [
+        0x80000000, 0x40000000, 0x20000000, 0x10000000, 0x8000000, 0x4000000, 0x2000000, 0x1000000,
+        0x800000, 0x400000, 0x200000, 0x100000, 0x80000, 0x40000, 0x20000, 0x10000, 0x8000, 0x4000,
+        0x2000, 0x1000, 0x800, 0x400, 0x200, 0x100, 0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1,
+    ];
+    let total_samples = n_samples_per_pixel_sample * n_pixel_samples;
+    gray_code_sample(&C_VAN_DER_CORPUT, total_samples as u32, scramble, samples);
+    for i in 0..n_pixel_samples {
+        shuffle(
+            &mut samples[i * n_pixel_samples..],
+            n_samples_per_pixel_sample,
+            1,
+            rng,
+        );
+    }
+    shuffle(samples, n_pixel_samples, n_samples_per_pixel_sample, rng);
+}
+
+#[inline]
+pub fn sobol_2d(
+    n_samles_per_pixel_sample: usize,
+    n_pixel_samples: usize,
+    samples: &mut [Point2f],
+    rng: &mut RNG,
+) {
+    let mut scramble = Point2i::default();
+    scramble[0] = rng.uniform_u32() as i32;
+    scramble[1] = rng.uniform_u32() as i32;
+
+    const C_SOBOL: [[u32; 32]; 2] = [
+        [
+            0x80000000, 0x40000000, 0x20000000, 0x10000000, 0x8000000, 0x4000000, 0x2000000,
+            0x1000000, 0x800000, 0x400000, 0x200000, 0x100000, 0x80000, 0x40000, 0x20000, 0x10000,
+            0x8000, 0x4000, 0x2000, 0x1000, 0x800, 0x400, 0x200, 0x100, 0x80, 0x40, 0x20, 0x10,
+            0x8, 0x4, 0x2, 0x1,
+        ],
+        [
+            0x80000000, 0xc0000000, 0xa0000000, 0xf0000000, 0x88000000, 0xcc000000, 0xaa000000,
+            0xff000000, 0x80800000, 0xc0c00000, 0xa0a00000, 0xf0f00000, 0x88880000, 0xcccc0000,
+            0xaaaa0000, 0xffff0000, 0x80008000, 0xc000c000, 0xa000a000, 0xf000f000, 0x88008800,
+            0xcc00cc00, 0xaa00aa00, 0xff00ff00, 0x80808080, 0xc0c0c0c0, 0xa0a0a0a0, 0xf0f0f0f0,
+            0x88888888, 0xcccccccc, 0xaaaaaaaa, 0xffffffff,
+        ],
+    ];
+    gray_code_sample_2d(
+        &C_SOBOL[0],
+        &C_SOBOL[1],
+        (n_samles_per_pixel_sample * n_pixel_samples) as u32,
+        &scramble,
+        samples,
+    );
+
+    for i in 0..n_pixel_samples {
+        shuffle(
+            &mut samples[i * n_samles_per_pixel_sample..],
+            n_samles_per_pixel_sample,
+            1,
+            rng,
+        );
+    }
+    shuffle(samples, n_pixel_samples, n_samles_per_pixel_sample, rng);
+}
+
+#[inline]
+pub fn sobol_interval_to_index(m: u32, mut frame: u64, p: &Point2i) -> u64 {
+    if m == 0 {
+        return 0;
+    }
+
+    let m2 = m << 1;
+    let mut index = frame << (m2 as u64);
+    let mut delta = 0;
+    let mut c = 0;
+    while frame != 0 {
+        if frame & 1 != 0 {
+            delta ^= VDC_SOBOL_MATRICES[m as usize - 1][c];
+        }
+        frame >>= 1;
+        c += 1;
+    }
+    let b = (((p.x as u32) << m) | p.y as u32) as u64 ^ delta;
+
+    let mut c = 0;
+    while b != 0 {
+        if b & 1 != 0 {
+            index ^= VDC_SOBOL_MATRICES_INV[m as usize - 1][c];
+        }
+    }
+    index
+}
+
+#[inline]
+pub fn sobol_sample(mut a: i64, dimension: usize, scramble: Integer) -> Float {
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "float64")] {
+             let result =scramble & !-1<< SOBOL_MATRIX_SIZE;
+             let mut i = dimension * SOBOL_MATRIX_SIZE;
+             while a != 0 {
+             if a & 1 != 0 {
+                 result ^= SOBOL_MATRICES_64[i];
+             }
+                  a >>= 1;
+                  i+=1;
+             }
+             ONE_MINUS_EPSILON.min(result * 1.0 / 1 << SOBOL_MATRIX_SIZE)
+        } else {
+             let mut v = scramble;
+             let mut i = dimension * SOBOL_MATRIX_SIZE;
+             while a != 0 {
+                 if a& 1 != 0 {
+                    v^= SOBOL_MATRICES_32[i];
+                 }
+                 a>>=1;
+                 i+=1;
+             }
+             ONE_MINUS_EPSILON.min(v as Float * 2.3283064365386963e-10)
+        }
+    }
 }
