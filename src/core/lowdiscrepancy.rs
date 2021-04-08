@@ -1,4 +1,4 @@
-use crate::{Float, ONEMINUSEPSILON};
+use crate::{Float, ONE_MINUS_EPSILON};
 
 const PRIME_TABLE_SIZE: usize = 1000;
 const PRIMES: [u32; PRIME_TABLE_SIZE + 23] = [
@@ -293,7 +293,7 @@ fn radical_inverse_specialized(base: u64, mut a: u64) -> Float {
         inv_base *= inv_base;
         a = next;
     }
-    ONEMINUSEPSILON.min(reversed_digits as f32 * inv_base_n)
+    ONE_MINUS_EPSILON.min(reversed_digits as f32 * inv_base_n)
 }
 
 fn scramble_radical_inverse_specialized(base: u64, perm: &[u64], mut a: u64) -> Float {
@@ -307,7 +307,7 @@ fn scramble_radical_inverse_specialized(base: u64, perm: &[u64], mut a: u64) -> 
         inv_base_n *= inv_base;
         a = next;
     }
-    ONEMINUSEPSILON
+    ONE_MINUS_EPSILON
         .min(inv_base * (reversed_digits as f32 + inv_base * perm[0] as f32 / (1.0 - inv_base)))
 }
 

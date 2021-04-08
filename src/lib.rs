@@ -27,7 +27,7 @@ cfg_if::cfg_if! {
         pub type Integer = u64;
         pub const PI: f64 = std::f64::consts::PI;
         pub const SHADOWEPSILON:f64 = 0.0001;
-        pub const ONEMINUSEPSILON:Float = 1.0 - EPSILON;
+        pub const ONE_MINUS_EPSILON:Float = 1.0 - EPSILON;
    } else {
         pub type Float = f32;
         pub type Integer = u32;
@@ -37,7 +37,7 @@ cfg_if::cfg_if! {
         pub const SHADOW_EPSILON:f32 = 0.0001;
         pub const EPSILON:f32 = f32::EPSILON;
         pub const MACHINE_EPSILON:f32 = 0.5 * EPSILON;
-        pub const ONEMINUSEPSILON:Float = 1.0 - EPSILON;
+        pub const ONE_MINUS_EPSILON:Float = 1.0 - EPSILON;
    }
 }
 
