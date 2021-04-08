@@ -2,8 +2,10 @@ use crate::core::camera::CameraSample;
 use crate::core::geometry::{Point2f, Point2i};
 use crate::core::rng::RNG;
 use crate::Float;
+use num::integer::div_mod_floor;
 use std::any::Any;
 use std::ops::{Deref, DerefMut};
+use std::sync::atomic::Ordering::AcqRel;
 use std::sync::Arc;
 
 pub trait Sampler {
@@ -326,19 +328,56 @@ impl Sampler for GlobalSampler {
     impl_base_sampler!();
 
     fn start_pixel(&mut self, p: Point2i) {
-        unimplemented!()
+        self.dimension = 0;
+        self.interval_sample_index = self.get_index_for_sample(0);
+        self.array_end_dim =
+            ARRAY_START_DIM + self.sample_array_1d.len() + 2 * self.sample_array_2d.len();
+        for i in 0..self.samples_1d_array_sizes.len() {
+            let n_samples = self.samples_1d_array_sizes[i] * self.samples_per_pixel as usize;
+            for j in 0..n_samples {
+                let index = self.get_index_for_sample(j);
+                self.sample_array_1d[i][j] = self.sample_dimension(index, ARRAY_START_DIM + i);
+            }
+        }
+
+        let mut dim = ARRAY_START_DIM + self.samples_1d_array_sizes.len();
+        for i in 0..self.samples_2d_array_sizes.len() {
+            let n_samples = self.samples_2d_array_sizes[i] * self.samples_per_pixel as usize;
+            for j in 0..n_samples {
+                let idx = self.get_index_for_sample(j);
+                self.sample_array_2d[i][j].x = self.sample_dimension(idx, dim);
+                self.sample_array_2d[i][j].y = self.sample_dimension(idx, dim + 1);
+            }
+            dim += 2;
+        }
     }
 
     fn get_1d(&mut self) -> Float {
-        unimplemented!()
+        if self.dimension >= ARRAY_START_DIM && self.dimension < self.array_end_dim {
+            self.dimension = self.array_end_dim;
+        }
+        let f = self.sample_dimension(self.interval_sample_index, self.dimension);
+        self.dimension += 1;
+        f
     }
 
     fn get_2d(&mut self) -> Point2f {
-        unimplemented!()
+        if self.dimension + 1 >= ARRAY_START_DIM && self.dimension < self.array_end_dim {
+            self.dimension = self.array_end_dim;
+        }
+        let p = Point2f::new(
+            self.sample_dimension(self.interval_sample_index, self.dimension),
+            self.sample_dimension(self.interval_sample_index, self.dimension + 1),
+        );
+        self.dimension += 2;
+        p
     }
 
     fn start_next_sample(&mut self) -> bool {
-        unimplemented!()
+        self.dimension = 0;
+        self.interval_sample_index =
+            self.get_index_for_sample(self.current_pixel_sample_index as usize + 1);
+        Sampler::start_next_sample(self)
     }
 
     fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
@@ -346,7 +385,9 @@ impl Sampler for GlobalSampler {
     }
 
     fn set_sample_number(&mut self, sample_num: i64) -> bool {
-        unimplemented!()
+        self.dimension = 0;
+        self.interval_sample_index = self.get_index_for_sample(sample_num as usize);
+        Sampler::set_sample_number(self, sample_num)
     }
 
     fn get_index_for_sample(&self, sample_num: usize) -> i64 {
