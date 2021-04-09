@@ -290,3 +290,22 @@ pub fn erf(mut x: Float) -> Float {
     let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * (-x * x).exp();
     sign * y
 }
+
+#[macro_export]
+macro_rules! inherit {
+    ($parent:ident, $child:ident, $varname:ident) => {
+        impl std::ops::Deref for $child {
+            type Target = $parent;
+
+            fn deref(&self) -> &Self::Target {
+                &self.$varname
+            }
+        }
+
+        impl std::ops::DerefMut for $child {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.$varname
+            }
+        }
+    };
+}

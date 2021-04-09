@@ -26,20 +26,6 @@ impl RandomSampler {
 impl Sampler for RandomSampler {
     impl_base_sampler!();
 
-    fn get_1d(&mut self) -> f32 {
-        self.rng.uniform_float()
-    }
-
-    fn get_2d(&mut self) -> Point2f {
-        Point2f::new(self.rng.uniform_float(), self.rng.uniform_float())
-    }
-
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
-        let mut rs = Clone::clone(self);
-        rs.rng.set_sequence(seed);
-        Arc::new(Box::new(rs))
-    }
-
     fn start_pixel(&mut self, p: Point2i) {
         for i in 0..self.sample_array_1d().len() {
             for j in 0..self.sample_array_1d()[i].len() {
@@ -53,6 +39,20 @@ impl Sampler for RandomSampler {
             }
         }
         Sampler::start_pixel(self, p);
+    }
+
+    fn get_1d(&mut self) -> f32 {
+        self.rng.uniform_float()
+    }
+
+    fn get_2d(&mut self) -> Point2f {
+        Point2f::new(self.rng.uniform_float(), self.rng.uniform_float())
+    }
+
+    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+        let mut rs = Clone::clone(self);
+        rs.rng.set_sequence(seed);
+        Arc::new(Box::new(rs))
     }
 
     fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {

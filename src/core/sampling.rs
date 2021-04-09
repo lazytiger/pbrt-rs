@@ -1,9 +1,69 @@
 use crate::core::{
-    geometry::{Point2f, Vector2f, Vector3f},
-    pbrt::{clamp, find_interval, Float, PI, PI_OVER_2, PI_OVER_4},
+    geometry::{Point2f, Vector2f, Vector3, Vector3f},
+    pbrt::{
+        clamp, find_interval, Float, INV_2_PI, INV_4_PI, INV_PI, ONE_MINUS_EPSILON, PI, PI_OVER_2,
+        PI_OVER_4,
+    },
     rng::RNG,
 };
+use std::ops::{Index, IndexMut};
 
+pub fn stratified_sample_1d(samples: &mut [Float], n_samples: usize, rng: &mut RNG, jitter: bool) {
+    let inv_n_samples = 1.0 / n_samples as Float;
+    for i in 0..n_samples {
+        let delta = if jitter { rng.uniform_float() } else { 0.5 };
+        samples[i] = ONE_MINUS_EPSILON.min((i as Float + delta) * inv_n_samples);
+    }
+}
+
+pub fn stratified_sample_2d(
+    samples: &mut [Point2f],
+    nx: usize,
+    ny: usize,
+    rng: &mut RNG,
+    jitter: bool,
+) {
+    let dx = 1.0 / nx as Float;
+    let dy = 1.0 / ny as Float;
+    let mut i = 0;
+    for y in 0..ny {
+        for x in 0..nx {
+            let (jx, jy) = if jitter {
+                (rng.uniform_float(), rng.uniform_float())
+            } else {
+                (0.5, 0.5)
+            };
+            samples[i].x = ONE_MINUS_EPSILON.min((x as Float + jx) * dx);
+            samples[i].y = ONE_MINUS_EPSILON.min((y as Float + jy) * dy);
+            i += 1;
+        }
+    }
+}
+
+// n_dim: represent dimensions of T
+pub fn latin_hyper_cube<T: IndexMut<usize, Output = Float>>(
+    samples: &mut [T],
+    n_samples: usize,
+    n_dim: usize,
+    rng: &mut RNG,
+) {
+    let inv_n_samples = 1.0 / n_samples as Float;
+    for i in 0..n_samples {
+        for j in 0..n_dim {
+            let sj = (i as Float + rng.uniform_float()) * inv_n_samples;
+            samples[n_dim * i][j] = ONE_MINUS_EPSILON.min(sj);
+        }
+    }
+
+    for i in 0..n_dim {
+        for j in 0..n_samples {
+            let other = j + rng.uniform_u32_u32((n_samples - j) as u32) as usize;
+            let tmp = samples[n_dim * j][i];
+            samples[n_dim * j][i] = samples[n_dim * other][i];
+            samples[n_dim * other][i] = tmp;
+        }
+    }
+}
 
 pub struct Distribution1D {
     func: Vec<Float>,
@@ -92,6 +152,18 @@ impl Distribution1D {
     }
 }
 
+pub fn rejection_sample_disk(rng: &mut RNG) -> Point2f {
+    let mut p = Point2f::default();
+    loop {
+        p.x = 1.0 - 2.0 * rng.uniform_float();
+        p.y = 1.0 - 2.0 * rng.uniform_float();
+        if p.x * p.x + p.y * p.y <= 1.0 {
+            break;
+        }
+    }
+    p
+}
+
 pub struct Distribution2D {
     conditional: Vec<Distribution1D>,
     marginal: Distribution1D,
@@ -142,6 +214,17 @@ impl Distribution2D {
     }
 }
 
+pub fn uniform_sample_hemisphere(u: &Point2f) -> Vector3f {
+    let z = u[0];
+    let r = (1.0 - z * z).max(0.0).sqrt();
+    let phi = 2.0 * PI * u[1];
+    Vector3f::new(r * phi.cos(), r * phi.sin(), z)
+}
+
+pub fn uniform_hemisphere_pdf() -> Float {
+    INV_2_PI
+}
+
 pub fn uniform_sample_sphere(u: &Point2f) -> Vector3f {
     let z = 1.0 - 2.0 * u[0];
     let r = (1.0 - z * z).max(0.0).sqrt();
@@ -149,8 +232,25 @@ pub fn uniform_sample_sphere(u: &Point2f) -> Vector3f {
     Vector3f::new(r * phi.cos(), r * phi.sin(), z)
 }
 
+pub fn uniform_sphere_pdf() -> Float {
+    INV_4_PI
+}
+
+pub fn uniform_sample_clone(u: &Point2f, theta_max: Float) -> Vector3f {
+    let cos_theta = (1.0 - u[0]) + u[0] * theta_max;
+    let sin_theta = (1.0 - theta_max * theta_max).sqrt();
+    let phi = u[1] * 2.0 * PI;
+    Vector3f::new(phi.cos() * sin_theta, phi.sin() * sin_theta, cos_theta)
+}
+
 pub fn uniform_cone_pdf(cos_theta_max: Float) -> Float {
     1.0 / (2.0 * PI * (1.0 - cos_theta_max))
+}
+
+pub fn uniform_sample_disk(u: &Point2f) -> Point2f {
+    let r = u[0].sqrt();
+    let theta = 2.0 * PI * u[1];
+    Point2f::new(r * theta.cos(), r * theta.sin())
 }
 
 pub fn concentric_sample_disk(u: &Point2f) -> Point2f {
@@ -182,4 +282,30 @@ pub fn shuffle<T>(samp: &mut [T], count: usize, n_dimensions: usize, rng: &mut R
             samp.swap(n_dimensions * i + j, n_dimensions * other + j);
         }
     }
+}
+
+#[inline]
+pub fn cosine_sample_hemisphere(u: &Point2f) -> Vector3f {
+    let d = concentric_sample_disk(u);
+    let z = (1.0 - d.x * d.x - d.y * d.y).max(0.0);
+    Vector3f::new(d.x, d.y, z)
+}
+
+#[inline]
+pub fn cosine_hemisphere_pdf(cos_theta: Float) -> Float {
+    cos_theta * INV_PI
+}
+
+#[inline]
+pub fn balance_heuristic(nf: usize, f_pdf: Float, ng: usize, g_pdf: Float) -> Float {
+    (nf as Float * f_pdf) / (nf as Float * f_pdf + ng as Float * g_pdf)
+}
+
+#[inline]
+pub fn power_heuristic(nf: usize, f_pdf: Float, ng: usize, g_pdf: Float) -> Float {
+    let nf = nf as Float;
+    let ng = ng as Float;
+    let f = nf * f_pdf;
+    let g = ng * g_pdf;
+    (f * f) / (f * f + g * g)
 }

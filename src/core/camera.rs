@@ -6,7 +6,7 @@ use crate::core::{
     medium::Medium,
     pbrt::Float,
     spectrum::Spectrum,
-    transform::{AnimatedTransform},
+    transform::AnimatedTransform,
 };
 use std::{any::Any, sync::Arc};
 
@@ -119,22 +119,27 @@ impl BaseCamera {
 #[macro_export]
 macro_rules! impl_base_camera {
     () => {
+        #[inline]
         fn camera_to_world(&self) -> &crate::core::transform::AnimatedTransform {
             &self.base.camera_to_world
         }
 
+        #[inline]
         fn shutter_open(&self) -> crate::core::pbrt::Float {
             self.base.shutter_open
         }
 
+        #[inline]
         fn shutter_close(&self) -> crate::core::pbrt::Float {
             self.base.shutter_close
         }
 
+        #[inline]
         fn film(&self) -> std::sync::Arc<crate::core::film::Film> {
             self.base.film.clone()
         }
 
+        #[inline]
         fn medium(&self) -> std::sync::Arc<Box<dyn crate::core::medium::Medium>> {
             self.base.medium.clone()
         }

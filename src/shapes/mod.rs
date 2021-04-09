@@ -41,22 +41,27 @@ impl BaseShape {
 #[macro_export]
 macro_rules! impl_base_shape {
     () => {
+        #[inline]
         fn object_to_world(&self) -> &Transformf {
             &self.base.object_to_world
         }
 
+        #[inline]
         fn world_to_object(&self) -> &Transformf {
             &self.base.world_to_object
         }
 
+        #[inline]
         fn reverse_orientation(&self) -> bool {
             self.base.reverse_orientation
         }
 
+        #[inline]
         fn transform_swap_handedness(&self) -> bool {
             self.base.transform_swap_handedness
         }
 
+        #[inline]
         fn as_any(&self) -> &dyn std::any::Any {
             self
         }

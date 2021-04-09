@@ -89,6 +89,7 @@ pub trait Sampler {
     fn sample_dimension(&self, index: i64, dimension: usize) -> Float;
     fn samples_per_pixel(&self) -> i64;
 
+    #[inline]
     fn current_pixel(&self) -> Point2i;
     fn set_current_pixel(&mut self, p: Point2i);
 
@@ -149,56 +150,88 @@ macro_rules! impl_base_sampler {
         fn as_any(&self) -> &dyn std::any::Any {
             self
         }
+
+        #[inline]
         fn samples_per_pixel(&self) -> i64 {
             self.base.samples_per_pixel
         }
+
+        #[inline]
         fn current_pixel(&self) -> $crate::core::geometry::Point2i {
             self.base.current_pixel
         }
+
+        #[inline]
         fn set_current_pixel(&mut self, p: $crate::core::geometry::Point2i) {
             self.base.current_pixel = p;
         }
+
+        #[inline]
         fn current_pixel_sample_index(&self) -> i64 {
             self.base.current_pixel_sample_index
         }
 
+        #[inline]
         fn set_current_pixel_sample_index(&mut self, index: i64) {
             self.base.current_pixel_sample_index = index
         }
 
+        #[inline]
         fn samples_1d_array_sizes(&self) -> &Vec<usize> {
             &self.base.samples_1d_array_sizes
         }
+
+        #[inline]
         fn samples_1d_array_sizes_mut(&mut self) -> &mut Vec<usize> {
             &mut self.base.samples_1d_array_sizes
         }
+
+        #[inline]
         fn samples_2d_array_sizes(&self) -> &Vec<usize> {
             &self.base.samples_2d_array_sizes
         }
+
+        #[inline]
         fn samples_2d_array_sizes_mut(&mut self) -> &mut Vec<usize> {
             &mut self.base.samples_2d_array_sizes
         }
+
+        #[inline]
         fn sample_array_1d(&self) -> &Vec<Vec<$crate::core::pbrt::Float>> {
             &self.base.sample_array_1d
         }
+
+        #[inline]
         fn sample_array_1d_mut(&mut self) -> &mut Vec<Vec<$crate::core::pbrt::Float>> {
             &mut self.base.sample_array_1d
         }
+
+        #[inline]
         fn sample_array_2d(&self) -> &Vec<Vec<$crate::core::geometry::Point2f>> {
             &self.base.sample_array_2d
         }
+
+        #[inline]
         fn sample_array_2d_mut(&mut self) -> &mut Vec<Vec<$crate::core::geometry::Point2f>> {
             &mut self.base.sample_array_2d
         }
+
+        #[inline]
         fn array_1d_offset(&self) -> usize {
             self.base.array_1d_offset
         }
+
+        #[inline]
         fn set_array_1d_offset(&mut self, offset: usize) {
             self.base.array_1d_offset = offset;
         }
+
+        #[inline]
         fn array_2d_offset(&self) -> usize {
             self.base.array_2d_offset
         }
+
+        #[inline]
         fn set_array_2d_offset(&mut self, offset: usize) {
             self.base.array_2d_offset = offset;
         }
@@ -411,11 +444,11 @@ macro_rules! impl_global_sampler {
     () => {
         crate::impl_base_sampler!();
 
-        fn get_1d(&mut self) -> Float {
+        fn get_1d(&mut self) -> $crate::core::pbrt::Float {
             self.base.get_1d()
         }
 
-        fn get_2d(&mut self) -> Point2f {
+        fn get_2d(&mut self) -> $crate::core::geometry::Point2f {
             self.base.get_2d()
         }
     };
@@ -426,11 +459,11 @@ macro_rules! impl_pixel_sampler {
     () => {
         crate::impl_base_sampler!();
 
-        fn get_1d(&mut self) -> Float {
+        fn get_1d(&mut self) -> $crate::core::pbrt::Float {
             self.base.get_1d()
         }
 
-        fn get_2d(&mut self) -> Point2f {
+        fn get_2d(&mut self) -> $crate::core::geometry::Point2f {
             self.base.get_2d()
         }
 
@@ -446,7 +479,7 @@ macro_rules! impl_pixel_sampler {
             unimplemented!("PixelSampler does not support this method");
         }
 
-        fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
+        fn sample_dimension(&self, _index: i64, _dimension: usize) -> $crate::core::pbrt::Float {
             unimplemented!("PixelSampler does not support this method");
         }
     };
