@@ -8,7 +8,7 @@ use crate::core::{
 use std::{
     any::Any,
     ops::{Deref, DerefMut},
-    sync::{Arc},
+    sync::Arc,
 };
 
 pub trait Sampler {
@@ -206,7 +206,7 @@ macro_rules! impl_base_sampler {
 
 #[derive(Clone)]
 pub struct PixelSampler {
-    base: BaseSampler,
+    pub(crate) base: BaseSampler,
     pub samples_1d: Vec<Vec<Float>>,
     pub samples_2d: Vec<Vec<Point2f>>,
     pub current_1d_dimension: usize,
@@ -416,6 +416,37 @@ macro_rules! impl_global_sampler {
 
         fn get_2d(&mut self) -> Point2f {
             self.base.get_2d()
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_pixel_sampler {
+    () => {
+        crate::impl_base_sampler!();
+
+        fn get_1d(&mut self) -> Float {
+            self.base.get_1d()
+        }
+
+        fn get_2d(&mut self) -> Point2f {
+            self.base.get_2d()
+        }
+
+        fn start_next_sample(&mut self) -> bool {
+            self.base.start_next_sample()
+        }
+
+        fn set_sample_number(&mut self, sample_num: i64) -> bool {
+            self.set_sample_number(sample_num)
+        }
+
+        fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {
+            unimplemented!("PixelSampler does not support this method");
+        }
+
+        fn sample_dimension(&self, index: i64, dimension: usize) -> f32 {
+            unimplemented!("PixelSampler does not support this method");
         }
     };
 }
