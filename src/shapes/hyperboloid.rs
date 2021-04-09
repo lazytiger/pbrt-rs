@@ -1,11 +1,14 @@
 use crate::core::efloat::EFloat;
 use crate::core::geometry::{Bounds3f, Point2f, Point3f, Ray, Vector3f};
 use crate::core::interaction::{Interaction, SurfaceInteraction};
+use crate::core::pbrt::{clamp, radians};
 use crate::core::shape::Shape;
 use crate::core::transform::Transformf;
-use crate::core::{clamp, radians};
 use crate::shapes::{compute_normal_differential, BaseShape};
-use crate::{impl_base_shape, Float, PI};
+use crate::{
+    core::pbrt::{Float, PI},
+    impl_base_shape,
+};
 use std::mem::swap;
 
 pub struct Hyperboloid {

@@ -1,7 +1,7 @@
-use crate::core::clamp;
 use crate::core::geometry::Vector3f;
+use crate::core::pbrt::clamp;
+use crate::core::pbrt::Float;
 use crate::core::transform::{Matrix4x4f, Transformf};
-use crate::Float;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[derive(Copy, Clone, Default)]

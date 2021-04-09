@@ -1,10 +1,11 @@
 use crate::core::camera::{BaseCamera, Camera, CameraSample};
 use crate::core::film::Film;
 use crate::core::geometry::{Point3f, Ray, Vector3f};
-use crate::core::lerp;
 use crate::core::medium::Medium;
+use crate::core::pbrt::lerp;
+use crate::core::pbrt::{Float, PI};
 use crate::core::transform::AnimatedTransform;
-use crate::{impl_base_camera, Float, PI};
+use crate::impl_base_camera;
 use std::any::Any;
 use std::sync::Arc;
 

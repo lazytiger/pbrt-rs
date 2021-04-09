@@ -4,10 +4,10 @@ use crate::core::geometry::{
 use crate::core::interaction::{Interaction, SurfaceInteraction};
 use crate::core::light::AreaLight;
 use crate::core::material::{Material, TransportMode};
+use crate::core::pbrt::{log_2_int_u64, Float};
 use crate::core::primitive::Primitive;
 use crate::core::shape::Shape;
 use crate::core::transform::Transformf;
-use crate::{log_2_int_u64, Float};
 use std::any::Any;
 use std::cmp::Ordering;
 use std::sync::Arc;

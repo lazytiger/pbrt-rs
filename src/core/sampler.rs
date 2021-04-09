@@ -1,7 +1,7 @@
 use crate::core::camera::CameraSample;
 use crate::core::geometry::{Point2f, Point2i};
+use crate::core::pbrt::Float;
 use crate::core::rng::RNG;
-use crate::Float;
 use num::integer::div_mod_floor;
 use std::any::Any;
 use std::ops::{Deref, DerefMut};

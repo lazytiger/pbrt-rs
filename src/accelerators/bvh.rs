@@ -3,9 +3,9 @@ use crate::core::geometry::{Bounds3, Bounds3f, IntersectP, Point3f, Ray, Union, 
 use crate::core::interaction::SurfaceInteraction;
 use crate::core::light::AreaLight;
 use crate::core::material::{Material, TransportMode};
+use crate::core::pbrt::Float;
 use crate::core::primitive::Primitive;
 use crate::core::RealNum;
-use crate::Float;
 use num::traits::real::Real;
 use std::any::Any;
 use std::cmp::{max, Ordering};

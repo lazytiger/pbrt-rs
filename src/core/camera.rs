@@ -3,9 +3,9 @@ use crate::core::geometry::{Point2f, Ray, RayDifferentials, Vector3f};
 use crate::core::interaction::Interaction;
 use crate::core::light::VisibilityTester;
 use crate::core::medium::Medium;
+use crate::core::pbrt::Float;
 use crate::core::spectrum::Spectrum;
 use crate::core::transform::{AnimatedTransform, Transformf};
-use crate::Float;
 use std::any::Any;
 use std::sync::Arc;
 
@@ -122,11 +122,11 @@ macro_rules! impl_base_camera {
             &self.base.camera_to_world
         }
 
-        fn shutter_open(&self) -> crate::Float {
+        fn shutter_open(&self) -> crate::core::pbrt::Float {
             self.base.shutter_open
         }
 
-        fn shutter_close(&self) -> crate::Float {
+        fn shutter_close(&self) -> crate::core::pbrt::Float {
             self.base.shutter_close
         }
 

@@ -1,6 +1,6 @@
 use crate::core::geometry::{offset_ray_origin, Point3f, Vector3f};
+use crate::core::pbrt::{Float, PI};
 use crate::core::transform::Transformf;
-use crate::{Float, PI};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 

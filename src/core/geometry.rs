@@ -6,9 +6,9 @@ use std::ops::{
 use super::RealNum;
 use crate::core::efloat::EFloat;
 use crate::core::medium::Medium;
+use crate::core::pbrt::Float;
+use crate::core::pbrt::{gamma, next_float_down, next_float_up};
 use crate::core::transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref};
-use crate::core::{gamma, next_float_down, next_float_up};
-use crate::Float;
 use num::Bounded;
 use std::mem::swap;
 use std::sync::Arc;
@@ -434,7 +434,7 @@ macro_rules! make_bounds {
 
             pub fn lerp(&self, t: &$p<T>) -> $p<T> {
                 $p {
-                    $($field: super::lerp(t.$field, self.min.$field, self.max.$field),)+
+                    $($field: $crate::core::pbrt::lerp(t.$field, self.min.$field, self.max.$field),)+
                 }
             }
 

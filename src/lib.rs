@@ -2,6 +2,7 @@
 #![feature(destructuring_assignment)]
 #![feature(iter_partition_in_place)]
 #![feature(is_sorted)]
+use crate::core::pbrt::Float;
 use clap::Clap;
 use std::any::Any;
 use std::mem::swap;
@@ -17,35 +18,8 @@ pub mod lights;
 pub mod materials;
 pub mod media;
 pub mod samplers;
-#[macro_use]
 pub mod shapes;
 pub mod textures;
-
-cfg_if::cfg_if! {
-   if #[cfg(feature = "float64")] {
-        pub type Float = f64;
-        pub type Integer = u64;
-        pub const PI: f64 = std::f64::consts::PI;
-        pub const SHADOWEPSILON:f64 = 0.0001;
-        pub const ONE_MINUS_EPSILON:Float = 1.0 - EPSILON;
-   } else {
-        pub type Float = f32;
-        pub type Integer = u32;
-        pub const PI: f32 = std::f32::consts::PI;
-        pub const PIOVER2:f32 = PI / 2.0;
-        pub const PIOVER4:f32 = PI / 4.0;
-        pub const SHADOW_EPSILON:f32 = 0.0001;
-        pub const EPSILON:f32 = f32::EPSILON;
-        pub const MACHINE_EPSILON:f32 = 0.5 * EPSILON;
-        pub const ONE_MINUS_EPSILON:Float = 1.0 - EPSILON;
-   }
-}
-
-pub fn any_equal(a1: &dyn Any, a2: &dyn Any) -> bool {
-    let to1: TraitObject = unsafe { std::mem::transmute(a1) };
-    let to2: TraitObject = unsafe { std::mem::transmute(a2) };
-    to1.data == to2.data
-}
 
 #[derive(Debug)]
 pub struct CropWindow {
@@ -151,42 +125,4 @@ impl Default for Options {
             scenes: vec![],
         }
     }
-}
-
-pub fn log_2_int_u32(v: u32) -> i32 {
-    31 - v.leading_zeros() as i32
-}
-
-pub fn log_2_int_i32(v: i32) -> i32 {
-    log_2_int_u32(v as u32)
-}
-
-pub fn log_2_int_u64(v: u64) -> i64 {
-    63 - v.leading_zeros() as i64
-}
-
-pub fn log_2_int_i64(v: i64) -> i64 {
-    log_2_int_u64(v as u64)
-}
-
-#[inline]
-pub fn quadratic(a: Float, b: Float, c: Float, t0: &mut Float, t1: &mut Float) -> bool {
-    let discrim = b as f64 * b as f64 - 4.0 * a as f64 * c as f64;
-    if discrim < 0.0 {
-        return false;
-    }
-    let root_discrim = discrim.sqrt() as Float;
-
-    let q = if b < 0.0 {
-        -0.5 * (b - root_discrim)
-    } else {
-        -0.5 * (b + root_discrim)
-    };
-    *t0 = q / a;
-    *t1 = c / q;
-
-    if *t0 > *t1 {
-        swap(t0, t1)
-    }
-    true
 }

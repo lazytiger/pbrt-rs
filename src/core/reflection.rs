@@ -1,5 +1,5 @@
 use crate::core::geometry::{Normal3f, Vector3f};
-use crate::Float;
+use crate::core::pbrt::Float;
 
 #[inline]
 pub fn refract(wi: &Vector3f, n: &Normal3f, eta: Float, wt: &mut Vector3f) -> bool {

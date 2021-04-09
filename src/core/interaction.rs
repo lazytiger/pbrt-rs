@@ -1,10 +1,10 @@
 use crate::core::geometry::{offset_ray_origin, Normal3f, Point2f, Point3f, Ray, Vector3f};
 use crate::core::medium::{MediumInterface, PhaseFunction};
+use crate::core::pbrt::Float;
+use crate::core::pbrt::SHADOW_EPSILON;
 use crate::core::primitive::Primitive;
 use crate::core::shape::Shape;
 use crate::core::spectrum::Spectrum;
-use crate::Float;
-use crate::SHADOW_EPSILON;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Default, Clone)]

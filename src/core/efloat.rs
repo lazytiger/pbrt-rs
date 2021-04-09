@@ -1,5 +1,5 @@
-use crate::core::{next_float_down, next_float_up};
-use crate::{Float, MACHINE_EPSILON};
+use crate::core::pbrt::{next_float_down, next_float_up};
+use crate::core::pbrt::{Float, MACHINE_EPSILON};
 use std::mem::swap;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 

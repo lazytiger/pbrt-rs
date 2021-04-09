@@ -4,10 +4,10 @@ use crate::core::lowdiscrepancy::{
     compute_radical_inverse_permutations, inverse_radical_inverse, radical_inverse,
     scramble_radical_inverse, PRIME_SUMS, PRIME_TABLE_SIZE,
 };
+use crate::core::pbrt::Float;
 use crate::core::rng::RNG;
 use crate::core::sampler::{GlobalSampler, Sampler};
 use crate::impl_global_sampler;
-use crate::Float;
 use std::any::Any;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;

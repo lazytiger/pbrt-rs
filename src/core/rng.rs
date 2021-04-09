@@ -1,4 +1,4 @@
-use crate::{Float, ONE_MINUS_EPSILON};
+use crate::core::pbrt::{Float, ONE_MINUS_EPSILON};
 use std::ops::Sub;
 
 #[derive(Copy, Clone)]

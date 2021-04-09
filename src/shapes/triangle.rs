@@ -1,11 +1,14 @@
 use crate::core::geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Union, Vector3f};
 use crate::core::interaction::{Interaction, SurfaceInteraction};
+use crate::core::pbrt::{clamp, gamma};
 use crate::core::sampling::uniform_sample_triangle;
 use crate::core::shape::Shape;
 use crate::core::transform::{Point3Ref, Transformf};
-use crate::core::{clamp, gamma};
 use crate::shapes::BaseShape;
-use crate::{impl_base_shape, Float, PI};
+use crate::{
+    core::pbrt::{Float, PI},
+    impl_base_shape,
+};
 use core::num::FpCategory::Normal;
 use std::sync::Arc;
 

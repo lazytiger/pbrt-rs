@@ -1,8 +1,9 @@
 use crate::core::geometry::{Bounds3f, Normal3, Point3, Point3f, Ray, Union, Vector3, Vector3f};
 use crate::core::interaction::SurfaceInteraction;
+use crate::core::pbrt::{clamp, lerp, radians};
+use crate::core::pbrt::{Float, PI};
 use crate::core::quaternion::Quaternion;
-use crate::core::{clamp, lerp, radians, RealNum};
-use crate::{Float, PI};
+use crate::core::RealNum;
 use num::zero;
 use std::cmp::Ordering;
 use std::mem::swap;

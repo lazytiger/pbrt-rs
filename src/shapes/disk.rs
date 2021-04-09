@@ -1,12 +1,15 @@
 use crate::core::efloat::EFloat;
 use crate::core::geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Vector3f};
 use crate::core::interaction::{Interaction, SurfaceInteraction};
+use crate::core::pbrt::{clamp, radians};
 use crate::core::sampling::concentric_sample_disk;
 use crate::core::shape::Shape;
 use crate::core::transform::{Normal3Ref, Point3Ref, Transformf};
-use crate::core::{clamp, radians};
 use crate::shapes::BaseShape;
-use crate::{impl_base_shape, Float, PI};
+use crate::{
+    core::pbrt::{Float, PI},
+    impl_base_shape,
+};
 
 pub struct Disk {
     base: BaseShape,

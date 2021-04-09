@@ -1,11 +1,11 @@
 use crate::core::geometry::{Point2f, Point2i};
+use crate::core::pbrt::{Float, Integer, ONE_MINUS_EPSILON};
 use crate::core::rng::RNG;
 use crate::core::sampling::shuffle;
 use crate::core::sobolmatrices::{
     SOBOL_MATRICES_32, SOBOL_MATRICES_64, SOBOL_MATRIX_SIZE, VDC_SOBOL_MATRICES,
     VDC_SOBOL_MATRICES_INV,
 };
-use crate::{Float, Integer, ONE_MINUS_EPSILON};
 
 pub const PRIME_TABLE_SIZE: usize = 1000;
 pub const PRIMES: [u32; PRIME_TABLE_SIZE + 23] = [
@@ -167,7 +167,7 @@ pub const PRIME_SUMS: [u32; PRIME_TABLE_SIZE] = [
     3667087, 3674994,
 ];
 
-const MAX_MIN_DIST: [[u32; 32]; 17] = [
+pub const MAX_MIN_DIST: [[u32; 32]; 17] = [
     [
         0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
         0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
@@ -289,7 +289,7 @@ const MAX_MIN_DIST: [[u32; 32]; 17] = [
     ],
 ];
 
-fn radical_inverse_specialized(base: u64, mut a: u64) -> Float {
+pub fn radical_inverse_specialized(base: u64, mut a: u64) -> Float {
     let mut inv_base = 1.0 / base as Float;
     let reversed_digits = 0;
     let inv_base_n = 1.0;
@@ -303,7 +303,7 @@ fn radical_inverse_specialized(base: u64, mut a: u64) -> Float {
     ONE_MINUS_EPSILON.min(reversed_digits as f32 * inv_base_n)
 }
 
-fn scramble_radical_inverse_specialized(base: u64, perm: &[u64], mut a: u64) -> Float {
+pub fn scramble_radical_inverse_specialized(base: u64, perm: &[u64], mut a: u64) -> Float {
     let inv_base = 1.0 / base as Float;
     let mut reversed_digits = 0;
     let mut inv_base_n = 1.0;

@@ -1,12 +1,14 @@
 use crate::core::efloat::EFloat;
 use crate::core::geometry::{Bounds3f, Point2f, Point3f, Ray, Vector3f};
 use crate::core::interaction::{Interaction, SurfaceInteraction};
+use crate::core::pbrt::{clamp, gamma, radians};
 use crate::core::shape::Shape;
 use crate::core::transform::Transformf;
-use crate::core::{clamp, gamma, radians};
 use crate::shapes::{compute_normal_differential, BaseShape};
-use crate::{impl_base_shape, Float, PI};
-use std::sync::atomic::spin_loop_hint;
+use crate::{
+    core::pbrt::{Float, PI},
+    impl_base_shape,
+};
 
 pub struct Cylinder {
     base: BaseShape,

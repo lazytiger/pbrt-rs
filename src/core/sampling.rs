@@ -1,7 +1,7 @@
 use crate::core::geometry::{Point2f, Vector2f, Vector3f};
+use crate::core::pbrt::{clamp, find_interval};
+use crate::core::pbrt::{Float, PI, PI_OVER_2, PI_OVER_4};
 use crate::core::rng::RNG;
-use crate::core::{clamp, find_interval};
-use crate::{Float, PI, PIOVER2, PIOVER4};
 use std::panic::PanicInfo;
 use std::sync::Arc;
 
@@ -160,9 +160,12 @@ pub fn concentric_sample_disk(u: &Point2f) -> Point2f {
     }
 
     let (r, theta) = if u_offset.x.abs() > u_offset.y.abs() {
-        (u_offset.x, PIOVER4 * (u_offset.y / u_offset.x))
+        (u_offset.x, PI_OVER_4 * (u_offset.y / u_offset.x))
     } else {
-        (u_offset.y, PIOVER2 - PIOVER4 * (u_offset.x / u_offset.y))
+        (
+            u_offset.y,
+            PI_OVER_2 - PI_OVER_4 * (u_offset.x / u_offset.y),
+        )
     };
     Point2f::new(theta.cos(), theta.sin()) * r
 }

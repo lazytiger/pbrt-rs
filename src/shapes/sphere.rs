@@ -4,12 +4,15 @@ use crate::core::geometry::{
     Vector3f,
 };
 use crate::core::interaction::{Interaction, SurfaceInteraction};
+use crate::core::pbrt::{clamp, gamma, radians};
 use crate::core::sampling::{uniform_cone_pdf, uniform_sample_sphere};
 use crate::core::shape::Shape;
 use crate::core::transform::{Point3Ref, Transformf};
-use crate::core::{clamp, gamma, radians};
 use crate::shapes::{compute_normal_differential, BaseShape};
-use crate::{impl_base_shape, Float, PI};
+use crate::{
+    core::pbrt::{Float, PI},
+    impl_base_shape,
+};
 use std::any::Any;
 
 pub struct Sphere {

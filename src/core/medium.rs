@@ -1,5 +1,5 @@
 use crate::core::geometry::{Point2f, Vector3f};
-use crate::{any_equal, Float};
+use crate::core::pbrt::{any_equal, Float};
 use std::any::Any;
 use std::sync::Arc;
 

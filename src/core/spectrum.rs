@@ -1,5 +1,5 @@
-use crate::core::{clamp, find_interval, lerp};
-use crate::Float;
+use crate::core::pbrt::Float;
+use crate::core::pbrt::{clamp, find_interval, lerp};
 use std::cmp::{max, Ordering};
 use std::ops::{
     Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub,

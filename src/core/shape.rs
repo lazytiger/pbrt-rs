@@ -2,8 +2,8 @@ use crate::core::geometry::{Bounds3, Bounds3f, Point2f, Point3f, Ray, Vector3f};
 use crate::core::interaction::{Interaction, SurfaceInteraction};
 use crate::core::lowdiscrepancy::radical_inverse;
 use crate::core::medium::MediumInterface;
+use crate::core::pbrt::Float;
 use crate::core::transform::Transformf;
-use crate::Float;
 use std::any::Any;
 
 pub trait Shape {
