@@ -1,13 +1,16 @@
-use crate::core::geometry::{Bounds3f, Normal3, Point3, Point3f, Ray, Union, Vector3, Vector3f};
-use crate::core::interaction::SurfaceInteraction;
-use crate::core::pbrt::{clamp, lerp, radians};
-use crate::core::pbrt::{Float, PI};
-use crate::core::quaternion::Quaternion;
-use crate::core::RealNum;
+use crate::core::{
+    geometry::{Bounds3f, Normal3, Point3, Point3f, Ray, Union, Vector3, Vector3f},
+    interaction::SurfaceInteraction,
+    pbrt::{clamp, lerp, radians, Float, PI},
+    quaternion::Quaternion,
+    RealNum,
+};
 use num::zero;
-use std::cmp::Ordering;
-use std::mem::swap;
-use std::ops::{Add, Mul, Sub};
+use std::{
+    cmp::Ordering,
+    mem::swap,
+    ops::{Add, Mul, Sub},
+};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub struct Matrix4x4<T> {

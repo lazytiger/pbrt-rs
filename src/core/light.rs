@@ -1,6 +1,8 @@
-use crate::core::geometry::Vector3f;
-use crate::core::interaction::{Interaction, SurfaceInteraction};
-use crate::core::spectrum::Spectrum;
+use crate::core::{
+    geometry::Vector3f,
+    interaction::{Interaction, SurfaceInteraction},
+    spectrum::Spectrum,
+};
 use std::any::Any;
 
 pub trait Light {

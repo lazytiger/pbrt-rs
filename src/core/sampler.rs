@@ -1,12 +1,15 @@
-use crate::core::camera::CameraSample;
-use crate::core::geometry::{Point2f, Point2i};
-use crate::core::pbrt::Float;
-use crate::core::rng::RNG;
+use crate::core::{
+    camera::CameraSample,
+    geometry::{Point2f, Point2i},
+    pbrt::Float,
+    rng::RNG,
+};
 use num::integer::div_mod_floor;
-use std::any::Any;
-use std::ops::{Deref, DerefMut};
-use std::sync::atomic::Ordering::AcqRel;
-use std::sync::Arc;
+use std::{
+    any::Any,
+    ops::{Deref, DerefMut},
+    sync::{atomic::Ordering::AcqRel, Arc},
+};
 
 pub trait Sampler {
     fn as_any(&self) -> &dyn Any;

@@ -4,10 +4,7 @@
 #![feature(is_sorted)]
 use crate::core::pbrt::Float;
 use clap::Clap;
-use std::any::Any;
-use std::mem::swap;
-use std::raw::TraitObject;
-use std::str::FromStr;
+use std::{any::Any, mem::swap, raw::TraitObject, str::FromStr};
 
 pub mod accelerators;
 pub mod cameras;

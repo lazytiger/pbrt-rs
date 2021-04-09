@@ -1,5 +1,4 @@
-use crate::core::pbrt::log_2_int_i32;
-use crate::core::sampler::PixelSampler;
+use crate::core::{pbrt::log_2_int_i32, sampler::PixelSampler};
 
 pub struct MaxMinDistSampler {
     base: PixelSampler,

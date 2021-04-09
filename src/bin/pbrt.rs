@@ -1,6 +1,8 @@
 use clap::Clap;
-use pbrt::core::{pbrt_cleanup, pbrt_init, pbrt_parse_file};
-use pbrt::Options;
+use pbrt::{
+    core::{pbrt_cleanup, pbrt_init, pbrt_parse_file},
+    Options,
+};
 
 fn main() {
     log4rs::init_file("log4rs.yml", Default::default()).unwrap();

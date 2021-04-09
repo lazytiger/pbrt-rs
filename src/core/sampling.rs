@@ -1,9 +1,9 @@
-use crate::core::geometry::{Point2f, Vector2f, Vector3f};
-use crate::core::pbrt::{clamp, find_interval};
-use crate::core::pbrt::{Float, PI, PI_OVER_2, PI_OVER_4};
-use crate::core::rng::RNG;
-use std::panic::PanicInfo;
-use std::sync::Arc;
+use crate::core::{
+    geometry::{Point2f, Vector2f, Vector3f},
+    pbrt::{clamp, find_interval, Float, PI, PI_OVER_2, PI_OVER_4},
+    rng::RNG,
+};
+use std::{panic::PanicInfo, sync::Arc};
 
 pub struct Distribution1D {
     func: Vec<Float>,

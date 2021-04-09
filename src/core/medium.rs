@@ -1,7 +1,8 @@
-use crate::core::geometry::{Point2f, Vector3f};
-use crate::core::pbrt::{any_equal, Float};
-use std::any::Any;
-use std::sync::Arc;
+use crate::core::{
+    geometry::{Point2f, Vector3f},
+    pbrt::{any_equal, Float},
+};
+use std::{any::Any, sync::Arc};
 
 pub trait PhaseFunction {
     fn as_any(&self) -> &dyn Any;

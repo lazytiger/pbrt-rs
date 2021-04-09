@@ -1,5 +1,7 @@
-use crate::core::geometry::{Normal3f, Vector3f};
-use crate::core::transform::Transformf;
+use crate::core::{
+    geometry::{Normal3f, Vector3f},
+    transform::Transformf,
+};
 
 pub mod cone;
 pub mod curve;

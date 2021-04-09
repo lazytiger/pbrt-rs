@@ -1,13 +1,14 @@
-use crate::core::efloat::EFloat;
-use crate::core::geometry::{Bounds3f, Point2f, Point3f, Ray, Vector3f};
-use crate::core::interaction::{Interaction, SurfaceInteraction};
-use crate::core::pbrt::{clamp, gamma, radians};
-use crate::core::shape::Shape;
-use crate::core::transform::Transformf;
-use crate::shapes::{compute_normal_differential, BaseShape};
 use crate::{
-    core::pbrt::{Float, PI},
+    core::{
+        efloat::EFloat,
+        geometry::{Bounds3f, Point2f, Point3f, Ray, Vector3f},
+        interaction::{Interaction, SurfaceInteraction},
+        pbrt::{clamp, gamma, radians, Float, PI},
+        shape::Shape,
+        transform::Transformf,
+    },
     impl_base_shape,
+    shapes::{compute_normal_differential, BaseShape},
 };
 
 pub struct Cylinder {

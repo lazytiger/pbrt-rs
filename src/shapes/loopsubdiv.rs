@@ -1,8 +1,12 @@
-use crate::core::geometry::{offset_ray_origin, Point3f, Vector3f};
-use crate::core::pbrt::{Float, PI};
-use crate::core::transform::Transformf;
-use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use crate::core::{
+    geometry::{offset_ray_origin, Point3f, Vector3f},
+    pbrt::{Float, PI},
+    transform::Transformf,
+};
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+};
 
 #[derive(Default, Clone, Copy)]
 struct SDVertex {

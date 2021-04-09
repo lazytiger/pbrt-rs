@@ -1,17 +1,18 @@
-use crate::core::efloat::EFloat;
-use crate::core::geometry::{
-    offset_ray_origin, spherical_direction, Bounds3f, Normal3, Normal3f, Point2f, Point3f, Ray,
-    Vector3f,
-};
-use crate::core::interaction::{Interaction, SurfaceInteraction};
-use crate::core::pbrt::{clamp, gamma, radians};
-use crate::core::sampling::{uniform_cone_pdf, uniform_sample_sphere};
-use crate::core::shape::Shape;
-use crate::core::transform::{Point3Ref, Transformf};
-use crate::shapes::{compute_normal_differential, BaseShape};
 use crate::{
-    core::pbrt::{Float, PI},
+    core::{
+        efloat::EFloat,
+        geometry::{
+            offset_ray_origin, spherical_direction, Bounds3f, Normal3, Normal3f, Point2f, Point3f,
+            Ray, Vector3f,
+        },
+        interaction::{Interaction, SurfaceInteraction},
+        pbrt::{clamp, gamma, radians, Float, PI},
+        sampling::{uniform_cone_pdf, uniform_sample_sphere},
+        shape::Shape,
+        transform::{Point3Ref, Transformf},
+    },
     impl_base_shape,
+    shapes::{compute_normal_differential, BaseShape},
 };
 use std::any::Any;
 

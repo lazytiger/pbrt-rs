@@ -1,14 +1,14 @@
-use crate::core::geometry::{Bounds3f, Ray};
-use crate::core::interaction::SurfaceInteraction;
-use crate::core::light::AreaLight;
-use crate::core::material::{Material, TransportMode};
-use crate::core::medium::MediumInterface;
-use crate::core::pbrt::Float;
-use crate::core::shape::Shape;
-use crate::core::transform::{AnimatedTransform, Transform};
-use std::any::Any;
-use std::marker::PhantomData;
-use std::sync::Arc;
+use crate::core::{
+    geometry::{Bounds3f, Ray},
+    interaction::SurfaceInteraction,
+    light::AreaLight,
+    material::{Material, TransportMode},
+    medium::MediumInterface,
+    pbrt::Float,
+    shape::Shape,
+    transform::{AnimatedTransform, Transform},
+};
+use std::{any::Any, marker::PhantomData, sync::Arc};
 
 pub trait Primitive {
     fn as_any(&self) -> &dyn Any;

@@ -1,18 +1,20 @@
-use crate::core::camera::{BaseCamera, Camera, CameraSample};
-use crate::core::efloat::EFloat;
-use crate::core::film::Film;
-use crate::core::geometry::{Bounds2f, Normal3f, Point2f, Point3f, Ray, Union, Vector3, Vector3f};
-use crate::core::lowdiscrepancy::radical_inverse;
-use crate::core::medium::Medium;
-use crate::core::pbrt::{quadratic, Float};
-use crate::core::reflection::refract;
-use crate::core::transform::{AnimatedTransform, Transformf};
-use crate::core::{pbrt::lerp, RealNum};
-use crate::impl_base_camera;
+use crate::{
+    core::{
+        camera::{BaseCamera, Camera, CameraSample},
+        efloat::EFloat,
+        film::Film,
+        geometry::{Bounds2f, Normal3f, Point2f, Point3f, Ray, Union, Vector3, Vector3f},
+        lowdiscrepancy::radical_inverse,
+        medium::Medium,
+        pbrt::{lerp, quadratic, Float},
+        reflection::refract,
+        transform::{AnimatedTransform, Transformf},
+        RealNum,
+    },
+    impl_base_camera,
+};
 use log::Level::Trace;
-use std::any::Any;
-use std::convert::TryInto;
-use std::sync::Arc;
+use std::{any::Any, convert::TryInto, sync::Arc};
 
 struct LensElementInterface {
     curvature_radius: Float,

@@ -1,7 +1,8 @@
-use crate::core::pbrt::{next_float_down, next_float_up};
-use crate::core::pbrt::{Float, MACHINE_EPSILON};
-use std::mem::swap;
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use crate::core::pbrt::{next_float_down, next_float_up, Float, MACHINE_EPSILON};
+use std::{
+    mem::swap,
+    ops::{Add, Div, Mul, Neg, Sub},
+};
 
 #[derive(Copy, Clone, Default)]
 pub struct EFloat {

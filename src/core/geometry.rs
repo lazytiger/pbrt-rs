@@ -4,14 +4,14 @@ use std::ops::{
 };
 
 use super::RealNum;
-use crate::core::efloat::EFloat;
-use crate::core::medium::Medium;
-use crate::core::pbrt::Float;
-use crate::core::pbrt::{gamma, next_float_down, next_float_up};
-use crate::core::transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref};
+use crate::core::{
+    efloat::EFloat,
+    medium::Medium,
+    pbrt::{gamma, next_float_down, next_float_up, Float},
+    transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref},
+};
 use num::Bounded;
-use std::mem::swap;
-use std::sync::Arc;
+use std::{mem::swap, sync::Arc};
 
 macro_rules! strip_plus {
     (+ $($rest:expr)+) => {

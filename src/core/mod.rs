@@ -1,5 +1,7 @@
-use crate::core::pbrt::{Float, Integer, PI};
-use crate::Options;
+use crate::{
+    core::pbrt::{Float, Integer, PI},
+    Options,
+};
 
 pub mod arena;
 pub mod camera;
@@ -28,11 +30,11 @@ pub fn pbrt_init(opts: &Options) {}
 pub fn pbrt_parse_file(f: String) {}
 pub fn pbrt_cleanup() {}
 
-use num::integer::Roots;
-use num::traits::real::Real;
-use num::Bounded;
-use std::intrinsics::transmute;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use num::{integer::Roots, traits::real::Real, Bounded};
+use std::{
+    intrinsics::transmute,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+};
 
 pub trait RealNum<T>:
     Add<Output = T>

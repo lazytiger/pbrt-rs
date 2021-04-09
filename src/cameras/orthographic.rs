@@ -1,18 +1,20 @@
-use crate::core::camera::{BaseCamera, Camera, CameraSample};
-use crate::core::film::Film;
-use crate::core::geometry::{Bounds2f, Point2f, Point3f, Ray, RayDifferentials, Vector3f};
-use crate::core::interaction::Interaction;
-use crate::core::light::VisibilityTester;
-use crate::core::medium::Medium;
-use crate::core::pbrt::lerp;
-use crate::core::pbrt::Float;
-use crate::core::sampling::concentric_sample_disk;
-use crate::core::spectrum::Spectrum;
-use crate::core::transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref};
-use crate::impl_base_camera;
+use crate::{
+    core::{
+        camera::{BaseCamera, Camera, CameraSample},
+        film::Film,
+        geometry::{Bounds2f, Point2f, Point3f, Ray, RayDifferentials, Vector3f},
+        interaction::Interaction,
+        light::VisibilityTester,
+        medium::Medium,
+        pbrt::{lerp, Float},
+        sampling::concentric_sample_disk,
+        spectrum::Spectrum,
+        transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref},
+    },
+    impl_base_camera,
+};
 use log::Level::Trace;
-use std::any::Any;
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 pub struct OrthographicCamera {
     base: BaseCamera,

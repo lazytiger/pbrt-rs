@@ -1,16 +1,14 @@
-use crate::core::geometry::{
-    offset_ray_origin, Bounds3f, IntersectP, Point2f, Ray, Union, Vector3f,
+use crate::core::{
+    geometry::{offset_ray_origin, Bounds3f, IntersectP, Point2f, Ray, Union, Vector3f},
+    interaction::{Interaction, SurfaceInteraction},
+    light::AreaLight,
+    material::{Material, TransportMode},
+    pbrt::{log_2_int_u64, Float},
+    primitive::Primitive,
+    shape::Shape,
+    transform::Transformf,
 };
-use crate::core::interaction::{Interaction, SurfaceInteraction};
-use crate::core::light::AreaLight;
-use crate::core::material::{Material, TransportMode};
-use crate::core::pbrt::{log_2_int_u64, Float};
-use crate::core::primitive::Primitive;
-use crate::core::shape::Shape;
-use crate::core::transform::Transformf;
-use std::any::Any;
-use std::cmp::Ordering;
-use std::sync::Arc;
+use std::{any::Any, cmp::Ordering, sync::Arc};
 
 #[derive(Default, Copy, Clone)]
 struct KdTodo<'a> {

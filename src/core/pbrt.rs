@@ -1,8 +1,10 @@
 use crate::core::RealNum;
 use num::traits::Pow;
-use std::any::Any;
-use std::ops::{BitAnd, Not};
-use std::raw::TraitObject;
+use std::{
+    any::Any,
+    ops::{BitAnd, Not},
+    raw::TraitObject,
+};
 cfg_if::cfg_if! {
    if #[cfg(feature = "float64")] {
         pub type Float = f64;

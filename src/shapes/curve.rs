@@ -1,10 +1,14 @@
-use crate::core::geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Union, Vector2f, Vector3f};
-use crate::core::interaction::{Interaction, SurfaceInteraction};
-use crate::core::pbrt::{clamp, float_to_bits, lerp};
-use crate::core::shape::Shape;
-use crate::core::transform::{Point3Ref, Transformf, Vector3Ref};
-use crate::shapes::BaseShape;
-use crate::{core::pbrt::Float, impl_base_shape};
+use crate::{
+    core::{
+        geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Union, Vector2f, Vector3f},
+        interaction::{Interaction, SurfaceInteraction},
+        pbrt::{clamp, float_to_bits, lerp, Float},
+        shape::Shape,
+        transform::{Point3Ref, Transformf, Vector3Ref},
+    },
+    impl_base_shape,
+    shapes::BaseShape,
+};
 use std::sync::Arc;
 
 pub enum CurveType {

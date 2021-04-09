@@ -1,10 +1,12 @@
-use crate::core::geometry::{Point2f, Point2i};
-use crate::core::pbrt::{Float, Integer, ONE_MINUS_EPSILON};
-use crate::core::rng::RNG;
-use crate::core::sampling::shuffle;
-use crate::core::sobolmatrices::{
-    SOBOL_MATRICES_32, SOBOL_MATRICES_64, SOBOL_MATRIX_SIZE, VDC_SOBOL_MATRICES,
-    VDC_SOBOL_MATRICES_INV,
+use crate::core::{
+    geometry::{Point2f, Point2i},
+    pbrt::{Float, Integer, ONE_MINUS_EPSILON},
+    rng::RNG,
+    sampling::shuffle,
+    sobolmatrices::{
+        SOBOL_MATRICES_32, SOBOL_MATRICES_64, SOBOL_MATRIX_SIZE, VDC_SOBOL_MATRICES,
+        VDC_SOBOL_MATRICES_INV,
+    },
 };
 
 pub const PRIME_TABLE_SIZE: usize = 1000;

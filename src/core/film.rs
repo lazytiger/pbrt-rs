@@ -1,6 +1,8 @@
-use crate::core::filter::Filter;
-use crate::core::geometry::{Bounds2f, Bounds2i, Point2f, Point2i, Vector2f};
-use crate::core::pbrt::Float;
+use crate::core::{
+    filter::Filter,
+    geometry::{Bounds2f, Bounds2i, Point2f, Point2i, Vector2f},
+    pbrt::Float,
+};
 use std::sync::Arc;
 
 struct Pixel {

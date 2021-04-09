@@ -1,5 +1,7 @@
-use crate::core::geometry::{Point2f, Vector2f};
-use crate::core::pbrt::Float;
+use crate::core::{
+    geometry::{Point2f, Vector2f},
+    pbrt::Float,
+};
 use std::any::Any;
 
 pub trait Filter {

@@ -1,18 +1,24 @@
-use crate::core::arena::{Arena, Indexed};
-use crate::core::geometry::{Bounds3, Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f};
-use crate::core::interaction::SurfaceInteraction;
-use crate::core::light::AreaLight;
-use crate::core::material::{Material, TransportMode};
-use crate::core::pbrt::Float;
-use crate::core::primitive::Primitive;
-use crate::core::RealNum;
+use crate::core::{
+    arena::{Arena, Indexed},
+    geometry::{Bounds3, Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f},
+    interaction::SurfaceInteraction,
+    light::AreaLight,
+    material::{Material, TransportMode},
+    pbrt::Float,
+    primitive::Primitive,
+    RealNum,
+};
 use num::traits::real::Real;
-use std::any::Any;
-use std::cmp::{max, Ordering};
-use std::io::Read;
-use std::mem::swap;
-use std::sync::atomic::{AtomicI32, AtomicUsize};
-use std::sync::Arc;
+use std::{
+    any::Any,
+    cmp::{max, Ordering},
+    io::Read,
+    mem::swap,
+    sync::{
+        atomic::{AtomicI32, AtomicUsize},
+        Arc,
+    },
+};
 
 #[derive(Default, Copy, Clone)]
 struct BVHPrimitiveInfo {

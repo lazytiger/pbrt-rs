@@ -1,19 +1,21 @@
-use crate::core::camera::{BaseCamera, Camera, CameraSample};
-use crate::core::film::Film;
-use crate::core::geometry::{
-    Bounds2f, Normal3f, Point2f, Point3f, Ray, RayDifferentials, Vector3, Vector3f,
+use crate::{
+    core::{
+        camera::{BaseCamera, Camera, CameraSample},
+        film::Film,
+        geometry::{
+            Bounds2f, Normal3f, Point2f, Point3f, Ray, RayDifferentials, Vector3, Vector3f,
+        },
+        interaction::Interaction,
+        light::VisibilityTester,
+        medium::{Medium, MediumInterface},
+        pbrt::{lerp, Float, PI},
+        sampling::concentric_sample_disk,
+        spectrum::Spectrum,
+        transform::{AnimatedTransform, Point3Ref, Transformf, Vector3Ref},
+    },
+    impl_base_camera,
 };
-use crate::core::interaction::Interaction;
-use crate::core::light::VisibilityTester;
-use crate::core::medium::{Medium, MediumInterface};
-use crate::core::pbrt::lerp;
-use crate::core::pbrt::{Float, PI};
-use crate::core::sampling::concentric_sample_disk;
-use crate::core::spectrum::Spectrum;
-use crate::core::transform::{AnimatedTransform, Point3Ref, Transformf, Vector3Ref};
-use crate::impl_base_camera;
-use std::any::Any;
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 pub struct PerspectiveCamera {
     base: BaseCamera,

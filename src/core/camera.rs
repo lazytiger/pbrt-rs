@@ -1,13 +1,14 @@
-use crate::core::film::Film;
-use crate::core::geometry::{Point2f, Ray, RayDifferentials, Vector3f};
-use crate::core::interaction::Interaction;
-use crate::core::light::VisibilityTester;
-use crate::core::medium::Medium;
-use crate::core::pbrt::Float;
-use crate::core::spectrum::Spectrum;
-use crate::core::transform::{AnimatedTransform, Transformf};
-use std::any::Any;
-use std::sync::Arc;
+use crate::core::{
+    film::Film,
+    geometry::{Point2f, Ray, RayDifferentials, Vector3f},
+    interaction::Interaction,
+    light::VisibilityTester,
+    medium::Medium,
+    pbrt::Float,
+    spectrum::Spectrum,
+    transform::{AnimatedTransform, Transformf},
+};
+use std::{any::Any, sync::Arc};
 
 #[derive(Default, Copy, Clone)]
 pub struct CameraSample {

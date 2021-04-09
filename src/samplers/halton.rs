@@ -1,16 +1,21 @@
-use crate::core::geometry::Point2f;
-use crate::core::geometry::{Bounds2i, Point2i};
-use crate::core::lowdiscrepancy::{
-    compute_radical_inverse_permutations, inverse_radical_inverse, radical_inverse,
-    scramble_radical_inverse, PRIME_SUMS, PRIME_TABLE_SIZE,
+use crate::{
+    core::{
+        geometry::{Bounds2i, Point2f, Point2i},
+        lowdiscrepancy::{
+            compute_radical_inverse_permutations, inverse_radical_inverse, radical_inverse,
+            scramble_radical_inverse, PRIME_SUMS, PRIME_TABLE_SIZE,
+        },
+        pbrt::Float,
+        rng::RNG,
+        sampler::{GlobalSampler, Sampler},
+    },
+    impl_global_sampler,
 };
-use crate::core::pbrt::Float;
-use crate::core::rng::RNG;
-use crate::core::sampler::{GlobalSampler, Sampler};
-use crate::impl_global_sampler;
-use std::any::Any;
-use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
+use std::{
+    any::Any,
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 lazy_static::lazy_static! {
     static ref RADICAL_INVERSE_PERMUTATIONS:Vec<u64> = {
