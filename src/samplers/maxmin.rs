@@ -9,7 +9,6 @@ use crate::{
     impl_pixel_sampler, Float,
 };
 use std::{
-    any::Any,
     ops::{Deref, DerefMut},
     sync::Arc,
 };

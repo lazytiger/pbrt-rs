@@ -6,7 +6,7 @@ use crate::{
     },
     impl_base_sampler,
 };
-use std::{any::Any, sync::Arc};
+use std::{sync::Arc};
 
 pub struct RandomSampler {
     base: BaseSampler,
@@ -26,15 +26,15 @@ impl Sampler for RandomSampler {
         todo!()
     }
 
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
         todo!()
     }
 
-    fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {
+    fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {
         unimplemented!("This method is not supported for RandomSampler")
     }
 
-    fn sample_dimension(&self, index: i64, dimension: usize) -> f32 {
+    fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
         unimplemented!("This method is not supported for RandomSampler")
     }
 }

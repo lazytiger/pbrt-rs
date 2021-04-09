@@ -12,7 +12,6 @@ use crate::{
     impl_global_sampler,
 };
 use std::{
-    any::Any,
     ops::{Deref, DerefMut},
     sync::Arc,
 };

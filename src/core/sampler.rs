@@ -442,11 +442,11 @@ macro_rules! impl_pixel_sampler {
             self.set_sample_number(sample_num)
         }
 
-        fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {
+        fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {
             unimplemented!("PixelSampler does not support this method");
         }
 
-        fn sample_dimension(&self, index: i64, dimension: usize) -> f32 {
+        fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
             unimplemented!("PixelSampler does not support this method");
         }
     };
