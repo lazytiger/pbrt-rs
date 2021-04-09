@@ -70,11 +70,11 @@ impl RealisticCamera {
 
         let _fb = rc.focus_binary_search(focus_distance);
         rc.element_interfaces.last_mut().unwrap().thickness = rc.focus_thick_lens(focus_distance);
-        const n_samples: usize = 64;
-        rc.exit_pupil_bounds.resize(n_samples, Bounds2f::default());
-        for i in 0..n_samples {
-            let r0 = i as Float / n_samples as Float * film.diagonal / 2.0;
-            let r1 = (i + 1) as Float / n_samples as Float * film.diagonal / 2.0;
+        const N_SAMPLES: usize = 64;
+        rc.exit_pupil_bounds.resize(N_SAMPLES, Bounds2f::default());
+        for i in 0..N_SAMPLES {
+            let r0 = i as Float / N_SAMPLES as Float * film.diagonal / 2.0;
+            let r1 = (i + 1) as Float / N_SAMPLES as Float * film.diagonal / 2.0;
             rc.exit_pupil_bounds[i] = rc.bound_exit_pupil(r0, r1);
         }
 
@@ -341,17 +341,17 @@ impl RealisticCamera {
     fn bound_exit_pupil(&self, p_film_x0: Float, p_film_x1: Float) -> Bounds2f {
         let mut pupil_bounds = Bounds2f::default();
 
-        const n_samples: usize = 1024 * 1024;
+        const N_SAMPLES: usize = 1024 * 1024;
         let mut n_exiting_rays = 0;
         let rear_radius = self.rear_element_radius();
         let proj_rear_bounds = Bounds2f::from((
             Point2f::new(-1.5 * rear_radius, -1.5 * rear_radius),
             Point2f::new(1.5 * rear_radius, 1.5 * rear_radius),
         ));
-        for i in 0..n_samples {
+        for i in 0..N_SAMPLES {
             let p_film = Point3f::new(
                 lerp(
-                    (i as Float + 0.5) / n_samples as Float,
+                    (i as Float + 0.5) / N_SAMPLES as Float,
                     p_film_x0,
                     p_film_x1,
                 ),
@@ -380,7 +380,7 @@ impl RealisticCamera {
         }
 
         pupil_bounds = pupil_bounds
-            .expand(2.0 * proj_rear_bounds.diagonal().length() / (n_samples as Float).sqrt());
+            .expand(2.0 * proj_rear_bounds.diagonal().length() / (N_SAMPLES as Float).sqrt());
         pupil_bounds
     }
 

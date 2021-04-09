@@ -161,16 +161,9 @@ macro_rules! define_spectrum {
             }
 
             pub fn max_component_value(&self) -> Float {
-                self.c.iter().fold(
-                    Float::MIN,
-                    |max, val| {
-                        if max > *val {
-                            max
-                        } else {
-                            *val
-                        }
-                    },
-                )
+                self.c
+                    .iter()
+                    .fold(Float::MIN, |max, val| if max > *val { max } else { *val })
             }
 
             pub fn has_nans(&self) -> bool {
@@ -2157,7 +2150,7 @@ fn black_body_normalized(lambda: &[Float], n: usize, t: Float, le: &mut [Float])
     let mut max_l = [0.0];
     black_body(&lambda_max[..], 1, t, &mut max_l[..]);
     for i in 0..n {
-        le[i] / max_l[0];
+        le[i] /= max_l[0];
     }
 }
 
