@@ -126,7 +126,7 @@ impl Deref for HaltonSampler {
 impl Sampler for HaltonSampler {
     impl_global_sampler!();
 
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
         Arc::new(Box::new(Clone::clone(self)))
     }
 

@@ -3,7 +3,7 @@ use crate::core::{
     pbrt::{clamp, find_interval, Float, PI, PI_OVER_2, PI_OVER_4},
     rng::RNG,
 };
-use std::{panic::PanicInfo, sync::Arc};
+
 
 pub struct Distribution1D {
     func: Vec<Float>,

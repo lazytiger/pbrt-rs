@@ -1,7 +1,7 @@
 use crate::core::{
     geometry::Vector3f,
     pbrt::{clamp, Float},
-    transform::{Matrix4x4f, Transformf},
+    transform::{Matrix4x4f},
 };
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 

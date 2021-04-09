@@ -66,7 +66,7 @@ impl KdAccelNode {
     fn init_leaf(&mut self, prim_nums: &[usize], np: usize, primitive_indices: &mut Vec<usize>) {
         unsafe {
             self.flag.flags = 3;
-            self.flag.n_prims |= (np << 2);
+            self.flag.n_prims |= np << 2;
             if np == 0 {
                 self.data.one_primitive = 0;
             } else if np == 1 {
@@ -84,7 +84,7 @@ impl KdAccelNode {
         unsafe {
             self.data.split = s;
             self.flag.flags = axis;
-            self.flag.above_child |= (ac << 2);
+            self.flag.above_child |= ac << 2;
         }
     }
 
@@ -599,9 +599,9 @@ impl Primitive for KdTreeAccel {
 
     fn compute_scattering_functions(
         &self,
-        si: &mut SurfaceInteraction,
-        mode: TransportMode,
-        allow_multiple_lobes: bool,
+        _si: &mut SurfaceInteraction,
+        _mode: TransportMode,
+        _allow_multiple_lobes: bool,
     ) {
         unimplemented!("Aggregate does not support compute_scattering_function method, use GeometricPrimitive instead")
     }

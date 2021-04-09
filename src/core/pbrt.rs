@@ -1,5 +1,5 @@
 use crate::core::RealNum;
-use num::traits::Pow;
+
 use std::{
     any::Any,
     ops::{BitAnd, Not},

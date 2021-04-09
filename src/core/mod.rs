@@ -1,5 +1,4 @@
 use crate::{
-    core::pbrt::{Float, Integer, PI},
     Options,
 };
 
@@ -26,13 +25,12 @@ pub mod sobolmatrices;
 pub mod spectrum;
 pub mod transform;
 
-pub fn pbrt_init(opts: &Options) {}
-pub fn pbrt_parse_file(f: String) {}
+pub fn pbrt_init(_opts: &Options) {}
+pub fn pbrt_parse_file(_f: String) {}
 pub fn pbrt_cleanup() {}
 
 use num::{integer::Roots, traits::real::Real, Bounded};
 use std::{
-    intrinsics::transmute,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 

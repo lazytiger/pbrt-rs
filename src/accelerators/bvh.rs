@@ -1,6 +1,6 @@
 use crate::core::{
     arena::{Arena, Indexed},
-    geometry::{Bounds3, Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f},
+    geometry::{Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f},
     interaction::SurfaceInteraction,
     light::AreaLight,
     material::{Material, TransportMode},
@@ -276,7 +276,7 @@ impl BVHAccel {
         start: usize,
         end: usize,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<Arc<Box<Primitive>>>,
+        ordered_prims: &mut Vec<Arc<Box<dyn Primitive>>>,
     ) -> usize {
         let (index, _) = arena.alloc(BVHBuildNode::default());
         *total_nodes += 1;
@@ -296,7 +296,7 @@ impl BVHAccel {
                 .init_leaf(first_prim_offset, n_primitives, bounds);
             return index;
         } else {
-            let mut centroid_bounds = Bounds3f::default();
+            let centroid_bounds = Bounds3f::default();
             for i in start..end {
                 centroid_bounds.union(&primitive_info[i].centroid);
             }
@@ -367,7 +367,7 @@ impl BVHAccel {
                                     * centroid_bounds.offset(&primitive_info[i].centroid)[dim]
                                         as usize;
                                 if b == n_buckets {
-                                    b = (n_buckets - 1);
+                                    b = n_buckets - 1;
                                 }
 
                                 buckets[b].count += 1;
@@ -376,8 +376,8 @@ impl BVHAccel {
 
                             let mut cost = [0.0 as Float; 11];
                             for i in 0..n_buckets - 1 {
-                                let mut b0 = Bounds3f::default();
-                                let mut b1 = Bounds3f::default();
+                                let b0 = Bounds3f::default();
+                                let b1 = Bounds3f::default();
                                 let mut count0 = 0;
                                 let mut count1 = 0;
                                 for j in 0..i {
@@ -463,9 +463,9 @@ impl BVHAccel {
         arena: &mut Arena<BVHBuildNode>,
         primitive_info: &Vec<BVHPrimitiveInfo>,
         total_node: &mut usize,
-        ordered_prims: &mut Vec<Arc<Box<Primitive>>>,
+        ordered_prims: &mut Vec<Arc<Box<dyn Primitive>>>,
     ) -> usize {
-        let mut bounds = Bounds3f::default();
+        let bounds = Bounds3f::default();
         for pi in primitive_info {
             bounds.union(&pi.centroid);
         }
@@ -485,7 +485,7 @@ impl BVHAccel {
         radix_sort(&mut morton_prims);
 
         let mut treelets_to_build = Vec::new();
-        let mut start = 0;
+        let start = 0;
         for end in 1..morton_prims.len() + 1 {
             let mask = 0b00111111111111000000000000000000;
             if end == morton_prims.len()
@@ -504,7 +504,7 @@ impl BVHAccel {
                 });
             }
         }
-        let mut atomic_total = AtomicUsize::new(0);
+        let atomic_total = AtomicUsize::new(0);
         let mut ordered_prim_offset = AtomicUsize::new(0);
         //TODO parallel
         let mut finished_treelets = Vec::with_capacity(treelets_to_build.len());
@@ -549,7 +549,7 @@ impl BVHAccel {
         morton_prims: &[MortonPrimitive],
         n_primitives: usize,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<Arc<Box<Primitive>>>,
+        ordered_prims: &mut Vec<Arc<Box<dyn Primitive>>>,
         ordered_prims_offset: &mut AtomicUsize,
         bit_index: i32,
     ) -> usize {
@@ -557,7 +557,7 @@ impl BVHAccel {
             *total_nodes += 1;
             let node = treelet.node_mut(arena, offset);
             treelet.root_index = offset;
-            let mut bounds = Bounds3f::default();
+            let bounds = Bounds3f::default();
             let first_prim_offset =
                 ordered_prims_offset.fetch_add(n_primitives, std::sync::atomic::Ordering::SeqCst);
             for i in 0..n_primitives {
@@ -650,12 +650,12 @@ impl BVHAccel {
         }
         *total_nodes += 1;
         let (index, _) = arena.alloc(BVHBuildNode::default());
-        let mut bounds = Bounds3f::default();
+        let bounds = Bounds3f::default();
         for i in start..end {
             bounds.union(&arena.get(treelet_roots[i]).bounds);
         }
 
-        let mut centroid_bounds = Bounds3f::default();
+        let centroid_bounds = Bounds3f::default();
         for i in start..end {
             let node = arena.get(treelet_roots[i]);
             let centroid = (node.bounds.min + node.bounds.max) * 0.5;
@@ -681,8 +681,8 @@ impl BVHAccel {
 
         let mut cost = [0.0 as Float; 11];
         for i in 0..n_buckets - 1 {
-            let mut b0 = Bounds3f::default();
-            let mut b1 = Bounds3f::default();
+            let b0 = Bounds3f::default();
+            let b1 = Bounds3f::default();
             let mut count0 = 0;
             let mut count1 = 0;
             for j in 0..i + 1 {
@@ -698,7 +698,7 @@ impl BVHAccel {
                     / bounds.surface_area();
         }
 
-        let (_, min_cost_split_bucket, min_cost) =
+        let (_, min_cost_split_bucket, _min_cost) =
             cost.iter()
                 .fold((0, 0, Float::MAX), |(current, index, min_cost), cost| {
                     if *cost < min_cost {
@@ -837,7 +837,7 @@ impl Primitive for BVHAccel {
 
     fn intersect_p(&self, ray: &Ray) -> bool {
         if let Some(nodes) = &self.nodes {
-            let mut hit = false;
+            let hit = false;
             let inv_dir = Vector3f::new(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
             let dir_is_neg = [
                 if inv_dir.x < 0.0 { 1 } else { 0 } as usize,
@@ -902,9 +902,9 @@ impl Primitive for BVHAccel {
 
     fn compute_scattering_functions(
         &self,
-        si: &mut SurfaceInteraction,
-        mode: TransportMode,
-        allow_multiple_lobes: bool,
+        _si: &mut SurfaceInteraction,
+        _mode: TransportMode,
+        _allow_multiple_lobes: bool,
     ) {
         unimplemented!("Aggregate does not support compute_scattering_function method, use GeometricPrimitive instead")
     }

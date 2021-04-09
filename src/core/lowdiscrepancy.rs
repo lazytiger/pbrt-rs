@@ -4,7 +4,7 @@ use crate::core::{
     rng::RNG,
     sampling::shuffle,
     sobolmatrices::{
-        SOBOL_MATRICES_32, SOBOL_MATRICES_64, SOBOL_MATRIX_SIZE, VDC_SOBOL_MATRICES,
+        SOBOL_MATRICES_32, SOBOL_MATRIX_SIZE, VDC_SOBOL_MATRICES,
         VDC_SOBOL_MATRICES_INV,
     },
 };
@@ -298,7 +298,7 @@ pub fn radical_inverse_specialized(base: u64, mut a: u64) -> Float {
     while a != 0 {
         let next = a / base;
         let digit = a - next * base;
-        let reversed_digits = reversed_digits * base + digit;
+        let _reversed_digits = reversed_digits * base + digit;
         inv_base *= inv_base;
         a = next;
     }
@@ -381,7 +381,7 @@ pub fn reverse_bits32(mut n: u32) -> u32 {
 #[inline]
 pub fn inverse_radical_inverse(base: u64, mut inverse: u64, n_digits: usize) -> u64 {
     let mut index = 0;
-    for i in 0..n_digits {
+    for _i in 0..n_digits {
         let digit = inverse % base;
         inverse /= base;
         index = index * base + digit;
@@ -523,7 +523,7 @@ pub fn sobol_interval_to_index(m: u32, mut frame: u64, p: &Point2i) -> u64 {
     }
     let b = (((p.x as u32) << m) | p.y as u32) as u64 ^ delta;
 
-    let mut c = 0;
+    let c = 0;
     while b != 0 {
         if b & 1 != 0 {
             index ^= VDC_SOBOL_MATRICES_INV[m as usize - 1][c];

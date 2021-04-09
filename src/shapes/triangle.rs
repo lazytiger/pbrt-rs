@@ -10,7 +10,7 @@ use crate::{
     impl_base_shape,
     shapes::BaseShape,
 };
-use core::num::FpCategory::Normal;
+
 use std::sync::Arc;
 
 pub struct TriangleMesh {
@@ -140,7 +140,7 @@ impl Triangle {
 
         let max_xt = Vector3f::new(p0t.x, p1t.x, p2t.x).abs().max_component();
         let max_yt = Vector3f::new(p0t.y, p1t.y, p2t.y).abs().max_component();
-        let delta_x = gamma(5.0) * (max_xt + max_zt);
+        let _delta_x = gamma(5.0) * (max_xt + max_zt);
         let delta_y = gamma(5.0) * (max_yt + max_zt);
 
         let delta_e = 2.0 * (gamma(2.0) * max_xt * max_yt + delta_y * max_xt + delta_y * max_yt);
@@ -183,7 +183,7 @@ impl Shape for Triangle {
         ray: &Ray,
         hit: &mut f32,
         si: &mut SurfaceInteraction,
-        test_alpha_texture: bool,
+        _test_alpha_texture: bool,
     ) -> bool {
         let (ok, b0, b1, b2, t) = self.intersect_test(ray);
         if !ok {
@@ -286,7 +286,7 @@ impl Shape for Triangle {
                 let dn1 = n[self.v[0]] - n[self.v[2]];
                 let dn2 = n[self.v[1]] - n[self.v[2]];
                 let determinant = duv02[0] * duv12[1] - duv02[1] * duv12[0];
-                let degeneate_uv = determinant < 1e-8;
+                let _degeneate_uv = determinant < 1e-8;
                 if degenerate_uv {
                     let dn = (n[self.v[2]] - n[self.v[0]]).cross(&(n[self.v[1]] - n[self.v[0]]));
                     if dn.length_squared() == 0.0 {
@@ -314,7 +314,7 @@ impl Shape for Triangle {
         true
     }
 
-    fn intersect_p(&self, ray: &Ray, test_alpha_texture: bool) -> bool {
+    fn intersect_p(&self, ray: &Ray, _test_alpha_texture: bool) -> bool {
         let (ok, _, _, _, _) = self.intersect_test(ray);
         ok
     }
@@ -346,7 +346,7 @@ impl Shape for Triangle {
         it
     }
 
-    fn solid_angle(&self, p: Point3f, samples: u64) -> f32 {
+    fn solid_angle(&self, p: Point3f, _samples: u64) -> f32 {
         let p0 = self.mesh.p[self.v[0]];
         let p1 = self.mesh.p[self.v[1]];
         let p2 = self.mesh.p[self.v[2]];

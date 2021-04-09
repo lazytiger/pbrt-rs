@@ -6,17 +6,17 @@ use crate::core::{
     medium::MediumInterface,
     pbrt::Float,
     shape::Shape,
-    transform::{AnimatedTransform, Transform},
+    transform::{AnimatedTransform},
 };
-use std::{any::Any, marker::PhantomData, sync::Arc};
+use std::{any::Any, sync::Arc};
 
 pub trait Primitive {
     fn as_any(&self) -> &dyn Any;
     fn world_bound(&self) -> Bounds3f;
     fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> bool;
     fn intersect_p(&self, r: &Ray) -> bool;
-    fn get_area_light(&self) -> Option<Arc<Box<AreaLight>>>;
-    fn get_material(&self) -> Option<Arc<Box<Material>>>;
+    fn get_area_light(&self) -> Option<Arc<Box<dyn AreaLight>>>;
+    fn get_material(&self) -> Option<Arc<Box<dyn Material>>>;
     fn compute_scattering_functions(
         &self,
         si: &mut SurfaceInteraction,
@@ -26,17 +26,17 @@ pub trait Primitive {
 }
 
 pub struct GeometricPrimitive {
-    shape: Arc<Box<Shape>>,
-    material: Option<Arc<Box<Material>>>,
-    area_light: Option<Arc<Box<AreaLight>>>,
+    shape: Arc<Box<dyn Shape>>,
+    material: Option<Arc<Box<dyn Material>>>,
+    area_light: Option<Arc<Box<dyn AreaLight>>>,
     medium_interface: MediumInterface,
 }
 
 impl GeometricPrimitive {
     pub fn new(
-        shape: Arc<Box<Shape>>,
-        material: Option<Arc<Box<Material>>>,
-        area_light: Option<Arc<Box<AreaLight>>>,
+        shape: Arc<Box<dyn Shape>>,
+        material: Option<Arc<Box<dyn Material>>>,
+        area_light: Option<Arc<Box<dyn AreaLight>>>,
         medium_interface: MediumInterface,
     ) -> GeometricPrimitive {
         GeometricPrimitive {
@@ -57,7 +57,7 @@ impl Primitive for GeometricPrimitive {
         self.shape.world_bound()
     }
 
-    fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> (bool) {
+    fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> bool {
         let mut hit: Float = 0.0;
         if !self.shape.intersect(r, &mut hit, si, true) {
             return false;
@@ -76,11 +76,11 @@ impl Primitive for GeometricPrimitive {
         self.shape.intersect_p(r, true)
     }
 
-    fn get_area_light(&self) -> Option<Arc<Box<AreaLight>>> {
+    fn get_area_light(&self) -> Option<Arc<Box<dyn AreaLight>>> {
         self.area_light.clone()
     }
 
-    fn get_material(&self) -> Option<Arc<Box<Material>>> {
+    fn get_material(&self) -> Option<Arc<Box<dyn Material>>> {
         self.material.clone()
     }
 
@@ -97,13 +97,13 @@ impl Primitive for GeometricPrimitive {
 }
 
 struct TransformedPrimitive {
-    primitive: Option<Arc<Box<Primitive>>>,
+    primitive: Option<Arc<Box<dyn Primitive>>>,
     primitive_to_world: AnimatedTransform,
 }
 
 impl TransformedPrimitive {
     pub fn new(
-        primitive: Option<Arc<Box<Primitive>>>,
+        primitive: Option<Arc<Box<dyn Primitive>>>,
         primitive_to_world: AnimatedTransform,
     ) -> TransformedPrimitive {
         TransformedPrimitive {
@@ -144,7 +144,7 @@ impl Primitive for TransformedPrimitive {
 
     fn intersect_p(&self, r: &Ray) -> bool {
         let interpolate_prim_to_world = self.primitive_to_world.interpolate(r.time);
-        let mut ray = Ray::from((&interpolate_prim_to_world.inverse(), &*r));
+        let ray = Ray::from((&interpolate_prim_to_world.inverse(), &*r));
         if let Some(primitive) = &self.primitive {
             primitive.intersect_p(&ray)
         } else {
@@ -162,9 +162,9 @@ impl Primitive for TransformedPrimitive {
 
     fn compute_scattering_functions(
         &self,
-        si: &mut SurfaceInteraction,
-        mode: TransportMode,
-        allow_multiple_lobes: bool,
+        _si: &mut SurfaceInteraction,
+        _mode: TransportMode,
+        _allow_multiple_lobes: bool,
     ) {
         unimplemented!()
     }

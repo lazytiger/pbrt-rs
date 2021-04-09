@@ -6,7 +6,7 @@ use crate::core::{
     medium::Medium,
     pbrt::Float,
     spectrum::Spectrum,
-    transform::{AnimatedTransform, Transformf},
+    transform::{AnimatedTransform},
 };
 use std::{any::Any, sync::Arc};
 
@@ -57,20 +57,20 @@ pub trait Camera {
         rd.has_differentials = true;
         wt
     }
-    fn we(&self, ray: &Ray, p_raster2: Option<&mut Point2f>) -> Spectrum {
+    fn we(&self, _ray: &Ray, _p_raster2: Option<&mut Point2f>) -> Spectrum {
         unimplemented!()
     }
-    fn pdf_we(&self, ray: &Ray, pdf_pos: &mut Float, pdf_dir: &mut Float) {
+    fn pdf_we(&self, _ray: &Ray, _pdf_pos: &mut Float, _pdf_dir: &mut Float) {
         unimplemented!()
     }
     fn sample_wi(
         &self,
-        refer: &Interaction,
-        sample: &Point2f,
-        wi: &mut Vector3f,
-        pdf: &mut Float,
-        p_raster: Option<&mut Point2f>,
-        vis: &mut VisibilityTester,
+        _refer: &Interaction,
+        _sample: &Point2f,
+        _wi: &mut Vector3f,
+        _pdf: &mut Float,
+        _p_raster: Option<&mut Point2f>,
+        _vis: &mut VisibilityTester,
     ) -> Spectrum {
         unimplemented!()
     }

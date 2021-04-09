@@ -28,7 +28,7 @@ pub trait Shape {
     }
     fn area(&self) -> Float;
     fn sample(&self, u: &Point2f, pdf: &mut Float) -> Interaction;
-    fn pdf(&self, si: &Interaction) -> Float {
+    fn pdf(&self, _si: &Interaction) -> Float {
         1.0 / self.area()
     }
     fn sample2(&self, it: &Interaction, u: &Point2f, pdf: &mut Float) -> Interaction {
@@ -65,7 +65,7 @@ pub trait Shape {
     fn object_to_world(&self) -> &Transformf;
     fn world_to_object(&self) -> &Transformf;
     fn solid_angle(&self, p: Point3f, samples: u64) -> Float {
-        let it = Interaction::new(
+        let _it = Interaction::new(
             p,
             Default::default(),
             0.0,

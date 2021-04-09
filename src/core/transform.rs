@@ -1,11 +1,11 @@
 use crate::core::{
-    geometry::{Bounds3f, Normal3, Point3, Point3f, Ray, Union, Vector3, Vector3f},
+    geometry::{Bounds3f, Normal3, Point3, Point3f, Union, Vector3, Vector3f},
     interaction::SurfaceInteraction,
     pbrt::{clamp, lerp, radians, Float, PI},
     quaternion::Quaternion,
     RealNum,
 };
-use num::zero;
+
 use std::{
     cmp::Ordering,
     mem::swap,
@@ -601,7 +601,7 @@ impl Mul for Transformf {
 impl<'a> Mul<&SurfaceInteraction<'a>> for &Transformf {
     type Output = SurfaceInteraction<'a>;
 
-    fn mul(self, rhs: &SurfaceInteraction<'a>) -> Self::Output {
+    fn mul(self, _rhs: &SurfaceInteraction<'a>) -> Self::Output {
         //TODO
         Default::default()
     }
@@ -794,7 +794,7 @@ pub fn interval_find_zeros(
         );
     } else {
         let mut t_newton = (interval.low + interval.high) * 0.5;
-        for i in 0..4 {
+        for _i in 0..4 {
             let f_newton = c1
                 + (c2 + c3 * t_newton) * (2.0 * theta * t_newton).cos()
                 + (c4 + c5 * t_newton) * (2.0 * theta * t_newton).sin();

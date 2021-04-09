@@ -50,7 +50,7 @@ impl Cylinder {
         let mut o_err = Vector3f::default();
         let mut d_err = Vector3f::default();
         let ray = Ray::from((self.world_to_object(), r, &mut o_err, &mut d_err));
-        let (ox, oy, oz, dx, dy, dz) = ray.efloats(&o_err, &d_err);
+        let (ox, oy, _oz, dx, dy, _dz) = ray.efloats(&o_err, &d_err);
         let a = dx * dx + dy * dy;
         let b = (dx * ox + dy * oy) * 2.0;
         let c = ox * ox + oy * oy - EFloat::new(self.radius, 0.0) * EFloat::new(self.radius, 0.0);
@@ -99,9 +99,9 @@ impl Shape for Cylinder {
         r: &Ray,
         hit: &mut f32,
         si: &mut SurfaceInteraction,
-        test_alpha_texture: bool,
+        _test_alpha_texture: bool,
     ) -> bool {
-        let (ok, p_hit, phi, t_shape_hit, ray) = self.compute_intersect(r);
+        let (_ok, p_hit, phi, t_shape_hit, ray) = self.compute_intersect(r);
         let u = phi / self.phi_max;
         let v = (p_hit.z - self.z_min) / (self.z_max - self.z_min);
         let dpdu = Vector3f::new(-self.phi_max * p_hit.y, self.phi_max * p_hit.x, 0.0);
@@ -131,7 +131,7 @@ impl Shape for Cylinder {
         true
     }
 
-    fn intersect_p(&self, ray: &Ray, test_alpha_texture: bool) -> bool {
+    fn intersect_p(&self, ray: &Ray, _test_alpha_texture: bool) -> bool {
         let (ok, _, _, _, _) = self.compute_intersect(ray);
         ok
     }
@@ -140,7 +140,7 @@ impl Shape for Cylinder {
         unimplemented!()
     }
 
-    fn sample(&self, u: &Point2f, pdf: &mut f32) -> Interaction {
+    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> Interaction {
         unimplemented!()
     }
 }

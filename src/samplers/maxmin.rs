@@ -1,4 +1,4 @@
-use crate::core::{pbrt::log_2_int_i32, sampler::PixelSampler};
+use crate::core::{sampler::PixelSampler};
 
 pub struct MaxMinDistSampler {
     base: PixelSampler,
@@ -6,7 +6,7 @@ pub struct MaxMinDistSampler {
 }
 
 impl MaxMinDistSampler {
-    pub fn new(samples_per_pixel: i64, n_sampled_dimensions: usize) -> Self {
+    pub fn new(_samples_per_pixel: i64, _n_sampled_dimensions: usize) -> Self {
         unimplemented!()
     }
 }

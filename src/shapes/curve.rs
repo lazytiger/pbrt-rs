@@ -1,6 +1,6 @@
 use crate::{
     core::{
-        geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Union, Vector2f, Vector3f},
+        geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Union, Vector3f},
         interaction::{Interaction, SurfaceInteraction},
         pbrt::{clamp, float_to_bits, lerp, Float},
         shape::Shape,
@@ -297,7 +297,7 @@ impl Shape for Curve {
         r: &Ray,
         hit: &mut Float,
         si: &mut SurfaceInteraction,
-        test_alpha_texture: bool,
+        _test_alpha_texture: bool,
     ) -> bool {
         let mut o_err = Vector3f::default();
         let mut d_err = Vector3f::default();
@@ -385,7 +385,7 @@ impl Shape for Curve {
         approx_length * avg_width
     }
 
-    fn sample(&self, u: &Point2f, pdf: &mut f32) -> Interaction {
+    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> Interaction {
         unimplemented!()
     }
 }

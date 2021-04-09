@@ -658,7 +658,7 @@ impl IntersectP<(&Ray, &Vector3f, [usize; 3])> for Bounds3f {
 
         let mut t_min = (self[dir_is_neg[0]].x - ray.o.x) * inv_dir.x;
         let mut t_max = (self[1 - dir_is_neg[0]].x - ray.o.x) * inv_dir.x;
-        let mut ty_min = (self[dir_is_neg[1]].y - ray.o.y) * inv_dir.y;
+        let ty_min = (self[dir_is_neg[1]].y - ray.o.y) * inv_dir.y;
         let mut ty_max = (self[1 - dir_is_neg[1]].y - ray.o.y) * inv_dir.y;
 
         t_max *= 1.0 + 2.0 * gamma(3.0);
@@ -674,7 +674,7 @@ impl IntersectP<(&Ray, &Vector3f, [usize; 3])> for Bounds3f {
             t_max = ty_max;
         }
 
-        let mut tz_min = (self[dir_is_neg[2]].z - ray.o.z) * inv_dir.z;
+        let tz_min = (self[dir_is_neg[2]].z - ray.o.z) * inv_dir.z;
         let mut tz_max = (self[1 - dir_is_neg[2]].z - ray.o.z) * inv_dir.z;
 
         tz_max *= 1.0 + 2.0 + gamma(3.0);
@@ -700,7 +700,7 @@ pub struct Ray {
     pub d: Vector3f,
     pub t_max: Float,
     pub time: Float,
-    pub medium: Option<Arc<Box<Medium>>>,
+    pub medium: Option<Arc<Box<dyn Medium>>>,
 }
 
 #[derive(Clone, Default)]
@@ -719,7 +719,7 @@ impl Ray {
         d: Vector3f,
         t_max: Float,
         time: Float,
-        medium: Option<Arc<Box<Medium>>>,
+        medium: Option<Arc<Box<dyn Medium>>>,
     ) -> Ray {
         Ray {
             o,
@@ -774,7 +774,7 @@ impl RayDifferentials {
         d: Vector3f,
         t_max: Float,
         time: Float,
-        medium: Option<Arc<Box<Medium>>>,
+        medium: Option<Arc<Box<dyn Medium>>>,
     ) -> RayDifferentials {
         Self {
             base: Ray::new(o, d, t_max, time, medium),
@@ -1140,8 +1140,8 @@ impl From<(&AnimatedTransform, &Ray)> for Ray {
 
 impl From<(&AnimatedTransform, &RayDifferentials)> for RayDifferentials {
     fn from(data: (&AnimatedTransform, &RayDifferentials)) -> Self {
-        let at = data.0;
-        let r = data.1;
+        let _at = data.0;
+        let _r = data.1;
         let at = data.0;
         let r = data.1;
         if !at.actually_animated || r.time <= at.start_time {

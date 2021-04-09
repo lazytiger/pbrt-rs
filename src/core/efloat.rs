@@ -25,7 +25,7 @@ impl EFloat {
     }
 
     pub fn get_absolute_error(&self) -> Float {
-        next_float_up((self.high - self.v).abs().max((self.v - self.low)).abs())
+        next_float_up((self.high - self.v).abs().max(self.v - self.low).abs())
     }
 
     pub fn upper_bound(&self) -> Float {

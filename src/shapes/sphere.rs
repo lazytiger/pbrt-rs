@@ -2,7 +2,7 @@ use crate::{
     core::{
         efloat::EFloat,
         geometry::{
-            offset_ray_origin, spherical_direction, Bounds3f, Normal3, Normal3f, Point2f, Point3f,
+            offset_ray_origin, spherical_direction, Bounds3f, Point2f, Point3f,
             Ray, Vector3f,
         },
         interaction::{Interaction, SurfaceInteraction},
@@ -14,7 +14,7 @@ use crate::{
     impl_base_shape,
     shapes::{compute_normal_differential, BaseShape},
 };
-use std::any::Any;
+
 
 pub struct Sphere {
     base: BaseShape,
@@ -41,7 +41,7 @@ impl Shape for Sphere {
         r: &Ray,
         hit: &mut f32,
         si: &mut SurfaceInteraction,
-        test_alpha_texture: bool,
+        _test_alpha_texture: bool,
     ) -> bool {
         let (ok, p_hit, phi, ray, t_shape_hit) = self.intersect_test(r);
         if !ok {
@@ -92,7 +92,7 @@ impl Shape for Sphere {
         true
     }
 
-    fn intersect_p(&self, r: &Ray, test_alpha_texture: bool) -> bool {
+    fn intersect_p(&self, r: &Ray, _test_alpha_texture: bool) -> bool {
         let (ok, _, _, _, _) = self.intersect_test(r);
         ok
     }
@@ -190,7 +190,7 @@ impl Shape for Sphere {
         }
     }
 
-    fn solid_angle(&self, p: Point3f, n_samples: u64) -> Float {
+    fn solid_angle(&self, p: Point3f, _n_samples: u64) -> Float {
         let p_center = self.object_to_world() * Point3Ref(&Point3f::default());
         if p.distance_square(&p_center) <= self.radius * self.radius {
             4.0 * PI

@@ -4,11 +4,11 @@ use crate::core::{
     pbrt::Float,
     rng::RNG,
 };
-use num::integer::div_mod_floor;
+
 use std::{
     any::Any,
     ops::{Deref, DerefMut},
-    sync::{atomic::Ordering::AcqRel, Arc},
+    sync::{Arc},
 };
 
 pub trait Sampler {
@@ -218,7 +218,7 @@ impl PixelSampler {
     pub fn new(sample_per_pixel: i64, n_sample_dimensions: usize) -> Self {
         let mut samples_1d = Vec::with_capacity(n_sample_dimensions);
         let mut samples_2d = Vec::with_capacity(n_sample_dimensions);
-        for i in 0..n_sample_dimensions {
+        for _i in 0..n_sample_dimensions {
             samples_1d.push(vec![0.0; sample_per_pixel as usize]);
             samples_2d.push(vec![Point2f::default(); sample_per_pixel as usize]);
         }
@@ -276,7 +276,7 @@ impl Sampler for PixelSampler {
         Sampler::start_next_sample(self)
     }
 
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
         unimplemented!()
     }
 
@@ -286,11 +286,11 @@ impl Sampler for PixelSampler {
         Sampler::set_sample_number(self, sample_num)
     }
 
-    fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {
+    fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {
         unimplemented!()
     }
 
-    fn sample_dimension(&self, index: i64, dimension: usize) -> f32 {
+    fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
         unimplemented!()
     }
 }
@@ -333,7 +333,7 @@ impl DerefMut for GlobalSampler {
 impl Sampler for GlobalSampler {
     impl_base_sampler!();
 
-    fn start_pixel(&mut self, p: Point2i) {
+    fn start_pixel(&mut self, _p: Point2i) {
         self.dimension = 0;
         self.interval_sample_index = self.get_index_for_sample(0);
         self.array_end_dim =
@@ -386,7 +386,7 @@ impl Sampler for GlobalSampler {
         Sampler::start_next_sample(self)
     }
 
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
         unimplemented!()
     }
 
@@ -396,11 +396,11 @@ impl Sampler for GlobalSampler {
         Sampler::set_sample_number(self, sample_num)
     }
 
-    fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {
+    fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {
         unimplemented!()
     }
 
-    fn sample_dimension(&self, index: i64, dimension: usize) -> f32 {
+    fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
         unimplemented!()
     }
 }

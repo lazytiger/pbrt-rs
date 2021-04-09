@@ -65,7 +65,7 @@ impl Paraboloid {
             return err;
         }
 
-        let mut hit = false;
+        let hit = false;
         let mut t_shape_hit = EFloat::default();
         let mut p_hit = Point3f::default();
         let mut phi = 0.0;
@@ -115,7 +115,7 @@ impl Shape for Paraboloid {
         ray: &Ray,
         hit: &mut f32,
         si: &mut SurfaceInteraction,
-        test_alpha_texture: bool,
+        _test_alpha_texture: bool,
     ) -> bool {
         let (ok, p_hit, t_shape_hit, phi, ray, p_error) = self.intersect_test(ray);
         if !ok {
@@ -157,7 +157,7 @@ impl Shape for Paraboloid {
         true
     }
 
-    fn intersect_p(&self, ray: &Ray, test_alpha_texture: bool) -> bool {
+    fn intersect_p(&self, ray: &Ray, _test_alpha_texture: bool) -> bool {
         let (ok, _, _, _, _, _) = self.intersect_test(ray);
         ok
     }
@@ -169,7 +169,7 @@ impl Shape for Paraboloid {
             * ((k * self.z_max + 1.0).powf(1.5) - (k * self.z_min + 1.0).pow(1.5))
     }
 
-    fn sample(&self, u: &Point2f, pdf: &mut f32) -> Interaction {
+    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> Interaction {
         unimplemented!()
     }
 }

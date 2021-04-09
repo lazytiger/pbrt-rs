@@ -7,7 +7,7 @@ use std::{
     },
 };
 
-fn spectrum_sampls_sorted(lambda: &[Float], _: &[Float], n: usize) -> bool {
+fn spectrum_sampls_sorted(lambda: &[Float], _: &[Float], _n: usize) -> bool {
     lambda.is_sorted()
 }
 
@@ -163,7 +163,7 @@ macro_rules! define_spectrum {
             pub fn max_component_value(&self) -> Float {
                 self.c.iter().fold(
                     Float::MIN,
-                    |mut max, val| {
+                    |max, val| {
                         if max > *val {
                             max
                         } else {
@@ -499,7 +499,7 @@ impl SampledSpectrum {
     pub fn from_rgb_spectrum(r: &RGBSpectrum, t: SpectrumType) -> SampledSpectrum {
         let mut rgb = [0.0; 3];
         r.to_rgb(&mut rgb);
-        let mut s = SampledSpectrum::default();
+        let s = SampledSpectrum::default();
         s.from_rgb(rgb, t)
     }
 
@@ -592,7 +592,7 @@ pub enum SpectrumType {
 
 define_spectrum!(RGBSpectrum, 3);
 impl RGBSpectrum {
-    pub fn from_rgb(rgb: [Float; 3], typ: SpectrumType) -> RGBSpectrum {
+    pub fn from_rgb(rgb: [Float; 3], _typ: SpectrumType) -> RGBSpectrum {
         let mut s = RGBSpectrum::default();
         s.c[0] = rgb[0];
         s.c[1] = rgb[1];
@@ -610,7 +610,7 @@ impl RGBSpectrum {
         rgb_to_xyz(self.c, xyz);
     }
 
-    pub fn from_xyz(xyz: [Float; 3], typ: SpectrumType) -> RGBSpectrum {
+    pub fn from_xyz(xyz: [Float; 3], _typ: SpectrumType) -> RGBSpectrum {
         let mut r = RGBSpectrum::default();
         xyz_to_rgb(xyz, &mut r.c);
         r

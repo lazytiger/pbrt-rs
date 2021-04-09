@@ -1,5 +1,5 @@
 use crate::core::{
-    geometry::{offset_ray_origin, Point3f, Vector3f},
+    geometry::{Point3f, Vector3f},
     pbrt::{Float, PI},
     transform::Transformf,
 };
@@ -259,9 +259,9 @@ fn weight_one_ring(
 }
 
 fn loop_subdivide(
-    o2w: Transformf,
-    w2o: Transformf,
-    ro: bool,
+    _o2w: Transformf,
+    _w2o: Transformf,
+    _ro: bool,
     n_levels: usize,
     vertex_indices: Vec<i32>,
     p: &[Point3f],
@@ -327,7 +327,7 @@ fn loop_subdivide(
         }
     }
 
-    for i in 0..n_levels {
+    for _i in 0..n_levels {
         let mut new_vertices = Vec::with_capacity(vertices.len() * 4);
         let mut new_faces = Vec::with_capacity(faces.len() * 4);
 
@@ -384,7 +384,7 @@ fn loop_subdivide(
                         vert.p += v1.p * 0.5;
                     } else {
                         vert.p = v0.p * (3.0 / 8.0);
-                        vert.p += (v1.p * (3.0 / 8.0));
+                        vert.p += v1.p * (3.0 / 8.0);
                         let other_v = face.other_vert(v0.index, v1.index) as usize;
                         vert.p += vertices[other_v].p * (1.0 / 8.0);
                         let other_v =

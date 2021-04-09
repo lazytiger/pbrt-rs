@@ -10,7 +10,7 @@ use crate::{
     impl_base_shape,
     shapes::{compute_normal_differential, BaseShape},
 };
-use std::{any::Any, panic::PanicInfo, sync::atomic::spin_loop_hint};
+
 
 pub struct Cone {
     base: BaseShape,
@@ -68,7 +68,7 @@ impl Cone {
         let mut hit = false;
         let mut t_shape_hit = EFloat::default();
         let mut p_hit = Point3f::default();
-        let mut phi = 0.0;
+        let phi = 0.0;
         for t in &[t0, t1] {
             if t.lower_bound() < 0.0 || t.upper_bound() > ray.t_max {
                 continue;
@@ -116,7 +116,7 @@ impl Shape for Cone {
         r: &Ray,
         hit: &mut f32,
         si: &mut SurfaceInteraction,
-        test_alpha_texture: bool,
+        _test_alpha_texture: bool,
     ) -> bool {
         let (ok, p_hit, phi, t_shape_hit, p_error, ray) = self.compute_intersect(r);
         if !ok {
@@ -152,7 +152,7 @@ impl Shape for Cone {
         true
     }
 
-    fn intersect_p(&self, r: &Ray, test_alpha_texture: bool) -> bool {
+    fn intersect_p(&self, r: &Ray, _test_alpha_texture: bool) -> bool {
         let (ok, _, _, _, _, _) = self.compute_intersect(r);
         ok
     }
@@ -162,7 +162,7 @@ impl Shape for Cone {
             / 2.0
     }
 
-    fn sample(&self, u: &Point2f, pdf: &mut f32) -> Interaction {
+    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> Interaction {
         unimplemented!()
     }
 }

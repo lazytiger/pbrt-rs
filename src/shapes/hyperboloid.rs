@@ -161,7 +161,7 @@ impl Shape for Hyperboloid {
         ray: &Ray,
         hit: &mut f32,
         si: &mut SurfaceInteraction,
-        test_alpha_texture: bool,
+        _test_alpha_texture: bool,
     ) -> bool {
         let (ok, p_hit, phi, ray, p_error, t_shape_hit) = self.intersect_test(ray);
         if !ok {
@@ -201,7 +201,7 @@ impl Shape for Hyperboloid {
         true
     }
 
-    fn intersect_p(&self, ray: &Ray, test_alpha_texture: bool) -> bool {
+    fn intersect_p(&self, ray: &Ray, _test_alpha_texture: bool) -> bool {
         let (ok, _, _, _, _, _) = self.intersect_test(ray);
         ok
     }
@@ -237,7 +237,7 @@ impl Shape for Hyperboloid {
                         - self.p2.z * self.p2.z))
     }
 
-    fn sample(&self, u: &Point2f, pdf: &mut f32) -> Interaction {
+    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> Interaction {
         unimplemented!()
     }
 }

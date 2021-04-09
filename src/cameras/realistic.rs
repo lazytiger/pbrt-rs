@@ -1,7 +1,6 @@
 use crate::{
     core::{
         camera::{BaseCamera, Camera, CameraSample},
-        efloat::EFloat,
         film::Film,
         geometry::{Bounds2f, Normal3f, Point2f, Point3f, Ray, Union, Vector3, Vector3f},
         lowdiscrepancy::radical_inverse,
@@ -13,8 +12,8 @@ use crate::{
     },
     impl_base_camera,
 };
-use log::Level::Trace;
-use std::{any::Any, convert::TryInto, sync::Arc};
+
+use std::{any::Any, sync::Arc};
 
 struct LensElementInterface {
     curvature_radius: Float,
@@ -39,7 +38,7 @@ impl RealisticCamera {
         simple_weighting: bool,
         lens_data: &mut Vec<Float>,
         film: Arc<Film>,
-        medium: Arc<Box<Medium>>,
+        medium: Arc<Box<dyn Medium>>,
     ) -> Self {
         let mut rc = Self {
             base: BaseCamera::new(
@@ -69,7 +68,7 @@ impl RealisticCamera {
             });
         }
 
-        let fb = rc.focus_binary_search(focus_distance);
+        let _fb = rc.focus_binary_search(focus_distance);
         rc.element_interfaces.last_mut().unwrap().thickness = rc.focus_thick_lens(focus_distance);
         const n_samples: usize = 64;
         rc.exit_pupil_bounds.resize(n_samples, Bounds2f::default());
@@ -286,7 +285,7 @@ impl RealisticCamera {
             film_distance_upper *= 1.005;
         }
 
-        for i in 0..20 {
+        for _i in 0..20 {
             let fmid = 0.5 * (film_distance_lower + film_distance_upper);
             let mid_focus = self.focus_distance(fmid);
             if mid_focus < focus_distance {
@@ -385,7 +384,7 @@ impl RealisticCamera {
         pupil_bounds
     }
 
-    fn render_exit_pupil(&self, sx: Float, sy: Float, filename: String) {
+    fn render_exit_pupil(&self, _sx: Float, _sy: Float, _filename: String) {
         unimplemented!()
     }
 

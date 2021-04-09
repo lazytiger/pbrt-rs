@@ -13,7 +13,7 @@ use crate::{
     },
     impl_base_camera,
 };
-use log::Level::Trace;
+
 use std::{any::Any, sync::Arc};
 
 pub struct OrthographicCamera {

@@ -1,6 +1,5 @@
 use crate::{
     core::{
-        efloat::EFloat,
         geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Vector3f},
         interaction::{Interaction, SurfaceInteraction},
         pbrt::{clamp, radians, Float, PI},
@@ -87,7 +86,7 @@ impl Shape for Disk {
         r: &Ray,
         hit: &mut f32,
         si: &mut SurfaceInteraction,
-        test_alpha_texture: bool,
+        _test_alpha_texture: bool,
     ) -> bool {
         let (ok, mut p_hit, t_shape_hit, dist2, phi, ray) = self.intersect_test(r);
         if !ok {
@@ -121,7 +120,7 @@ impl Shape for Disk {
         true
     }
 
-    fn intersect_p(&self, ray: &Ray, test_alpha_texture: bool) -> bool {
+    fn intersect_p(&self, ray: &Ray, _test_alpha_texture: bool) -> bool {
         let (ok, _, _, _, _, _) = self.intersect_test(ray);
         ok
     }
