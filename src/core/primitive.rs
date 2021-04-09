@@ -6,7 +6,7 @@ use crate::core::{
     medium::MediumInterface,
     pbrt::Float,
     shape::Shape,
-    transform::{AnimatedTransform},
+    transform::AnimatedTransform,
 };
 use std::{any::Any, sync::Arc};
 

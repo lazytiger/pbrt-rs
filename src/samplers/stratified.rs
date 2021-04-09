@@ -6,10 +6,7 @@ use crate::{
     },
     impl_pixel_sampler, inherit,
 };
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct StratifiedSampler {
@@ -43,7 +40,7 @@ inherit!(PixelSampler, StratifiedSampler, base);
 impl Sampler for StratifiedSampler {
     impl_pixel_sampler!();
 
-    fn start_pixel(&mut self, p: Point2i) {
+    fn start_pixel(&mut self, _p: Point2i) {
         for i in 0..self.samples_1d.len() {
             stratified_sample_1d(
                 self.base.samples_1d[i].as_mut_slice(),

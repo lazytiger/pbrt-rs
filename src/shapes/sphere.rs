@@ -2,8 +2,7 @@ use crate::{
     core::{
         efloat::EFloat,
         geometry::{
-            offset_ray_origin, spherical_direction, Bounds3f, Point2f, Point3f,
-            Ray, Vector3f,
+            offset_ray_origin, spherical_direction, Bounds3f, Point2f, Point3f, Ray, Vector3f,
         },
         interaction::{Interaction, SurfaceInteraction},
         pbrt::{clamp, gamma, radians, Float, PI},
@@ -14,7 +13,6 @@ use crate::{
     impl_base_shape,
     shapes::{compute_normal_differential, BaseShape},
 };
-
 
 pub struct Sphere {
     base: BaseShape,

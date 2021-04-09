@@ -4,8 +4,7 @@ use crate::core::{
     rng::RNG,
     sampling::shuffle,
     sobolmatrices::{
-        SOBOL_MATRICES_32, SOBOL_MATRIX_SIZE, VDC_SOBOL_MATRICES,
-        VDC_SOBOL_MATRICES_INV,
+        SOBOL_MATRICES_32, SOBOL_MATRIX_SIZE, VDC_SOBOL_MATRICES, VDC_SOBOL_MATRICES_INV,
     },
 };
 

@@ -11,7 +11,6 @@ use crate::{
     shapes::{compute_normal_differential, BaseShape},
 };
 
-
 pub struct Cone {
     base: BaseShape,
     radius: Float,

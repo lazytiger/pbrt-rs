@@ -4,7 +4,7 @@
 #![feature(is_sorted)]
 use crate::core::pbrt::Float;
 use clap::Clap;
-use std::{str::FromStr};
+use std::str::FromStr;
 
 pub mod accelerators;
 pub mod cameras;

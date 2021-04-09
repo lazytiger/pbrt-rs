@@ -1,6 +1,4 @@
-use crate::{
-    Options,
-};
+use crate::Options;
 
 pub mod arena;
 pub mod camera;
@@ -30,9 +28,7 @@ pub fn pbrt_parse_file(_f: String) {}
 pub fn pbrt_cleanup() {}
 
 use num::{integer::Roots, traits::real::Real, Bounded};
-use std::{
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 pub trait RealNum<T>:
     Add<Output = T>

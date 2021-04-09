@@ -1,12 +1,12 @@
 use crate::core::{
-    geometry::{Point2f, Vector2f, Vector3, Vector3f},
+    geometry::{Point2f, Vector2f, Vector3f},
     pbrt::{
         clamp, find_interval, Float, INV_2_PI, INV_4_PI, INV_PI, ONE_MINUS_EPSILON, PI, PI_OVER_2,
         PI_OVER_4,
     },
     rng::RNG,
 };
-use std::ops::{Index, IndexMut};
+use std::ops::IndexMut;
 
 pub fn stratified_sample_1d(samples: &mut [Float], n_samples: usize, rng: &mut RNG, jitter: bool) {
     let inv_n_samples = 1.0 / n_samples as Float;

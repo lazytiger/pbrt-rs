@@ -40,7 +40,7 @@ impl SobolSampler {
 impl Sampler for SobolSampler {
     impl_global_sampler!();
 
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
         let ss = Clone::clone(self);
         Arc::new(Box::new(ss))
     }
@@ -53,7 +53,7 @@ impl Sampler for SobolSampler {
         ) as i64
     }
 
-    fn sample_dimension(&self, index: i64, dimension: usize) -> f32 {
+    fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
         todo!()
     }
 }
