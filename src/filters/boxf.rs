@@ -22,7 +22,7 @@ impl BoxFilter {
 impl Filter for BoxFilter {
     impl_base_filter!();
 
-    fn evaluate(&self, p: &Point2f) -> Float {
+    fn evaluate(&self, _p: &Point2f) -> Float {
         1.0
     }
 }

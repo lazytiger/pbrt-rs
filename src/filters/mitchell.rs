@@ -6,7 +6,6 @@ use crate::{
     },
     impl_base_filter,
 };
-use std::fs::File;
 
 pub struct MitchellFilter {
     base: BaseFilter,
