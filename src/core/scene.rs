@@ -26,7 +26,7 @@ impl Scene {
         };
         for light in lights {
             light.pre_process(&scene);
-            if (light.flags() & LightFlags::infinite()).into() {
+            if (light.flags() & LightFlags::INFINITE).is_empty() {
                 scene.infinite_lights.push(light);
             }
         }

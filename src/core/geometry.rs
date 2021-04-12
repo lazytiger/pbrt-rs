@@ -10,6 +10,7 @@ use crate::core::{
     pbrt::{gamma, next_float_down, next_float_up, Float},
     transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref},
 };
+use derive_more::{Deref, DerefMut};
 use num::Bounded;
 use std::{mem::swap, sync::Arc};
 
@@ -712,8 +713,10 @@ pub struct Ray {
     pub medium: Option<MediumDt>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Deref, DerefMut)]
 pub struct RayDifferentials {
+    #[deref]
+    #[deref_mut]
     base: Ray,
     pub has_differentials: bool,
     pub rx_origin: Point3f,
@@ -760,20 +763,6 @@ impl Ray {
             EFloat::new(self.d.y, d_err.y),
             EFloat::new(self.d.z, d_err.z),
         )
-    }
-}
-
-impl Deref for RayDifferentials {
-    type Target = Ray;
-
-    fn deref(&self) -> &Self::Target {
-        &self.base
-    }
-}
-
-impl DerefMut for RayDifferentials {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
     }
 }
 

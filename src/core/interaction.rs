@@ -6,7 +6,7 @@ use crate::core::{
     shape::Shape,
     spectrum::Spectrum,
 };
-use std::ops::{Deref, DerefMut};
+use derive_more::{Deref, DerefMut};
 
 #[derive(Default, Clone)]
 pub struct Interaction {
@@ -105,26 +105,15 @@ impl From<(Point3f, Float, MediumInterface)> for Interaction {
     }
 }
 
+#[derive(Deref, DerefMut)]
 pub struct MediumInteraction<T: PhaseFunction> {
+    #[deref]
+    #[deref_mut]
     base: Interaction,
     phase: T,
 }
 
 impl<T: PhaseFunction> MediumInteraction<T> {}
-
-impl<T: PhaseFunction> Deref for MediumInteraction<T> {
-    type Target = Interaction;
-
-    fn deref(&self) -> &Self::Target {
-        &self.base
-    }
-}
-
-impl<T: PhaseFunction> DerefMut for MediumInteraction<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
-    }
-}
 
 #[derive(Copy, Clone, Default)]
 pub struct Shading {
@@ -135,8 +124,10 @@ pub struct Shading {
     dndv: Normal3f,
 }
 
-#[derive(Default)]
+#[derive(Default, Deref, DerefMut)]
 pub struct SurfaceInteraction<'a> {
+    #[deref]
+    #[deref_mut]
     base: Interaction,
     uv: Point2f,
     pub(crate) dpdu: Vector3f,
@@ -153,20 +144,6 @@ pub struct SurfaceInteraction<'a> {
     dudy: Float,
     dvdy: Float,
     face_index: i32,
-}
-
-impl<'a> Deref for SurfaceInteraction<'a> {
-    type Target = Interaction;
-
-    fn deref(&self) -> &Self::Target {
-        &self.base
-    }
-}
-
-impl<'a> DerefMut for SurfaceInteraction<'a> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
-    }
 }
 
 impl<'a> SurfaceInteraction<'a> {

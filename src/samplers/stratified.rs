@@ -4,12 +4,15 @@ use crate::{
         sampler::{PixelSampler, Sampler, SamplerDt},
         sampling::{latin_hyper_cube, shuffle, stratified_sample_1d, stratified_sample_2d},
     },
-    impl_pixel_sampler, inherit,
+    impl_pixel_sampler,
 };
+use derive_more::{Deref, DerefMut};
 use std::sync::Arc;
 
-#[derive(Clone)]
+#[derive(Clone, Deref, DerefMut)]
 pub struct StratifiedSampler {
+    #[deref]
+    #[deref_mut]
     base: PixelSampler,
     x_pixel_samples: usize,
     y_pixel_samples: usize,
@@ -34,8 +37,6 @@ impl StratifiedSampler {
         }
     }
 }
-
-inherit!(PixelSampler, StratifiedSampler, base);
 
 impl Sampler for StratifiedSampler {
     impl_pixel_sampler!();

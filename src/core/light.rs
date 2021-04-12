@@ -14,49 +14,19 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-#[derive(Copy, Clone)]
-pub struct LightFlags(u8);
-
-impl LightFlags {
-    pub fn delta_position() -> LightFlags {
-        LightFlags(1)
-    }
-    pub fn delta_direction() -> LightFlags {
-        LightFlags(2)
-    }
-    pub fn area() -> LightFlags {
-        LightFlags(4)
-    }
-    pub fn infinite() -> LightFlags {
-        LightFlags(8)
-    }
-}
-
-impl BitAnd for LightFlags {
-    type Output = LightFlags;
-
-    fn bitand(self, rhs: Self) -> Self::Output {
-        LightFlags(self.0 & rhs.0)
-    }
-}
-
-impl BitOr for LightFlags {
-    type Output = LightFlags;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        LightFlags(self.0 | rhs.0)
-    }
-}
-
-impl Into<bool> for LightFlags {
-    fn into(self) -> bool {
-        self.0 != 0
+bitflags::bitflags! {
+    pub struct LightFlags:u8 {
+        const DELTA_POSITION = 1;
+        const DELTA_DIRECTION = 2;
+        const AREA = 4;
+        const INFINITE = 8;
     }
 }
 
 #[inline]
 pub fn is_delta_light(flags: LightFlags) -> bool {
-    (flags & LightFlags::delta_direction()).into() || (flags & LightFlags::delta_position()).into()
+    (flags & LightFlags::DELTA_DIRECTION).is_empty()
+        || (flags & LightFlags::DELTA_POSITION).is_empty()
 }
 
 pub trait Light {

@@ -11,10 +11,8 @@ use crate::{
     },
     impl_global_sampler,
 };
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use derive_more::{Deref, DerefMut};
+use std::sync::Arc;
 
 lazy_static::lazy_static! {
     static ref RADICAL_INVERSE_PERMUTATIONS:Vec<u64> = {
@@ -23,8 +21,10 @@ lazy_static::lazy_static! {
     };
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deref, DerefMut)]
 pub struct HaltonSampler {
+    #[deref]
+    #[deref_mut]
     base: GlobalSampler,
     base_scales: Point2i,
     base_exponents: Point2i,
@@ -105,20 +105,6 @@ impl HaltonSampler {
             );
         }
         &RADICAL_INVERSE_PERMUTATIONS.as_slice()[PRIME_SUMS[dim] as usize..]
-    }
-}
-
-impl DerefMut for HaltonSampler {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
-    }
-}
-
-impl Deref for HaltonSampler {
-    type Target = GlobalSampler;
-
-    fn deref(&self) -> &Self::Target {
-        &self.base
     }
 }
 

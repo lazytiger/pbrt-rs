@@ -1,10 +1,7 @@
 use crate::core::pbrt::{clamp, find_interval, lerp, Float};
 use std::{
     cmp::{max, Ordering},
-    ops::{
-        Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub,
-        SubAssign,
-    },
+    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign},
 };
 
 fn spectrum_sampls_sorted(lambda: &[Float], _: &[Float], _n: usize) -> bool {

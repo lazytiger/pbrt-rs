@@ -7,9 +7,10 @@ use crate::core::{
 
 use std::{
     any::Any,
-    ops::{Deref, DerefMut},
     sync::{Arc, Mutex, RwLock},
 };
+
+use derive_more::{Deref, DerefMut};
 
 pub trait Sampler {
     fn as_any(&self) -> &dyn Any;
@@ -47,7 +48,7 @@ pub trait Sampler {
         n
     }
 
-    fn get_1d_array(&mut self, n: usize) -> Option<&[Float]> {
+    fn get_1d_array(&mut self, n: usize) -> Option<Vec<Float>> {
         if self.array_1d_offset() == self.sample_array_1d().len() {
             None
         } else {
@@ -55,10 +56,10 @@ pub trait Sampler {
             self.set_array_1d_offset(offset + 1);
             let array = self.sample_array_1d();
             let start = self.current_pixel_sample_index() as usize * n;
-            Some(&array[offset].as_slice()[start..])
+            Some(array[offset].as_slice()[start..].to_owned())
         }
     }
-    fn get_2d_array(&mut self, n: usize) -> Option<&[Point2f]> {
+    fn get_2d_array(&mut self, n: usize) -> Option<Vec<Point2f>> {
         if self.array_2d_offset() == self.sample_array_2d().len() {
             None
         } else {
@@ -66,7 +67,7 @@ pub trait Sampler {
             self.set_array_2d_offset(offset + 1);
             let array = self.sample_array_2d();
             let start = self.current_pixel_sample_index() as usize * n;
-            Some(&array[offset].as_slice()[start..])
+            Some(array[offset].as_slice()[start..].to_owned())
         }
     }
     fn start_next_sample(&mut self) -> bool {
@@ -238,8 +239,10 @@ macro_rules! impl_base_sampler {
     };
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deref, DerefMut)]
 pub struct PixelSampler {
+    #[deref]
+    #[deref_mut]
     pub(crate) base: BaseSampler,
     pub samples_1d: Vec<Vec<Float>>,
     pub samples_2d: Vec<Vec<Point2f>>,
@@ -264,20 +267,6 @@ impl PixelSampler {
             current_2d_dimension: 0,
             rng: Default::default(),
         }
-    }
-}
-
-impl Deref for PixelSampler {
-    type Target = BaseSampler;
-
-    fn deref(&self) -> &Self::Target {
-        &self.base
-    }
-}
-
-impl DerefMut for PixelSampler {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
     }
 }
 
@@ -331,8 +320,10 @@ impl Sampler for PixelSampler {
 
 const ARRAY_START_DIM: usize = 5;
 
-#[derive(Clone)]
+#[derive(Clone, Deref, DerefMut)]
 pub struct GlobalSampler {
+    #[deref]
+    #[deref_mut]
     base: BaseSampler,
     dimension: usize,
     interval_sample_index: i64,
@@ -347,20 +338,6 @@ impl GlobalSampler {
             interval_sample_index: 0,
             array_end_dim: 0,
         }
-    }
-}
-
-impl Deref for GlobalSampler {
-    type Target = BaseSampler;
-
-    fn deref(&self) -> &Self::Target {
-        &self.base
-    }
-}
-
-impl DerefMut for GlobalSampler {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
     }
 }
 

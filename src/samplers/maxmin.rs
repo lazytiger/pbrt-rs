@@ -8,13 +8,13 @@ use crate::{
     },
     impl_pixel_sampler, Float,
 };
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use derive_more::{Deref, DerefMut};
+use std::sync::Arc;
 
-#[derive(Clone)]
+#[derive(Clone, Deref, DerefMut)]
 pub struct MaxMinDistSampler {
+    #[deref]
+    #[deref_mut]
     base: PixelSampler,
     c_pixel: &'static [u32],
 }
@@ -36,20 +36,6 @@ impl MaxMinDistSampler {
 
     pub fn round_count(&self, count: usize) -> usize {
         round_up_pow2_i64(count as i64) as usize
-    }
-}
-
-impl Deref for MaxMinDistSampler {
-    type Target = PixelSampler;
-
-    fn deref(&self) -> &Self::Target {
-        &self.base
-    }
-}
-
-impl DerefMut for MaxMinDistSampler {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
     }
 }
 
