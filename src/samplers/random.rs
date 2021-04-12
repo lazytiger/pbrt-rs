@@ -2,7 +2,7 @@ use crate::{
     core::{
         geometry::{Point2f, Point2i},
         rng::RNG,
-        sampler::{BaseSampler, Sampler},
+        sampler::{BaseSampler, Sampler, SamplerDt},
     },
     impl_base_sampler,
 };
@@ -49,7 +49,7 @@ impl Sampler for RandomSampler {
         Point2f::new(self.rng.uniform_float(), self.rng.uniform_float())
     }
 
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, seed: usize) -> SamplerDt {
         let mut rs = Clone::clone(self);
         rs.rng.set_sequence(seed);
         Arc::new(Box::new(rs))

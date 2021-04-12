@@ -8,7 +8,7 @@ use crate::core::{
 use std::{
     any::Any,
     ops::{Deref, DerefMut},
-    sync::Arc,
+    sync::{Arc, Mutex, RwLock},
 };
 
 pub trait Sampler {
@@ -75,7 +75,7 @@ pub trait Sampler {
         self.set_current_pixel_sample_index(self.current_pixel_sample_index() + 1);
         self.current_pixel_sample_index() < self.samples_per_pixel()
     }
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>>;
+    fn clone(&self, seed: usize) -> SamplerDt;
     fn set_sample_number(&mut self, sample_num: i64) -> bool {
         self.set_array_1d_offset(0);
         self.set_array_2d_offset(0);
@@ -310,7 +310,7 @@ impl Sampler for PixelSampler {
         Sampler::start_next_sample(self)
     }
 
-    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> SamplerDt {
         unimplemented!()
     }
 
@@ -420,7 +420,7 @@ impl Sampler for GlobalSampler {
         Sampler::start_next_sample(self)
     }
 
-    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> SamplerDt {
         unimplemented!()
     }
 
@@ -484,3 +484,7 @@ macro_rules! impl_pixel_sampler {
         }
     };
 }
+
+pub type SamplerDt = Arc<Box<dyn Sampler>>;
+pub type SamplerDtMut = Arc<Mutex<Box<dyn Sampler>>>;
+pub type SamplerDtRw = Arc<RwLock<Box<dyn Sampler>>>;

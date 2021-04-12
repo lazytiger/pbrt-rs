@@ -7,7 +7,7 @@ use crate::{
         },
         interaction::Interaction,
         light::VisibilityTester,
-        medium::{Medium, MediumInterface},
+        medium::{Medium, MediumDt, MediumInterface},
         pbrt::{lerp, Float, PI},
         sampling::concentric_sample_disk,
         spectrum::Spectrum,
@@ -40,7 +40,7 @@ impl PerspectiveCamera {
         focal_distance: Float,
         fov: Float,
         film: Arc<Film>,
-        medium: Arc<Box<dyn Medium>>,
+        medium: MediumDt,
     ) -> PerspectiveCamera {
         let camera_to_screen = Transformf::perspective(fov, 1e-2, 1000.0);
         let screen_to_raster = Transformf::scale(

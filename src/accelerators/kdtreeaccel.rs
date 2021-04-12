@@ -1,10 +1,10 @@
 use crate::core::{
     geometry::{offset_ray_origin, Bounds3f, IntersectP, Point2f, Ray, Union, Vector3f},
     interaction::{Interaction, SurfaceInteraction},
-    light::AreaLight,
-    material::{Material, TransportMode},
+    light::{AreaLight, AreaLightDt},
+    material::{Material, MaterialDt, TransportMode},
     pbrt::{log_2_int_u64, Float},
-    primitive::Primitive,
+    primitive::{Primitive, PrimitiveDt},
     shape::Shape,
     transform::Transformf,
 };
@@ -23,7 +23,7 @@ struct KdTreeAccel {
     traversal_cost: i32,
     max_prims: usize,
     empty_bonus: Float,
-    primitives: Vec<Arc<Box<dyn Primitive>>>,
+    primitives: Vec<PrimitiveDt>,
     primitive_indices: Vec<usize>,
     nodes: Vec<KdAccelNode>,
     n_alloced_nodes: usize,
@@ -174,7 +174,7 @@ impl BoundEdge {
 
 impl KdTreeAccel {
     fn new(
-        p: Vec<Arc<Box<dyn Primitive>>>,
+        p: Vec<PrimitiveDt>,
         isect_cost: i32,
         traversal_cost: i32,
         empty_bonus: Float,
@@ -585,13 +585,13 @@ impl Primitive for KdTreeAccel {
         false
     }
 
-    fn get_area_light(&self) -> Option<Arc<Box<dyn AreaLight>>> {
+    fn get_area_light(&self) -> Option<AreaLightDt> {
         unimplemented!(
             "Aggregate does not support get_area_light method, use GeometricPrimitive instead"
         )
     }
 
-    fn get_material(&self) -> Option<Arc<Box<dyn Material>>> {
+    fn get_material(&self) -> Option<MaterialDt> {
         unimplemented!(
             "Aggregate does not support get_material method, use GeometricPrimitive instead"
         )

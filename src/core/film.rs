@@ -1,5 +1,5 @@
 use crate::core::{
-    filter::Filter,
+    filter::{Filter, FilterDt},
     geometry::{Bounds2f, Bounds2i, Point2f, Point2i, Vector2f},
     pbrt::Float,
     spectrum::{xyz_to_rgb, Spectrum},
@@ -18,7 +18,7 @@ const FILTER_TABLE_WIDTH: usize = 16;
 pub struct Film {
     pub full_resolution: Point2i,
     pub diagonal: Float,
-    pub filter: Arc<Box<dyn Filter>>,
+    pub filter: FilterDt,
     pub filename: String,
     pub cropped_pixel_bounds: Bounds2i,
     pixels: Vec<Pixel>,
@@ -31,7 +31,7 @@ impl Film {
     pub fn new(
         full_resolution: Point2i,
         crop_window: Bounds2f,
-        filter: Arc<Box<dyn Filter>>,
+        filter: FilterDt,
         diagonal: Float,
         filename: String,
         scale: Float,

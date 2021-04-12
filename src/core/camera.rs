@@ -3,12 +3,15 @@ use crate::core::{
     geometry::{Point2f, Ray, RayDifferentials, Vector3f},
     interaction::Interaction,
     light::VisibilityTester,
-    medium::Medium,
+    medium::{Medium, MediumDt},
     pbrt::Float,
     spectrum::Spectrum,
     transform::AnimatedTransform,
 };
-use std::{any::Any, sync::Arc};
+use std::{
+    any::Any,
+    sync::{Arc, Mutex, RwLock},
+};
 
 #[derive(Default, Copy, Clone)]
 pub struct CameraSample {
@@ -78,7 +81,7 @@ pub trait Camera {
     fn shutter_open(&self) -> Float;
     fn shutter_close(&self) -> Float;
     fn film(&self) -> Arc<Film>;
-    fn medium(&self) -> Arc<Box<dyn Medium>>;
+    fn medium(&self) -> MediumDt;
 }
 
 pub(crate) struct BaseCamera {
@@ -86,7 +89,7 @@ pub(crate) struct BaseCamera {
     pub shutter_open: Float,
     pub shutter_close: Float,
     pub film: Arc<Film>,
-    pub medium: Arc<Box<dyn Medium>>,
+    pub medium: MediumDt,
 }
 
 impl BaseCamera {
@@ -95,7 +98,7 @@ impl BaseCamera {
         shutter_open: Float,
         shutter_close: Float,
         film: Arc<Film>,
-        medium: Arc<Box<dyn Medium>>,
+        medium: MediumDt,
     ) -> BaseCamera {
         if camera_to_world.has_scale() {
             log::warn!(
@@ -140,8 +143,12 @@ macro_rules! impl_base_camera {
         }
 
         #[inline]
-        fn medium(&self) -> std::sync::Arc<Box<dyn crate::core::medium::Medium>> {
+        fn medium(&self) -> crate::core::medium::MediumDt {
             self.base.medium.clone()
         }
     };
 }
+
+pub type CameraDt = Arc<Box<dyn Camera>>;
+pub type CameraDtMut = Arc<Mutex<Box<dyn Camera>>>;
+pub type CameraDtRw = Arc<RwLock<Box<dyn Camera>>>;

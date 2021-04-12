@@ -3,7 +3,7 @@ use crate::core::{
     interaction::{Interaction, SurfaceInteraction},
     medium::MediumInterface,
     pbrt::Float,
-    sampler::Sampler,
+    sampler::{Sampler, SamplerDt},
     scene::Scene,
     spectrum::Spectrum,
     transform::{Transform, Transformf},
@@ -11,7 +11,7 @@ use crate::core::{
 use std::{
     any::Any,
     ops::{BitAnd, BitOr},
-    sync::Arc,
+    sync::{Arc, Mutex, RwLock},
 };
 
 #[derive(Copy, Clone)]
@@ -118,7 +118,7 @@ impl VisibilityTester {
     pub fn un_occluded(&self, scene: &Scene) -> bool {
         todo!()
     }
-    pub fn tr(&self, scene: &Scene, sampler: Arc<Box<dyn Sampler>>) -> Spectrum {
+    pub fn tr(&self, scene: &Scene, sampler: SamplerDt) -> Spectrum {
         todo!()
     }
     pub fn p0(&self) -> &Interaction {
@@ -129,3 +129,10 @@ impl VisibilityTester {
         &self.p1
     }
 }
+
+pub type LightDt = Arc<Box<dyn Light>>;
+pub type LightDtMut = Arc<Mutex<Box<dyn Light>>>;
+pub type LightDtRw = Arc<RwLock<Box<dyn Light>>>;
+pub type AreaLightDt = Arc<Box<dyn AreaLight>>;
+pub type AreaLightDtMut = Arc<Mutex<Box<dyn AreaLight>>>;
+pub type AreaLightDtRw = Arc<RwLock<Box<dyn AreaLight>>>;

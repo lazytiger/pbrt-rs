@@ -3,7 +3,7 @@ use crate::{
         geometry::Point2i,
         lowdiscrepancy::{sobol_2d, van_der_corput},
         pbrt::round_up_pow2_i64,
-        sampler::{PixelSampler, Sampler},
+        sampler::{PixelSampler, Sampler, SamplerDt},
     },
     impl_pixel_sampler,
 };
@@ -65,7 +65,7 @@ impl Sampler for ZeroTwoSequenceSampler {
         round_up_pow2_i64(n as i64) as usize
     }
 
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, seed: usize) -> SamplerDt {
         let mut zts = Clone::clone(self);
         zts.base.rng.set_sequence(seed);
         Arc::new(Box::new(zts))

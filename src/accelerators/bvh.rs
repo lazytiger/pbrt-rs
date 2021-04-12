@@ -2,10 +2,10 @@ use crate::core::{
     arena::{Arena, Indexed},
     geometry::{Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f},
     interaction::SurfaceInteraction,
-    light::AreaLight,
-    material::{Material, TransportMode},
+    light::{AreaLight, AreaLightDt},
+    material::{Material, MaterialDt, TransportMode},
     pbrt::Float,
-    primitive::Primitive,
+    primitive::{Primitive, PrimitiveDt},
     RealNum,
 };
 use num::traits::real::Real;
@@ -211,13 +211,13 @@ pub enum SplitMethod {
 pub struct BVHAccel {
     max_prims_in_node: usize,
     split_method: SplitMethod,
-    primitives: Vec<Arc<Box<dyn Primitive>>>,
+    primitives: Vec<PrimitiveDt>,
     nodes: Option<Vec<LinearBVHNode>>,
 }
 
 impl BVHAccel {
     pub fn new(
-        p: Vec<Arc<Box<dyn Primitive>>>,
+        p: Vec<PrimitiveDt>,
         max_prims_in_node: usize,
         split_method: SplitMethod,
     ) -> BVHAccel {
@@ -276,7 +276,7 @@ impl BVHAccel {
         start: usize,
         end: usize,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<Arc<Box<dyn Primitive>>>,
+        ordered_prims: &mut Vec<PrimitiveDt>,
     ) -> usize {
         let (index, _) = arena.alloc(BVHBuildNode::default());
         *total_nodes += 1;
@@ -463,7 +463,7 @@ impl BVHAccel {
         arena: &mut Arena<BVHBuildNode>,
         primitive_info: &Vec<BVHPrimitiveInfo>,
         total_node: &mut usize,
-        ordered_prims: &mut Vec<Arc<Box<dyn Primitive>>>,
+        ordered_prims: &mut Vec<PrimitiveDt>,
     ) -> usize {
         let bounds = Bounds3f::default();
         for pi in primitive_info {
@@ -549,7 +549,7 @@ impl BVHAccel {
         morton_prims: &[MortonPrimitive],
         n_primitives: usize,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<Arc<Box<dyn Primitive>>>,
+        ordered_prims: &mut Vec<PrimitiveDt>,
         ordered_prims_offset: &mut AtomicUsize,
         bit_index: i32,
     ) -> usize {
@@ -888,13 +888,13 @@ impl Primitive for BVHAccel {
         }
     }
 
-    fn get_area_light(&self) -> Option<Arc<Box<dyn AreaLight>>> {
+    fn get_area_light(&self) -> Option<AreaLightDt> {
         unimplemented!(
             "Aggregate does not support get_area_light method, use GeometricPrimitive instead"
         )
     }
 
-    fn get_material(&self) -> Option<Arc<Box<dyn Material>>> {
+    fn get_material(&self) -> Option<MaterialDt> {
         unimplemented!(
             "Aggregate does not support get_material method, use GeometricPrimitive instead"
         )

@@ -6,7 +6,7 @@ use std::ops::{
 use super::RealNum;
 use crate::core::{
     efloat::EFloat,
-    medium::Medium,
+    medium::{Medium, MediumDt},
     pbrt::{gamma, next_float_down, next_float_up, Float},
     transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref},
 };
@@ -709,7 +709,7 @@ pub struct Ray {
     pub d: Vector3f,
     pub t_max: Float,
     pub time: Float,
-    pub medium: Option<Arc<Box<dyn Medium>>>,
+    pub medium: Option<MediumDt>,
 }
 
 #[derive(Clone, Default)]
@@ -728,7 +728,7 @@ impl Ray {
         d: Vector3f,
         t_max: Float,
         time: Float,
-        medium: Option<Arc<Box<dyn Medium>>>,
+        medium: Option<MediumDt>,
     ) -> Ray {
         Ray {
             o,
@@ -783,7 +783,7 @@ impl RayDifferentials {
         d: Vector3f,
         t_max: Float,
         time: Float,
-        medium: Option<Arc<Box<dyn Medium>>>,
+        medium: Option<MediumDt>,
     ) -> RayDifferentials {
         Self {
             base: Ray::new(o, d, t_max, time, medium),

@@ -6,7 +6,10 @@ use crate::core::{
     pbrt::Float,
     transform::Transformf,
 };
-use std::any::Any;
+use std::{
+    any::Any,
+    sync::{Arc, Mutex, RwLock},
+};
 
 pub trait Shape {
     fn as_any(&self) -> &dyn Any;
@@ -85,3 +88,7 @@ pub trait Shape {
         solid_angle / samples as f32
     }
 }
+
+pub type ShapeDt = Arc<Box<dyn Shape>>;
+pub type ShapeDtMut = Arc<Mutex<Box<dyn Shape>>>;
+pub type ShapeDtRw = Arc<RwLock<Box<dyn Shape>>>;

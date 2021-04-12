@@ -2,7 +2,10 @@ use crate::core::{
     geometry::{Point2f, Vector2f},
     pbrt::Float,
 };
-use std::any::Any;
+use std::{
+    any::Any,
+    sync::{Arc, Mutex, RwLock},
+};
 
 pub trait Filter {
     fn as_any(&self) -> &dyn Any;
@@ -39,3 +42,7 @@ macro_rules! impl_base_filter {
         }
     };
 }
+
+pub type FilterDt = Arc<Box<dyn Filter>>;
+pub type FilterDtMut = Arc<Mutex<Box<dyn Filter>>>;
+pub type FilterDtRw = Arc<RwLock<Box<dyn Filter>>>;

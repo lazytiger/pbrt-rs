@@ -7,7 +7,7 @@ use crate::{
         },
         pbrt::Float,
         rng::RNG,
-        sampler::{GlobalSampler, Sampler},
+        sampler::{GlobalSampler, Sampler, SamplerDt},
     },
     impl_global_sampler,
 };
@@ -125,7 +125,7 @@ impl Deref for HaltonSampler {
 impl Sampler for HaltonSampler {
     impl_global_sampler!();
 
-    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> SamplerDt {
         Arc::new(Box::new(Clone::clone(self)))
     }
 

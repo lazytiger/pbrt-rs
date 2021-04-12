@@ -3,7 +3,7 @@ use crate::{
         geometry::{Bounds2f, Bounds2i, Point2i},
         lowdiscrepancy::sobol_interval_to_index,
         pbrt::{is_power_of_2, log_2_int_i32, round_up_pow2_i32, round_up_pow2_i64},
-        sampler::{GlobalSampler, Sampler},
+        sampler::{GlobalSampler, Sampler, SamplerDt},
     },
     impl_global_sampler,
 };
@@ -40,7 +40,7 @@ impl SobolSampler {
 impl Sampler for SobolSampler {
     impl_global_sampler!();
 
-    fn clone(&self, _seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, _seed: usize) -> SamplerDt {
         let ss = Clone::clone(self);
         Arc::new(Box::new(ss))
     }

@@ -14,6 +14,7 @@ use crate::{
     impl_base_camera,
 };
 
+use crate::core::medium::MediumDt;
 use std::{any::Any, sync::Arc};
 
 pub struct OrthographicCamera {
@@ -37,7 +38,7 @@ impl OrthographicCamera {
         lens_radius: Float,
         focal_distance: Float,
         film: Arc<Film>,
-        medium: Arc<Box<dyn Medium>>,
+        medium: MediumDt,
     ) -> OrthographicCamera {
         let camera_to_screen = Transformf::orthographic(0.0, 1.0);
         let screen_to_raster = Transformf::scale(

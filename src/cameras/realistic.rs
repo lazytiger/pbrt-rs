@@ -13,6 +13,7 @@ use crate::{
     impl_base_camera,
 };
 
+use crate::core::medium::MediumDt;
 use std::{any::Any, sync::Arc};
 
 struct LensElementInterface {
@@ -38,7 +39,7 @@ impl RealisticCamera {
         simple_weighting: bool,
         lens_data: &mut Vec<Float>,
         film: Arc<Film>,
-        medium: Arc<Box<dyn Medium>>,
+        medium: MediumDt,
     ) -> Self {
         let mut rc = Self {
             base: BaseCamera::new(

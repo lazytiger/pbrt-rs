@@ -3,7 +3,7 @@ use crate::{
         camera::{BaseCamera, Camera, CameraSample},
         film::Film,
         geometry::{Point3f, Ray, Vector3f},
-        medium::Medium,
+        medium::{Medium, MediumDt},
         pbrt::{lerp, Float, PI},
         transform::AnimatedTransform,
     },
@@ -21,7 +21,7 @@ impl EnvironmentCamera {
         shutter_open: Float,
         shutter_close: Float,
         film: Arc<Film>,
-        medium: Arc<Box<dyn Medium>>,
+        medium: MediumDt,
     ) -> Self {
         EnvironmentCamera {
             base: BaseCamera::new(camera_to_world, shutter_open, shutter_close, film, medium),

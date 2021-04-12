@@ -1,7 +1,7 @@
 use crate::{
     core::{
         geometry::Point2i,
-        sampler::{PixelSampler, Sampler},
+        sampler::{PixelSampler, Sampler, SamplerDt},
         sampling::{latin_hyper_cube, shuffle, stratified_sample_1d, stratified_sample_2d},
     },
     impl_pixel_sampler, inherit,
@@ -103,7 +103,7 @@ impl Sampler for StratifiedSampler {
         }
     }
 
-    fn clone(&self, seed: usize) -> Arc<Box<dyn Sampler>> {
+    fn clone(&self, seed: usize) -> SamplerDt {
         let mut ss = Clone::clone(self);
         ss.base.rng.set_sequence(seed);
         Arc::new(Box::new(ss))

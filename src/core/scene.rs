@@ -1,22 +1,22 @@
 use crate::core::{
     geometry::{Bounds2f, Bounds3, Bounds3f, Ray},
     interaction::SurfaceInteraction,
-    light::{Light, LightFlags},
-    primitive::Primitive,
-    sampler::Sampler,
+    light::{Light, LightDt, LightFlags},
+    primitive::{Primitive, PrimitiveDt},
+    sampler::{Sampler, SamplerDt},
     spectrum::Spectrum,
 };
 use std::sync::Arc;
 
 pub struct Scene {
-    pub lights: Vec<Arc<Box<dyn Light>>>,
-    pub infinite_lights: Vec<Arc<Box<dyn Light>>>,
-    aggregate: Arc<Box<dyn Primitive>>,
+    pub lights: Vec<LightDt>,
+    pub infinite_lights: Vec<LightDt>,
+    aggregate: PrimitiveDt,
     world_bound: Bounds3f,
 }
 
 impl Scene {
-    pub fn new(aggregate: Arc<Box<dyn Primitive>>, lights: Vec<Arc<Box<dyn Light>>>) -> Self {
+    pub fn new(aggregate: PrimitiveDt, lights: Vec<LightDt>) -> Self {
         let world_bound = aggregate.world_bound();
         let mut scene = Self {
             lights: lights.clone(),
@@ -48,7 +48,7 @@ impl Scene {
     pub fn intersect_tr(
         &self,
         ray: &Ray,
-        sampler: Arc<Box<dyn Sampler>>,
+        sampler: SamplerDt,
         isect: &mut SurfaceInteraction,
         transmittance: &mut Spectrum,
     ) {
