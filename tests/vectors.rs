@@ -1,11 +1,9 @@
 #![allow(dead_code)]
-use pbrt::{
-    core::{
-        geometry::{Point3, Point3f, Vector3f},
-        transform::{Point3Ref, Transform},
-        RealNum,
-    },
-    Float,
+use pbrt::core::{
+    geometry::{Point3, Point3f, Vector3f},
+    pbrt::Float,
+    transform::{Point3Ref, Transform},
+    RealNum,
 };
 use std::ops::{Deref, Mul};
 

@@ -1,5 +1,5 @@
 #![feature(raw)]
-use pbrt::any_equal;
+use pbrt::core::pbrt::any_equal;
 use std::any::Any;
 
 #[test]

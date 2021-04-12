@@ -1,4 +1,4 @@
-use pbrt::core::{gamma, next_float_down, next_float_up};
+use pbrt::core::pbrt::{gamma, next_float_down, next_float_up};
 use std::intrinsics::transmute;
 
 #[test]
