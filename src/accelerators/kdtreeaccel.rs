@@ -8,7 +8,7 @@ use crate::core::{
     shape::Shape,
     transform::Transformf,
 };
-use std::{any::Any, cmp::Ordering, sync::Arc};
+use std::{any::Any, cmp::Ordering};
 
 #[derive(Default, Copy, Clone)]
 struct KdTodo<'a> {

@@ -3,7 +3,7 @@ use crate::core::{
     geometry::{Point2f, Ray, RayDifferentials, Vector3f},
     interaction::Interaction,
     light::VisibilityTester,
-    medium::{Medium, MediumDt},
+    medium::{MediumDt},
     pbrt::Float,
     spectrum::Spectrum,
     transform::AnimatedTransform,

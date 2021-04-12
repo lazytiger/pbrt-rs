@@ -121,30 +121,30 @@ pub fn uniform_sample_one_light(
 }
 
 pub fn estimate_direct(
-    it: &Interaction,
-    u_shading: &Point2f,
-    light: LightDt,
-    u_light: &Point2f,
-    scene: &Scene,
-    sampler: SamplerDtRw,
-    handle_media: bool,
+    _it: &Interaction,
+    _u_shading: &Point2f,
+    _light: LightDt,
+    _u_light: &Point2f,
+    _scene: &Scene,
+    _sampler: SamplerDtRw,
+    _handle_media: bool,
     specular: bool,
 ) -> Spectrum {
-    let bsdf_flags = if specular {
+    let _bsdf_flags = if specular {
         BxDFType::all()
     } else {
         BxDFType::all() ^ !BxDFType::BSDF_SPECULAR
     };
-    let mut ld = Spectrum::new(0.0);
+    let _ld = Spectrum::new(0.0);
     todo!()
 }
 
-pub fn compute_light_power_distribution(scene: &Scene) -> Box<Distribution1D> {
+pub fn compute_light_power_distribution(_scene: &Scene) -> Box<Distribution1D> {
     todo!()
 }
 
 pub trait SamplerIntegrator: Integrator {
-    fn pre_process(&self, scene: &Scene, sampler: SamplerDt) {}
+    fn pre_process(&self, _scene: &Scene, _sampler: SamplerDt) {}
     fn li(&self, ray: &RayDifferentials, scene: &Scene, sampler: SamplerDt, depth: i32);
 }
 
@@ -165,22 +165,22 @@ impl BaseSamplerIntegrator {
 
     pub fn specular_reflect(
         &self,
-        ray: &RayDifferentials,
-        isect: &SurfaceInteraction,
-        scene: &Scene,
-        sampler: SamplerDt,
-        depth: i32,
+        _ray: &RayDifferentials,
+        _isect: &SurfaceInteraction,
+        _scene: &Scene,
+        _sampler: SamplerDt,
+        _depth: i32,
     ) {
         todo!()
     }
 
     pub fn specular_transmit(
         &self,
-        ray: &RayDifferentials,
-        isect: &SurfaceInteraction,
-        scene: &Scene,
-        sampler: SamplerDt,
-        depth: i32,
+        _ray: &RayDifferentials,
+        _isect: &SurfaceInteraction,
+        _scene: &Scene,
+        _sampler: SamplerDt,
+        _depth: i32,
     ) {
         todo!()
     }

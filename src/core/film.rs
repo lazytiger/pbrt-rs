@@ -4,7 +4,7 @@ use crate::core::{
     pbrt::Float,
     spectrum::{xyz_to_rgb, Spectrum},
 };
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 
 #[derive(Default, Copy, Clone)]
 struct Pixel {

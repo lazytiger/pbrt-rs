@@ -10,7 +10,6 @@ use crate::core::{
 };
 use std::{
     any::Any,
-    ops::{BitAnd, BitOr},
     sync::{Arc, Mutex, RwLock},
 };
 
@@ -40,9 +39,9 @@ pub trait Light {
         vis: &mut VisibilityTester,
     ) -> Spectrum;
     fn power(&self) -> Spectrum;
-    fn pre_process(&self, scene: &Scene) {}
+    fn pre_process(&self, _scene: &Scene) {}
 
-    fn le(&self, r: &RayDifferentials) -> Spectrum {
+    fn le(&self, _r: &RayDifferentials) -> Spectrum {
         todo!()
     }
 
@@ -85,10 +84,10 @@ impl VisibilityTester {
     pub fn new(p0: Interaction, p1: Interaction) -> VisibilityTester {
         VisibilityTester { p0, p1 }
     }
-    pub fn un_occluded(&self, scene: &Scene) -> bool {
+    pub fn un_occluded(&self, _scene: &Scene) -> bool {
         todo!()
     }
-    pub fn tr(&self, scene: &Scene, sampler: SamplerDt) -> Spectrum {
+    pub fn tr(&self, _scene: &Scene, _sampler: SamplerDt) -> Spectrum {
         todo!()
     }
     pub fn p0(&self) -> &Interaction {

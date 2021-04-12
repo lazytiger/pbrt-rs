@@ -1,18 +1,18 @@
 use std::ops::{
-    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
+    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
     SubAssign,
 };
 
 use super::RealNum;
 use crate::core::{
     efloat::EFloat,
-    medium::{Medium, MediumDt},
+    medium::{MediumDt},
     pbrt::{gamma, next_float_down, next_float_up, Float},
     transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref},
 };
 use derive_more::{Deref, DerefMut};
 use num::Bounded;
-use std::{mem::swap, sync::Arc};
+use std::{mem::swap};
 
 macro_rules! strip_plus {
     (+ $($rest:expr)+) => {

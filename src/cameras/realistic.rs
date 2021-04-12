@@ -4,7 +4,6 @@ use crate::{
         film::Film,
         geometry::{Bounds2f, Normal3f, Point2f, Point3f, Ray, Union, Vector3, Vector3f},
         lowdiscrepancy::radical_inverse,
-        medium::Medium,
         pbrt::{lerp, quadratic, Float},
         reflection::refract,
         transform::{AnimatedTransform, Transformf},

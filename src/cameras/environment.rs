@@ -3,7 +3,7 @@ use crate::{
         camera::{BaseCamera, Camera, CameraSample},
         film::Film,
         geometry::{Point3f, Ray, Vector3f},
-        medium::{Medium, MediumDt},
+        medium::{MediumDt},
         pbrt::{lerp, Float, PI},
         transform::AnimatedTransform,
     },

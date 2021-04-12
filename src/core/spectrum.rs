@@ -1,6 +1,6 @@
 use crate::core::pbrt::{clamp, find_interval, lerp, Float};
 use std::{
-    cmp::{max, Ordering},
+    cmp::{Ordering},
     ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign},
 };
 

@@ -1,7 +1,7 @@
 use crate::core::{
     geometry::{Bounds3f, Ray},
     interaction::SurfaceInteraction,
-    light::{AreaLight, AreaLightDt},
+    light::{AreaLightDt},
     material::{Material, MaterialDt, TransportMode},
     medium::MediumInterface,
     pbrt::Float,

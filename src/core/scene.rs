@@ -1,12 +1,12 @@
 use crate::core::{
-    geometry::{Bounds2f, Bounds3, Bounds3f, Ray},
+    geometry::{Bounds3f, Ray},
     interaction::SurfaceInteraction,
     light::{Light, LightDt, LightFlags},
     primitive::{Primitive, PrimitiveDt},
     sampler::{Sampler, SamplerDt},
     spectrum::Spectrum,
 };
-use std::sync::Arc;
+
 
 pub struct Scene {
     pub lights: Vec<LightDt>,
@@ -37,20 +37,20 @@ impl Scene {
         &self.world_bound
     }
 
-    pub fn intersect(&self, ray: &Ray, isect: &mut SurfaceInteraction) -> bool {
+    pub fn intersect(&self, _ray: &Ray, _isect: &mut SurfaceInteraction) -> bool {
         todo!()
     }
 
-    pub fn intersect_p(&self, ray: &Ray) -> bool {
+    pub fn intersect_p(&self, _ray: &Ray) -> bool {
         todo!()
     }
 
     pub fn intersect_tr(
         &self,
-        ray: &Ray,
-        sampler: SamplerDt,
-        isect: &mut SurfaceInteraction,
-        transmittance: &mut Spectrum,
+        _ray: &Ray,
+        _sampler: SamplerDt,
+        _isect: &mut SurfaceInteraction,
+        _transmittance: &mut Spectrum,
     ) {
         todo!()
     }
