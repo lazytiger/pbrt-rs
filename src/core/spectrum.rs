@@ -95,14 +95,14 @@ const SAMPLED_LAMBDA_END: Float = 700.0;
 const N_SPECTRAL_SAMPLES: usize = 60;
 
 #[inline]
-fn xyz_to_rgb(xyz: [Float; 3], rgb: &mut [Float; 3]) {
+pub(crate) fn xyz_to_rgb(xyz: &[Float], rgb: &mut [Float]) {
     rgb[0] = 3.240479 * xyz[0] - 1.537150 * xyz[1] - 0.498535 * xyz[2];
     rgb[1] = -0.969256 * xyz[0] + 1.875991 * xyz[1] + 0.041556 * xyz[2];
     rgb[2] = 0.055648 * xyz[0] - 0.204043 * xyz[1] + 1.057311 * xyz[2];
 }
 
 #[inline]
-fn rgb_to_xyz(rgb: [Float; 3], xyz: &mut [Float; 3]) {
+pub fn rgb_to_xyz(rgb: &[Float], xyz: &mut [Float]) {
     xyz[0] = 0.412453 * rgb[0] + 0.357580 * rgb[1] + 0.180423 * rgb[2];
     xyz[1] = 0.212671 * rgb[0] + 0.715160 * rgb[1] + 0.072169 * rgb[2];
     xyz[2] = 0.019334 * rgb[0] + 0.119193 * rgb[1] + 0.950227 * rgb[2];
@@ -458,7 +458,7 @@ impl SampledSpectrum {
 
     pub fn init() {}
 
-    pub fn to_xyz(&self, xyz: &mut [Float; 3]) {
+    pub fn to_xyz(&self, xyz: &mut [Float]) {
         xyz[0] = 0.0;
         xyz[1] = 0.0;
         xyz[2] = 0.0;
@@ -483,20 +483,20 @@ impl SampledSpectrum {
             / (CIE_Y_INTEGRAL * N_SPECTRAL_SAMPLES as Float)
     }
 
-    pub fn to_rgb(&self, rgb: &mut [Float; 3]) {
+    pub fn to_rgb(&self, rgb: &mut [Float]) {
         let mut xyz = [0.0; 3];
         self.to_xyz(&mut xyz);
-        xyz_to_rgb(xyz, rgb);
+        xyz_to_rgb(&xyz, rgb);
     }
 
     pub fn from_rgb_spectrum(r: &RGBSpectrum, t: SpectrumType) -> SampledSpectrum {
         let mut rgb = [0.0; 3];
         r.to_rgb(&mut rgb);
         let s = SampledSpectrum::default();
-        s.from_rgb(rgb, t)
+        s.from_rgb(&rgb, t)
     }
 
-    pub fn from_rgb(&self, rgb: [Float; 3], typ: SpectrumType) -> Self {
+    pub fn from_rgb(&self, rgb: &[Float], typ: SpectrumType) -> Self {
         let mut r = SampledSpectrum::default();
         match typ {
             SpectrumType::Reflectance => {
@@ -565,16 +565,16 @@ impl SampledSpectrum {
         r.clamp(0.0, Float::INFINITY).into()
     }
 
-    pub fn from_xyz(&self, xyz: [Float; 3], typ: SpectrumType) -> SampledSpectrum {
+    pub fn from_xyz(&self, xyz: &[Float], typ: SpectrumType) -> SampledSpectrum {
         let mut rgb = [0.0; 3];
-        xyz_to_rgb(xyz, &mut rgb);
-        self.from_rgb(rgb, typ)
+        xyz_to_rgb(&xyz, &mut rgb);
+        self.from_rgb(&rgb, typ)
     }
 
     pub fn to_rgb_spectrum(&self) -> RGBSpectrum {
         let mut rgb = [0.0; 3];
         self.to_rgb(&mut rgb);
-        RGBSpectrum::from_rgb(rgb, SpectrumType::Reflectance)
+        RGBSpectrum::from_rgb(&rgb, SpectrumType::Reflectance)
     }
 }
 
@@ -585,7 +585,7 @@ pub enum SpectrumType {
 
 define_spectrum!(RGBSpectrum, 3);
 impl RGBSpectrum {
-    pub fn from_rgb(rgb: [Float; 3], _typ: SpectrumType) -> RGBSpectrum {
+    pub fn from_rgb(rgb: &[Float], _typ: SpectrumType) -> RGBSpectrum {
         let mut s = RGBSpectrum::default();
         s.c[0] = rgb[0];
         s.c[1] = rgb[1];
@@ -599,11 +599,11 @@ impl RGBSpectrum {
         }
     }
 
-    pub fn to_xyz(&self, xyz: &mut [Float; 3]) {
-        rgb_to_xyz(self.c, xyz);
+    pub fn to_xyz(&self, xyz: &mut [Float]) {
+        rgb_to_xyz(&self.c, xyz);
     }
 
-    pub fn from_xyz(xyz: [Float; 3], _typ: SpectrumType) -> RGBSpectrum {
+    pub fn from_xyz(xyz: &[Float], _typ: SpectrumType) -> RGBSpectrum {
         let mut r = RGBSpectrum::default();
         xyz_to_rgb(xyz, &mut r.c);
         r
@@ -634,7 +634,7 @@ impl RGBSpectrum {
             xyz[1] *= scale;
             xyz[2] *= scale;
 
-            Self::from_xyz(xyz, SpectrumType::Reflectance)
+            Self::from_xyz(&xyz, SpectrumType::Reflectance)
         }
     }
 }

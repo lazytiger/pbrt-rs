@@ -329,6 +329,15 @@ impl From<Point2i> for Point2f {
     }
 }
 
+impl From<Point2f> for Point2i {
+    fn from(p: Point2f) -> Self {
+        Self {
+            x: p.x as i32,
+            y: p.y as i32,
+        }
+    }
+}
+
 make_vector!(struct Vector3, x, y, z);
 pub type Vector3f = Vector3<Float>;
 pub type Vector3i = Vector3<i32>;
