@@ -12,19 +12,30 @@ pub trait Filter {
 }
 
 pub(crate) struct BaseFilter {
-    radius: Vector2f,
-    inv_radius: Vector2f,
+    pub radius: Vector2f,
+    pub inv_radius: Vector2f,
+}
+
+impl BaseFilter {
+    pub(crate) fn new(radius: Vector2f) -> BaseFilter {
+        let inv_radius = Vector2f::new(1.0 / radius.x, 1.0 / radius.y);
+        Self { radius, inv_radius }
+    }
 }
 
 #[macro_export]
 macro_rules! impl_base_filter {
     () => {
-        fn radius(&self) -> &Vector2f {
-            &self.radius
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
         }
 
-        fn inv_radius(&self) -> &Vector2f {
-            &self.inv_radius
+        fn radius(&self) -> &$crate::core::geometry::Vector2f {
+            &self.base.radius
+        }
+
+        fn inv_radius(&self) -> &$crate::core::geometry::Vector2f {
+            &self.base.inv_radius
         }
     };
 }
