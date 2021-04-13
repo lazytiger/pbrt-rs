@@ -9,11 +9,14 @@ pub mod filter;
 pub mod geometry;
 pub mod integrator;
 pub mod interaction;
+pub mod interpolation;
 pub mod light;
+pub mod lightdistrib;
 pub mod lowdiscrepancy;
 pub mod material;
 pub mod medium;
 pub mod microfacet;
+pub mod mipmap;
 pub mod pbrt;
 pub mod primitive;
 pub mod quaternion;
@@ -25,6 +28,7 @@ pub mod scene;
 pub mod shape;
 pub mod sobolmatrices;
 pub mod spectrum;
+pub mod texture;
 pub mod transform;
 
 pub fn pbrt_init(_opts: &Options) {}
