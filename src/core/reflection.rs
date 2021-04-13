@@ -216,42 +216,45 @@ impl BSDF {
             self.ss.z * v.x + self.ts.z * v.y + self.ns.z * v.z,
         )
     }
-}
 
-impl BxDF for BSDF {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
+    pub fn f(&self, wo: &Vector3f, wi: &Vector3f, flags: BxDFType) -> Spectrum {
         todo!()
     }
 
-    fn sample_f(
+    pub fn sample_f(
         &self,
         wo: &Vector3f,
         wi: &mut Vector3f,
         sample: &Point2f,
         pdf: &mut f32,
+        typ: BxDFType,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
         todo!()
     }
 
-    fn rho(&self, wo: &Vector3f, n_samples: usize, samples: &[Point2f]) -> Spectrum {
+    pub fn rho(
+        &self,
+        wo: &Vector3f,
+        n_samples: usize,
+        samples: &[Point2f],
+        flags: BxDFType,
+    ) -> Spectrum {
         todo!()
     }
 
-    fn rho2(&self, n_samples: usize, samples1: &[Point2f], samples2: &[Point2f]) -> Spectrum {
+    pub fn rho2(
+        &self,
+        n_samples: usize,
+        samples1: &[Point2f],
+        samples2: &[Point2f],
+        flags: BxDFType,
+    ) -> Spectrum {
         todo!()
     }
 
-    fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
+    pub fn pdf(&self, wo: &Vector3f, wi: &Vector3f, flags: BxDFType) -> f32 {
         todo!()
-    }
-
-    fn typ(&self) -> BxDFType {
-        unimplemented!("BSDF does not support typ method")
     }
 }
 

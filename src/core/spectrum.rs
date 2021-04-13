@@ -1,6 +1,6 @@
 use crate::core::pbrt::{clamp, find_interval, lerp, Float};
 use std::{
-    cmp::{Ordering},
+    cmp::Ordering,
     ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign},
 };
 
@@ -174,6 +174,15 @@ macro_rules! define_spectrum {
 
             pub fn n_samples() -> usize {
                 $size
+            }
+
+            pub fn is_black(&self) -> bool {
+                for i in 0..$size {
+                    if self.c[i] == 0.0 {
+                        return false;
+                    }
+                }
+                true
             }
         }
 

@@ -3,10 +3,9 @@ use crate::core::{
     interaction::SurfaceInteraction,
     light::{Light, LightDt, LightFlags},
     primitive::{Primitive, PrimitiveDt},
-    sampler::{Sampler, SamplerDt},
+    sampler::{Sampler, SamplerDt, SamplerDtRw},
     spectrum::Spectrum,
 };
-
 
 pub struct Scene {
     pub lights: Vec<LightDt>,
@@ -48,10 +47,10 @@ impl Scene {
     pub fn intersect_tr(
         &self,
         _ray: &Ray,
-        _sampler: SamplerDt,
+        _sampler: SamplerDtRw,
         _isect: &mut SurfaceInteraction,
         _transmittance: &mut Spectrum,
-    ) {
+    ) -> bool {
         todo!()
     }
 }

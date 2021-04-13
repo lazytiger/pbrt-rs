@@ -13,6 +13,7 @@ pub trait PhaseFunction {
     fn sample_p(&self, wo: &Vector3f, wi: &mut Vector3f, u: &Point2f) -> Float;
     fn to_string(&self) -> String;
 }
+
 pub trait Medium {
     fn as_any(&self) -> &dyn Any;
 }
@@ -42,5 +43,16 @@ impl MediumInterface {
         } else {
             true
         }
+    }
+}
+
+pub struct HenyeyGreenstein {}
+
+impl HenyeyGreenstein {
+    pub fn p(&self, wo: &Vector3f, wi: &Vector3f) -> Float {
+        todo!()
+    }
+    pub fn sample_p(&self, wo: &Vector3f, wi: &mut Vector3f, sample: &Point2f) -> Float {
+        todo!()
     }
 }

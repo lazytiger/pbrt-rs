@@ -1,7 +1,7 @@
 use crate::core::{
     bssrdf::BSSRDFDt,
     geometry::{offset_ray_origin, Normal3f, Point2f, Point3f, Ray, Vector3f},
-    medium::{MediumInterface, PhaseFunction},
+    medium::{HenyeyGreenstein, MediumInterface, PhaseFunction},
     pbrt::{Float, SHADOW_EPSILON},
     primitive::{Primitive, PrimitiveDt},
     reflection::BSDF,
@@ -44,7 +44,7 @@ impl Interaction for BaseInteraction {
     }
 }
 
-impl<T: 'static + PhaseFunction> Interaction for MediumInteraction<T> {
+impl Interaction for MediumInteraction {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -182,14 +182,14 @@ impl From<(Point3f, Float, MediumInterface)> for BaseInteraction {
 }
 
 #[derive(Deref, DerefMut)]
-pub struct MediumInteraction<T: PhaseFunction> {
+pub struct MediumInteraction {
     #[deref]
     #[deref_mut]
     base: BaseInteraction,
-    phase: T,
+    pub phase: HenyeyGreenstein,
 }
 
-impl<T: PhaseFunction> MediumInteraction<T> {}
+impl MediumInteraction {}
 
 #[derive(Copy, Clone, Default)]
 pub struct Shading {

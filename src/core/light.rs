@@ -3,7 +3,7 @@ use crate::core::{
     interaction::{Interaction, InteractionDt, SurfaceInteraction},
     medium::MediumInterface,
     pbrt::Float,
-    sampler::{Sampler, SamplerDt},
+    sampler::{Sampler, SamplerDt, SamplerDtRw},
     scene::Scene,
     spectrum::Spectrum,
     transform::{Transform, Transformf},
@@ -31,8 +31,8 @@ pub fn is_delta_light(flags: LightFlags) -> bool {
 pub trait Light {
     fn as_any(&self) -> &dyn Any;
     fn sample_li(
-        self,
-        iref: &Interaction,
+        &self,
+        iref: InteractionDt,
         u: &Point2f,
         wi: &mut Vector3f,
         pdf: &mut Float,
@@ -45,7 +45,7 @@ pub trait Light {
         todo!()
     }
 
-    fn pdf_li(&self, iref: &Interaction, wi: &Vector3f) -> Float;
+    fn pdf_li(&self, iref: InteractionDt, wi: &Vector3f) -> Float;
 
     fn sample_le(
         &self,
@@ -75,27 +75,31 @@ pub trait AreaLight: Light {
     fn l(&self, si: &SurfaceInteraction, v: &Vector3f) -> Spectrum;
 }
 
+#[derive(Default)]
 pub struct VisibilityTester {
-    p0: InteractionDt,
-    p1: InteractionDt,
+    p0: Option<InteractionDt>,
+    p1: Option<InteractionDt>,
 }
 
 impl VisibilityTester {
     pub fn new(p0: InteractionDt, p1: InteractionDt) -> VisibilityTester {
-        VisibilityTester { p0, p1 }
+        VisibilityTester {
+            p0: Some(p0),
+            p1: Some(p1),
+        }
     }
     pub fn un_occluded(&self, _scene: &Scene) -> bool {
         todo!()
     }
-    pub fn tr(&self, _scene: &Scene, _sampler: SamplerDt) -> Spectrum {
+    pub fn tr(&self, _scene: &Scene, _sampler: SamplerDtRw) -> Spectrum {
         todo!()
     }
     pub fn p0(&self) -> InteractionDt {
-        self.p0.clone()
+        self.p0.as_ref().unwrap().clone()
     }
 
     pub fn p1(&self) -> InteractionDt {
-        self.p1.clone()
+        self.p1.as_ref().unwrap().clone()
     }
 }
 
