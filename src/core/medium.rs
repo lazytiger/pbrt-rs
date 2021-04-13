@@ -1,6 +1,8 @@
 use crate::core::{
-    geometry::{Point2f, Vector3f},
+    geometry::{Point2f, Ray, Vector3f},
     pbrt::{any_equal, Float},
+    sampler::SamplerDtRw,
+    spectrum::Spectrum,
 };
 use std::{
     any::Any,
@@ -16,6 +18,8 @@ pub trait PhaseFunction {
 
 pub trait Medium {
     fn as_any(&self) -> &dyn Any;
+    fn tr(&self, ray: &Ray, sampler: SamplerDtRw) -> Spectrum;
+    fn sample(&self, ray: &Ray, sampler: SamplerDtRw, mi: &mut MediumInterface) -> Spectrum;
 }
 
 pub type MediumDt = Arc<Box<dyn Medium>>;

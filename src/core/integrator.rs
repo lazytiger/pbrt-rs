@@ -214,12 +214,12 @@ pub fn estimate_direct(
             }
 
             let mut light_isect = SurfaceInteraction::default();
-            let ray = it.as_base().spawn_ray(&wi);
+            let mut ray = it.as_base().spawn_ray(&wi);
             let mut tr = Spectrum::new(1.0);
             let found_surface_interaction = if handle_media {
-                scene.intersect_tr(&ray, sampler.clone(), &mut light_isect, &mut tr)
+                scene.intersect_tr(ray.clone(), sampler.clone(), &mut light_isect, &mut tr)
             } else {
-                scene.intersect(&ray, &mut light_isect)
+                scene.intersect(&mut ray, &mut light_isect)
             };
 
             let mut li = Spectrum::new(0.0);

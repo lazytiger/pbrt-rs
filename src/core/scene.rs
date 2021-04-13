@@ -36,21 +36,36 @@ impl Scene {
         &self.world_bound
     }
 
-    pub fn intersect(&self, _ray: &Ray, _isect: &mut SurfaceInteraction) -> bool {
-        todo!()
+    pub fn intersect(&self, ray: &mut Ray, isect: &mut SurfaceInteraction) -> bool {
+        self.aggregate.intersect(ray, isect)
     }
 
-    pub fn intersect_p(&self, _ray: &Ray) -> bool {
-        todo!()
+    pub fn intersect_p(&self, ray: &Ray) -> bool {
+        self.aggregate.intersect_p(ray)
     }
 
     pub fn intersect_tr(
         &self,
-        _ray: &Ray,
-        _sampler: SamplerDtRw,
-        _isect: &mut SurfaceInteraction,
-        _transmittance: &mut Spectrum,
+        mut ray: Ray,
+        sampler: SamplerDtRw,
+        isect: &mut SurfaceInteraction,
+        transmittance: &mut Spectrum,
     ) -> bool {
-        todo!()
+        *transmittance = Spectrum::new(1.0);
+        loop {
+            let hit_surface = self.intersect(&mut ray, isect);
+            if let Some(medium) = &ray.medium {
+                *transmittance *= medium.tr(&ray, sampler.clone());
+            }
+            if !hit_surface {
+                return false;
+            }
+            if let Some(primitive) = &isect.primitive {
+                if primitive.get_material().is_some() {
+                    return true;
+                }
+            }
+            ray = isect.spawn_ray(&ray.d);
+        }
     }
 }
