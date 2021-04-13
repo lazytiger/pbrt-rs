@@ -248,8 +248,15 @@ pub fn estimate_direct(
     ld
 }
 
-pub fn compute_light_power_distribution(_scene: &Scene) -> Box<Distribution1D> {
-    todo!()
+pub fn compute_light_power_distribution(scene: &Scene) -> Option<Box<Distribution1D>> {
+    if scene.lights.is_empty() {
+        return None;
+    }
+    let mut light_power = Vec::new();
+    for light in &scene.lights {
+        light_power.push(light.power().y_value());
+    }
+    Some(Box::new(Distribution1D::new(light_power.as_slice())))
 }
 
 pub trait SamplerIntegrator: Integrator {
@@ -291,6 +298,16 @@ impl BaseSamplerIntegrator {
         _sampler: SamplerDt,
         _depth: i32,
     ) {
+        todo!()
+    }
+}
+
+impl Integrator for BaseSamplerIntegrator {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn render(&self, scene: &Scene) {
         todo!()
     }
 }
