@@ -1,1 +1,13 @@
-
+pub mod bilerp;
+pub mod checkerboard;
+pub mod constant;
+pub mod dots;
+pub mod fbm;
+pub mod imagemap;
+pub mod marble;
+pub mod mix;
+pub mod ptex;
+pub mod scale;
+pub mod uv;
+pub mod windy;
+pub mod wrinkled;
