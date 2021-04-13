@@ -194,7 +194,7 @@ impl<T: PhaseFunction> MediumInteraction<T> {}
 #[derive(Copy, Clone, Default)]
 pub struct Shading {
     pub n: Normal3f,
-    dpdu: Vector3f,
+    pub(crate) dpdu: Vector3f,
     dpdv: Vector3f,
     dndu: Normal3f,
     dndv: Normal3f,

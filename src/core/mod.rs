@@ -13,6 +13,7 @@ pub mod light;
 pub mod lowdiscrepancy;
 pub mod material;
 pub mod medium;
+pub mod microfacet;
 pub mod pbrt;
 pub mod primitive;
 pub mod quaternion;
