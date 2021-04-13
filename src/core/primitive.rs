@@ -1,7 +1,7 @@
 use crate::core::{
     geometry::{Bounds3f, Ray},
     interaction::SurfaceInteraction,
-    light::{AreaLightDt},
+    light::AreaLightDt,
     material::{Material, MaterialDt, TransportMode},
     medium::MediumInterface,
     pbrt::Float,
@@ -66,7 +66,7 @@ impl Primitive for GeometricPrimitive {
             return false;
         }
         r.t_max = hit;
-        si.primitive = Some(self);
+        //si.primitive = Some(self); todo in upper calling
         if self.medium_interface.is_medium_transition() {
             si.medium_interface = self.medium_interface.clone();
         } else {

@@ -1,6 +1,6 @@
 use crate::core::{
     geometry::{Normal3f, Point2f, Ray, RayDifferentials, Vector3f},
-    interaction::{Interaction, SurfaceInteraction},
+    interaction::{Interaction, InteractionDt, SurfaceInteraction},
     medium::MediumInterface,
     pbrt::Float,
     sampler::{Sampler, SamplerDt},
@@ -76,12 +76,12 @@ pub trait AreaLight: Light {
 }
 
 pub struct VisibilityTester {
-    p0: Interaction,
-    p1: Interaction,
+    p0: InteractionDt,
+    p1: InteractionDt,
 }
 
 impl VisibilityTester {
-    pub fn new(p0: Interaction, p1: Interaction) -> VisibilityTester {
+    pub fn new(p0: InteractionDt, p1: InteractionDt) -> VisibilityTester {
         VisibilityTester { p0, p1 }
     }
     pub fn un_occluded(&self, _scene: &Scene) -> bool {
@@ -90,12 +90,12 @@ impl VisibilityTester {
     pub fn tr(&self, _scene: &Scene, _sampler: SamplerDt) -> Spectrum {
         todo!()
     }
-    pub fn p0(&self) -> &Interaction {
-        &self.p0
+    pub fn p0(&self) -> InteractionDt {
+        self.p0.clone()
     }
 
-    pub fn p1(&self) -> &Interaction {
-        &self.p1
+    pub fn p1(&self) -> InteractionDt {
+        self.p1.clone()
     }
 }
 

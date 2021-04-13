@@ -11,6 +11,7 @@ use crate::{
     shapes::BaseShape,
 };
 
+use crate::core::interaction::{BaseInteraction, InteractionDt};
 use std::sync::Arc;
 
 pub struct TriangleMesh {
@@ -326,12 +327,12 @@ impl Shape for Triangle {
         (p1 - p0).cross(&(p2 - p0)).length() * 0.5
     }
 
-    fn sample(&self, u: &Point2f, pdf: &mut f32) -> Interaction {
+    fn sample(&self, u: &Point2f, pdf: &mut f32) -> InteractionDt {
         let b = uniform_sample_triangle(u);
         let p0 = self.mesh.p[self.v[0]];
         let p1 = self.mesh.p[self.v[1]];
         let p2 = self.mesh.p[self.v[2]];
-        let mut it = Interaction::default();
+        let mut it = BaseInteraction::default();
         it.p = p0 * b[0] + p1 * b[1] + p2 * (1.0 - b[0] - b[1]);
         it.n = (p1 - p0).cross(&(p2 - p0)).normalize();
         if let Some(n) = &self.mesh.n {
@@ -343,7 +344,7 @@ impl Shape for Triangle {
         let p_abs_sum = (p0 * b[0]).abs() + (p1 * b[1]).abs() + (p2 * (1.0 - b[0] - b[1])).abs();
         it.error = p_abs_sum * gamma(6.0);
         *pdf = 1.0 / self.area();
-        it
+        Arc::new(Box::new(it))
     }
 
     fn solid_angle(&self, p: Point3f, _samples: u64) -> f32 {

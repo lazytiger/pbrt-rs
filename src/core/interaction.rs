@@ -2,14 +2,96 @@ use crate::core::{
     geometry::{offset_ray_origin, Normal3f, Point2f, Point3f, Ray, Vector3f},
     medium::{MediumInterface, PhaseFunction},
     pbrt::{Float, SHADOW_EPSILON},
-    primitive::Primitive,
-    shape::Shape,
+    primitive::{Primitive, PrimitiveDt},
+    shape::{Shape, ShapeDt},
     spectrum::Spectrum,
 };
 use derive_more::{Deref, DerefMut};
+use std::{
+    any::Any,
+    sync::{Arc, Mutex, RwLock},
+};
+
+pub trait Interaction {
+    fn as_any(&self) -> &dyn Any;
+    fn as_base(&self) -> &BaseInteraction;
+    fn as_base_mut(&mut self) -> &mut BaseInteraction;
+    fn is_surface_interaction(&self) -> bool;
+    fn is_medium_interaction(&self) -> bool;
+}
+
+impl Interaction for BaseInteraction {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_base(&self) -> &BaseInteraction {
+        self
+    }
+
+    fn as_base_mut(&mut self) -> &mut BaseInteraction {
+        self
+    }
+
+    fn is_surface_interaction(&self) -> bool {
+        false
+    }
+
+    fn is_medium_interaction(&self) -> bool {
+        false
+    }
+}
+
+impl<T: 'static + PhaseFunction> Interaction for MediumInteraction<T> {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_base(&self) -> &BaseInteraction {
+        &self.base
+    }
+
+    fn as_base_mut(&mut self) -> &mut BaseInteraction {
+        &mut self.base
+    }
+
+    fn is_surface_interaction(&self) -> bool {
+        false
+    }
+
+    fn is_medium_interaction(&self) -> bool {
+        true
+    }
+}
+
+impl Interaction for SurfaceInteraction {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_base(&self) -> &BaseInteraction {
+        &self.base
+    }
+
+    fn as_base_mut(&mut self) -> &mut BaseInteraction {
+        &mut self.base
+    }
+
+    fn is_surface_interaction(&self) -> bool {
+        true
+    }
+
+    fn is_medium_interaction(&self) -> bool {
+        false
+    }
+}
+
+pub type InteractionDt = Arc<Box<dyn Interaction>>;
+pub type InteractionDtMut = Arc<Mutex<Box<dyn Interaction>>>;
+pub type InteractionDtRw = Arc<RwLock<Box<dyn Interaction>>>;
 
 #[derive(Default, Clone)]
-pub struct Interaction {
+pub struct BaseInteraction {
     pub p: Point3f,
     pub time: Float,
     pub error: Vector3f,
@@ -22,7 +104,7 @@ pub trait SpawnRayTo<T> {
     fn spawn_ray_to(&self, t: T) -> Ray;
 }
 
-impl Interaction {
+impl BaseInteraction {
     pub fn new(
         p: Point3f,
         n: Normal3f,
@@ -41,21 +123,13 @@ impl Interaction {
         }
     }
 
-    pub fn is_surface_interaction(&self) -> bool {
-        self.n != Normal3f::default()
-    }
-
-    pub fn is_medium_interaction(&self) -> bool {
-        !self.is_surface_interaction()
-    }
-
     pub fn spawn_ray(&self, d: &Vector3f) -> Ray {
         let origin = offset_ray_origin(&self.p, &self.error, &self.n, d);
         Ray::new(origin, *d, Float::INFINITY, self.time, None)
     }
 }
 
-impl SpawnRayTo<Point3f> for Interaction {
+impl SpawnRayTo<Point3f> for BaseInteraction {
     fn spawn_ray_to(&self, p2: Point3f) -> Ray {
         let d = p2 - self.p;
         let origin = offset_ray_origin(&self.p, &self.error, &self.n, &d);
@@ -63,8 +137,8 @@ impl SpawnRayTo<Point3f> for Interaction {
     }
 }
 
-impl SpawnRayTo<&Interaction> for Interaction {
-    fn spawn_ray_to(&self, it: &Interaction) -> Ray {
+impl SpawnRayTo<&BaseInteraction> for BaseInteraction {
+    fn spawn_ray_to(&self, it: &BaseInteraction) -> Ray {
         let origin = offset_ray_origin(&self.p, &self.error, &self.n, &(it.p - self.p));
         let target = offset_ray_origin(&it.p, &it.error, &it.n, &(origin - it.p));
         let d = target - origin;
@@ -72,7 +146,7 @@ impl SpawnRayTo<&Interaction> for Interaction {
     }
 }
 
-impl From<(Point3f, Vector3f, Float, MediumInterface)> for Interaction {
+impl From<(Point3f, Vector3f, Float, MediumInterface)> for BaseInteraction {
     fn from(data: (Point3f, Vector3f, Float, MediumInterface)) -> Self {
         let p = data.0;
         let wo = data.1;
@@ -89,7 +163,7 @@ impl From<(Point3f, Vector3f, Float, MediumInterface)> for Interaction {
     }
 }
 
-impl From<(Point3f, Float, MediumInterface)> for Interaction {
+impl From<(Point3f, Float, MediumInterface)> for BaseInteraction {
     fn from(data: (Point3f, Float, MediumInterface)) -> Self {
         let p = data.0;
         let time = data.1;
@@ -109,7 +183,7 @@ impl From<(Point3f, Float, MediumInterface)> for Interaction {
 pub struct MediumInteraction<T: PhaseFunction> {
     #[deref]
     #[deref_mut]
-    base: Interaction,
+    base: BaseInteraction,
     phase: T,
 }
 
@@ -125,18 +199,18 @@ pub struct Shading {
 }
 
 #[derive(Default, Deref, DerefMut)]
-pub struct SurfaceInteraction<'a> {
+pub struct SurfaceInteraction {
     #[deref]
     #[deref_mut]
-    base: Interaction,
+    base: BaseInteraction,
     uv: Point2f,
     pub(crate) dpdu: Vector3f,
     dpdv: Vector3f,
     dndu: Normal3f,
     dndv: Normal3f,
-    shape: Option<&'a dyn Shape>,
+    shape: Option<ShapeDt>,
     pub shading: Shading,
-    pub primitive: Option<*const dyn Primitive>,
+    pub primitive: Option<PrimitiveDt>,
     dpdx: Vector3f,
     dpdy: Vector3f,
     dudx: Float,
@@ -146,7 +220,7 @@ pub struct SurfaceInteraction<'a> {
     face_index: i32,
 }
 
-impl<'a> SurfaceInteraction<'a> {
+impl SurfaceInteraction {
     pub fn new(
         p: Point3f,
         error: Vector3f,
@@ -157,11 +231,11 @@ impl<'a> SurfaceInteraction<'a> {
         dndu: Normal3f,
         dndv: Normal3f,
         time: Float,
-        shape: Option<&'a dyn Shape>,
+        shape: Option<ShapeDt>,
         face_index: i32,
     ) -> SurfaceInteraction {
         let mut si = SurfaceInteraction {
-            base: Interaction::new(
+            base: BaseInteraction::new(
                 p,
                 dpdu.cross(&dpdv).normalize(),
                 time,
@@ -216,8 +290,7 @@ impl<'a> SurfaceInteraction<'a> {
     }
 
     pub fn le(&self, w: &Vector3f) -> Spectrum {
-        if let Some(primitive) = self.primitive {
-            let primitive = unsafe { &*primitive };
+        if let Some(primitive) = &self.primitive {
             let area = primitive.get_area_light();
             if let Some(area) = area {
                 return area.l(self, w);

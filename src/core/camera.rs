@@ -1,9 +1,9 @@
 use crate::core::{
     film::Film,
     geometry::{Point2f, Ray, RayDifferentials, Vector3f},
-    interaction::Interaction,
+    interaction::{Interaction, InteractionDt},
     light::VisibilityTester,
-    medium::{MediumDt},
+    medium::MediumDt,
     pbrt::Float,
     spectrum::Spectrum,
     transform::AnimatedTransform,
@@ -68,7 +68,7 @@ pub trait Camera {
     }
     fn sample_wi(
         &self,
-        _refer: &Interaction,
+        _refer: InteractionDt,
         _sample: &Point2f,
         _wi: &mut Vector3f,
         _pdf: &mut Float,

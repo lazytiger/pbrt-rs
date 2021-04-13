@@ -1,7 +1,7 @@
 use crate::{
     core::{
         geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Vector3f},
-        interaction::{Interaction, SurfaceInteraction},
+        interaction::{BaseInteraction, Interaction, InteractionDt, SurfaceInteraction},
         pbrt::{clamp, radians, Float, PI},
         sampling::concentric_sample_disk,
         shape::Shape,
@@ -10,6 +10,7 @@ use crate::{
     impl_base_shape,
     shapes::BaseShape,
 };
+use std::sync::Arc;
 
 pub struct Disk {
     base: BaseShape,
@@ -129,10 +130,10 @@ impl Shape for Disk {
         self.phi_max * 0.5 * (self.radius * self.radius - self.inner_radius * self.inner_radius)
     }
 
-    fn sample(&self, u: &Point2f, pdf: &mut f32) -> Interaction {
+    fn sample(&self, u: &Point2f, pdf: &mut f32) -> InteractionDt {
         let pd = concentric_sample_disk(u);
         let p_obj = Vector3f::new(pd.x * self.radius, pd.y * self.radius, self.height);
-        let mut it = Interaction::default();
+        let mut it = BaseInteraction::default();
         it.n = self.object_to_world() * Normal3Ref(&Normal3f::new(0.0, 0.0, 1.0));
         if self.reverse_orientation() {
             it.n *= -1.0;
@@ -144,6 +145,6 @@ impl Shape for Disk {
             &mut it.error,
         ));
         *pdf = 1.0 / self.area();
-        it
+        Arc::new(Box::new(it))
     }
 }

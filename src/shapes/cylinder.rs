@@ -2,7 +2,7 @@ use crate::{
     core::{
         efloat::EFloat,
         geometry::{Bounds3f, Point2f, Point3f, Ray, Vector3f},
-        interaction::{Interaction, SurfaceInteraction},
+        interaction::{Interaction, InteractionDt, SurfaceInteraction},
         pbrt::{clamp, gamma, radians, Float, PI},
         shape::Shape,
         transform::Transformf,
@@ -140,7 +140,7 @@ impl Shape for Cylinder {
         unimplemented!()
     }
 
-    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> Interaction {
+    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> InteractionDt {
         unimplemented!()
     }
 }

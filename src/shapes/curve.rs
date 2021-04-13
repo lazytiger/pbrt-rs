@@ -1,7 +1,7 @@
 use crate::{
     core::{
         geometry::{Bounds3f, Normal3f, Point2f, Point3f, Ray, Union, Vector3f},
-        interaction::{Interaction, SurfaceInteraction},
+        interaction::{Interaction, InteractionDt, SurfaceInteraction},
         pbrt::{clamp, float_to_bits, lerp, Float},
         shape::Shape,
         transform::{Point3Ref, Transformf, Vector3Ref},
@@ -385,7 +385,7 @@ impl Shape for Curve {
         approx_length * avg_width
     }
 
-    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> Interaction {
+    fn sample(&self, _u: &Point2f, _pdf: &mut f32) -> InteractionDt {
         unimplemented!()
     }
 }

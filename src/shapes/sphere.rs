@@ -4,7 +4,7 @@ use crate::{
         geometry::{
             offset_ray_origin, spherical_direction, Bounds3f, Point2f, Point3f, Ray, Vector3f,
         },
-        interaction::{Interaction, SurfaceInteraction},
+        interaction::{BaseInteraction, Interaction, InteractionDt, SurfaceInteraction},
         pbrt::{clamp, gamma, radians, Float, PI},
         sampling::{uniform_cone_pdf, uniform_sample_sphere},
         shape::Shape,
@@ -13,6 +13,7 @@ use crate::{
     impl_base_shape,
     shapes::{compute_normal_differential, BaseShape},
 };
+use std::sync::Arc;
 
 pub struct Sphere {
     base: BaseShape,
@@ -99,9 +100,9 @@ impl Shape for Sphere {
         self.phi_max * self.radius * (self.z_max - self.z_min)
     }
 
-    fn sample(&self, u: &Point2f, pdf: &mut Float) -> Interaction {
+    fn sample(&self, u: &Point2f, pdf: &mut Float) -> InteractionDt {
         let mut obj = Point3f::default() + uniform_sample_sphere(u) * self.radius;
-        let mut it = Interaction::default();
+        let mut it = BaseInteraction::default();
         it.n = self.object_to_world() * Point3Ref(&obj);
         if self.reverse_orientation() {
             it.n *= -1.0;
@@ -115,14 +116,16 @@ impl Shape for Sphere {
             &mut it.error,
         ));
         *pdf = 1.0 / self.area();
-        it
+        Arc::new(Box::new(it))
     }
 
-    fn sample2(&self, int: &Interaction, u: &Point2f, pdf: &mut Float) -> Interaction {
+    fn sample2(&self, it: InteractionDt, u: &Point2f, pdf: &mut Float) -> InteractionDt {
+        let int = it.as_base();
         let p_center = self.object_to_world() * Point3Ref(&Point3f::default());
         let p_origin = offset_ray_origin(&int.p, &int.error, &int.n, &(p_center - int.p));
         if p_origin.distance_square(&p_center) <= self.radius * self.radius {
-            let intr = self.sample(u, pdf);
+            let indt = self.sample(u, pdf);
+            let intr = indt.as_base();
             let mut wi = intr.p - int.p;
             if wi.length_squared() == 0.0 {
                 *pdf = 0.0;
@@ -133,7 +136,7 @@ impl Shape for Sphere {
             if pdf.is_infinite() {
                 *pdf = 0.0;
             }
-            return intr;
+            return indt;
         }
         let dc = int.p.distance(&p_center);
         let inv_dc = 1.0 / dc;
@@ -164,7 +167,7 @@ impl Shape for Sphere {
         let n_world = spherical_direction(sin_alpha, cos_alpha, phi, -wc_x, -wc_y, -wc);
         let p_world = p_center + n_world * self.radius;
 
-        let mut it = Interaction::default();
+        let mut it = BaseInteraction::default();
         it.p = p_world;
         it.error = p_world.abs() * gamma(5.0);
         it.n = n_world;
@@ -173,14 +176,15 @@ impl Shape for Sphere {
         }
 
         *pdf = 1.0 / (2.0 * PI * (1.0 - cos_theta_max));
-        it
+        Arc::new(Box::new(it))
     }
 
-    fn pdf2(&self, int: &Interaction, wi: &Vector3f) -> Float {
+    fn pdf2(&self, it: InteractionDt, wi: &Vector3f) -> Float {
+        let int = it.as_base();
         let p_center = self.object_to_world() * Point3Ref(&Point3f::default());
         let p_origin = offset_ray_origin(&int.p, &int.error, &int.n, &(p_center - int.p));
         if p_origin.distance_square(&p_center) < self.radius * self.radius {
-            Shape::pdf2(self, int, wi)
+            Shape::pdf2(self, it.clone(), wi)
         } else {
             let sin_theta_max2 = self.radius * self.radius / int.p.distance_square(&p_center);
             let cos_theta_max = (1.0 - sin_theta_max2).max(0.0).sqrt();

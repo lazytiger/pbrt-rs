@@ -5,7 +5,7 @@ use crate::{
         geometry::{
             Bounds2f, Normal3f, Point2f, Point3f, Ray, RayDifferentials, Vector3, Vector3f,
         },
-        interaction::Interaction,
+        interaction::{BaseInteraction, Interaction, InteractionDt},
         light::VisibilityTester,
         medium::{Medium, MediumDt, MediumInterface},
         pbrt::{lerp, Float, PI},
@@ -242,20 +242,21 @@ impl Camera for PerspectiveCamera {
 
     fn sample_wi(
         &self,
-        refer: &Interaction,
+        it: InteractionDt,
         u: &Point2f,
         wi: &mut Vector3f,
         pdf: &mut f32,
         p_raster: Option<&mut Point2f>,
         vis: &mut VisibilityTester,
     ) -> Spectrum {
+        let refer = it.as_base();
         let p_lens = concentric_sample_disk(u);
         let p_lens_world = Point3f::from((
             self.camera_to_world(),
             refer.time,
             Point3Ref(&Point3f::new(p_lens.x, p_lens.y, 0.0)),
         ));
-        let mut lens_intr = Interaction::from((
+        let mut lens_intr = BaseInteraction::from((
             p_lens_world,
             refer.time,
             MediumInterface::new(Some(self.medium()), Some(self.medium())),
@@ -266,7 +267,6 @@ impl Camera for PerspectiveCamera {
             Vector3Ref(&Vector3f::new(0.0, 0.0, 1.0)),
         ));
 
-        *vis = VisibilityTester::new(refer.clone(), lens_intr.clone());
         *wi = lens_intr.p - refer.p;
         let dist = wi.length();
         *wi /= dist;
@@ -277,7 +277,9 @@ impl Camera for PerspectiveCamera {
             1.0
         };
         *pdf = (dist * dist) / (lens_intr.n.abs_dot(wi) * lens_area);
-        self.we(&lens_intr.spawn_ray(&-*wi), p_raster)
+        let ray = lens_intr.spawn_ray(&-*wi);
+        *vis = VisibilityTester::new(it.clone(), Arc::new(Box::new(lens_intr)));
+        self.we(&ray, p_raster)
     }
 
     impl_base_camera!();
