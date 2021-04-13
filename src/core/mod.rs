@@ -1,6 +1,7 @@
 use crate::Options;
 
 pub mod arena;
+pub mod bssrdf;
 pub mod camera;
 pub mod efloat;
 pub mod film;

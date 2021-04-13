@@ -1,8 +1,10 @@
 use crate::core::{
+    bssrdf::BSSRDFDt,
     geometry::{offset_ray_origin, Normal3f, Point2f, Point3f, Ray, Vector3f},
     medium::{MediumInterface, PhaseFunction},
     pbrt::{Float, SHADOW_EPSILON},
     primitive::{Primitive, PrimitiveDt},
+    reflection::BSDF,
     shape::{Shape, ShapeDt},
     spectrum::Spectrum,
 };
@@ -211,6 +213,8 @@ pub struct SurfaceInteraction {
     shape: Option<ShapeDt>,
     pub shading: Shading,
     pub primitive: Option<PrimitiveDt>,
+    pub bsdf: Option<Arc<BSDF>>,
+    pub bssrdf: Option<BSSRDFDt>,
     dpdx: Vector3f,
     dpdy: Vector3f,
     dudx: Float,
@@ -251,6 +255,8 @@ impl SurfaceInteraction {
             shape,
             shading: Default::default(),
             primitive: None,
+            bsdf: None,
+            bssrdf: None,
             dpdx: Default::default(),
             dpdy: Default::default(),
             dudx: 0.0,
