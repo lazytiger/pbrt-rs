@@ -12,7 +12,7 @@ use crate::{
     impl_base_camera,
 };
 
-use crate::core::medium::MediumDt;
+use crate::core::{camera::FilmRw, medium::MediumDt};
 use std::{any::Any, sync::Arc};
 
 struct LensElementInterface {
@@ -37,7 +37,7 @@ impl RealisticCamera {
         focus_distance: Float,
         simple_weighting: bool,
         lens_data: &mut Vec<Float>,
-        film: Arc<Film>,
+        film: FilmRw,
         medium: MediumDt,
     ) -> Self {
         let mut rc = Self {
@@ -73,8 +73,8 @@ impl RealisticCamera {
         const N_SAMPLES: usize = 64;
         rc.exit_pupil_bounds.resize(N_SAMPLES, Bounds2f::default());
         for i in 0..N_SAMPLES {
-            let r0 = i as Float / N_SAMPLES as Float * film.diagonal / 2.0;
-            let r1 = (i + 1) as Float / N_SAMPLES as Float * film.diagonal / 2.0;
+            let r0 = i as Float / N_SAMPLES as Float * film.read().unwrap().diagonal / 2.0;
+            let r1 = (i + 1) as Float / N_SAMPLES as Float * film.read().unwrap().diagonal / 2.0;
             rc.exit_pupil_bounds[i] = rc.bound_exit_pupil(r0, r1);
         }
 
@@ -241,7 +241,7 @@ impl RealisticCamera {
     }
 
     fn compute_thick_lens_approximation(&self, pz: &mut [Float; 2], fz: &mut [Float; 2]) {
-        let x = 0.001 * self.film().diagonal;
+        let x = 0.001 * self.film().read().unwrap().diagonal;
         let r_scene = Ray::new(
             Point3f::new(x, 0.0, self.lens_front_z() + 1.0),
             Vector3f::new(0.0, 0.0, -1.0),
@@ -298,7 +298,7 @@ impl RealisticCamera {
     }
 
     fn focus_distance(&self, film_distance: Float) -> Float {
-        let bounds = self.bound_exit_pupil(0.0, 0.001 * self.film().diagonal);
+        let bounds = self.bound_exit_pupil(0.0, 0.001 * self.film().read().unwrap().diagonal);
         let scaled_factors = [0.1, 0.01, 0.001];
         let mut lu = 0.0;
         let mut ray = Ray::default();
@@ -395,8 +395,8 @@ impl RealisticCamera {
         sample_bounds_area: Option<&mut Float>,
     ) -> Point3f {
         let r_film = (p_film.x * p_film.x + p_film.y * p_film.y).sqrt();
-        let mut r_index =
-            r_film / (self.film().diagonal / 2.0) * self.exit_pupil_bounds.len() as Float;
+        let mut r_index = r_film / (self.film().read().unwrap().diagonal / 2.0)
+            * self.exit_pupil_bounds.len() as Float;
         r_index = r_index.min(self.exit_pupil_bounds.len() as Float - 1.0);
         let pupil_bounds = self.exit_pupil_bounds[r_index as usize];
         if let Some(sample_bounds_area) = sample_bounds_area {
@@ -429,12 +429,13 @@ impl Camera for RealisticCamera {
     }
 
     fn generate_ray(&self, sample: &CameraSample, ray: &mut Ray) -> f32 {
+        let full_resolution = self.film().read().unwrap().full_resolution;
         let s = Point2f::new(
-            sample.p_film.x / self.film().full_resolution.x as Float,
-            sample.p_film.y / self.film().full_resolution.y as Float,
+            sample.p_film.x / full_resolution.x as Float,
+            sample.p_film.y / full_resolution.y as Float,
         );
 
-        let p_film2 = self.film().get_physical_extent().lerp(&s);
+        let p_film2 = self.film().read().unwrap().get_physical_extent().lerp(&s);
         let p_film = Point3f::new(-p_film2.x, p_film2.y, 0.0);
 
         let mut exit_pupil_bounds_area = 0.0;

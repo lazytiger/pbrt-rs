@@ -3,11 +3,11 @@ use crate::{
         geometry::Point2i,
         lowdiscrepancy::{sobol_2d, van_der_corput},
         pbrt::round_up_pow2_i64,
-        sampler::{PixelSampler, Sampler, SamplerDt},
+        sampler::{PixelSampler, Sampler, SamplerDt, SamplerDtRw},
     },
     impl_pixel_sampler,
 };
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
 pub struct ZeroTwoSequenceSampler {
@@ -65,9 +65,9 @@ impl Sampler for ZeroTwoSequenceSampler {
         round_up_pow2_i64(n as i64) as usize
     }
 
-    fn clone(&self, seed: usize) -> SamplerDt {
+    fn clone_sampler(&self, seed: usize) -> SamplerDtRw {
         let mut zts = Clone::clone(self);
         zts.base.rng.set_sequence(seed);
-        Arc::new(Box::new(zts))
+        Arc::new(RwLock::new(Box::new(zts)))
     }
 }

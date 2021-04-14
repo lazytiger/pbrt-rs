@@ -4,7 +4,7 @@ use crate::core::{
     pbrt::Float,
     spectrum::{xyz_to_rgb, Spectrum},
 };
-use std::sync::{Arc};
+use std::sync::Arc;
 
 #[derive(Default, Copy, Clone)]
 struct Pixel {
@@ -22,7 +22,7 @@ pub struct Film {
     pub filename: String,
     pub cropped_pixel_bounds: Bounds2i,
     pixels: Vec<Pixel>,
-    filter_table: [Float; FILTER_TABLE_WIDTH * FILTER_TABLE_WIDTH],
+    pub filter_table: [Float; FILTER_TABLE_WIDTH * FILTER_TABLE_WIDTH],
     scale: Float,
     max_sample_luminance: Float,
 }
@@ -90,7 +90,7 @@ impl Film {
         ))
     }
 
-    pub fn get_film_tile(&self, sample_bounds: &Bounds2i) -> Arc<FilmTile> {
+    pub fn get_film_tile(&self, sample_bounds: &Bounds2i) -> FilmTile {
         let half_pixel = Vector2f::new(0.5, 0.5);
         let float_bounds: Bounds2f = (*sample_bounds).into();
         let p0: Point2i = (float_bounds.min - half_pixel - *self.filter.radius())
@@ -100,18 +100,16 @@ impl Film {
             .floor()
             .into();
         let tile_pixel_bounds = Bounds2i::from((p0, p1)).intersect(&self.cropped_pixel_bounds);
-        Arc::new(FilmTile::new(
+        FilmTile::new(
             tile_pixel_bounds,
             *self.filter.radius(),
-            &self.filter_table[..],
             FILTER_TABLE_WIDTH,
             self.max_sample_luminance,
-        ))
+        )
     }
 
-    pub fn merge_film_tile(&mut self, tile: Arc<FilmTile>) {
-        for i in 0..2 {
-            let pixel = tile.get_pixel_bounds()[i];
+    pub fn merge_film_tile(&mut self, tile: FilmTile) {
+        for pixel in &tile.get_pixel_bounds() {
             let tile_pixel = tile.get_pixel(&pixel);
             let merge_pixel = self.get_pixel_mut(&pixel);
             let mut xyz = [0.0; 3];
@@ -155,8 +153,7 @@ impl Film {
     pub fn write_image(&self, splat_scale: Float) {
         let mut rgb = vec![0.0; 3 * self.cropped_pixel_bounds.area() as usize];
         let mut offset = 0;
-        for i in 0..2 {
-            let p = self.cropped_pixel_bounds[i];
+        for p in &self.cropped_pixel_bounds {
             let pixel = self.get_pixel(&p);
             xyz_to_rgb(&pixel.xyz, &mut rgb[3 * offset..]);
             let filter_weight_sum = pixel.filter_weight_sum;
@@ -183,8 +180,8 @@ impl Film {
     }
 
     pub fn clear(&mut self) {
-        for i in 0..2 {
-            let p = self.cropped_pixel_bounds[i];
+        let cropped_pixel_bounds = self.cropped_pixel_bounds;
+        for p in &cropped_pixel_bounds {
             let pixel = self.get_pixel_mut(&p);
             for c in 0..3 {
                 pixel.splat_xyz[c] = 0.0;
@@ -224,21 +221,19 @@ impl Default for FilmTilePixel {
     }
 }
 
-pub struct FilmTile<'a> {
+pub struct FilmTile {
     pixel_bounds: Bounds2i,
     filter_radius: Vector2f,
     inv_filter_radius: Vector2f,
-    filter_table: &'a [Float],
     filter_table_size: usize,
     pixels: Vec<FilmTilePixel>,
     max_sample_luminance: Float,
 }
 
-impl<'a> FilmTile<'a> {
+impl FilmTile {
     pub fn new(
         pixel_bounds: Bounds2i,
         filter_radius: Vector2f,
-        filter_table: &'a [Float],
         filter_table_size: usize,
         max_sample_luminance: Float,
     ) -> Self {
@@ -248,14 +243,19 @@ impl<'a> FilmTile<'a> {
             pixel_bounds,
             filter_radius,
             inv_filter_radius,
-            filter_table,
             filter_table_size,
             max_sample_luminance,
             pixels,
         }
     }
 
-    pub fn add_sample(&mut self, p_film: &Point2f, mut l: Spectrum, sample_weight: Float) {
+    pub fn add_sample(
+        &mut self,
+        p_film: &Point2f,
+        mut l: Spectrum,
+        sample_weight: Float,
+        filter_table: &[Float],
+    ) {
         if l.y_value() > self.max_sample_luminance {
             l *= self.max_sample_luminance / l.y_value();
         }
@@ -286,7 +286,7 @@ impl<'a> FilmTile<'a> {
             for x in p0.x as usize..p1.x as usize {
                 let offset =
                     ify[y - p0.y as usize] * self.filter_table_size + ifx[x - p0.x as usize];
-                let filter_weight = self.filter_table[offset];
+                let filter_weight = filter_table[offset];
                 let pixel = self.get_pixel_mut(&Point2i::new(x as i32, y as i32));
                 pixel.contrib_sum += l * sample_weight * filter_weight;
                 pixel.filter_weight_sum += filter_weight;

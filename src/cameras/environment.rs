@@ -1,9 +1,9 @@
 use crate::{
     core::{
-        camera::{BaseCamera, Camera, CameraSample},
+        camera::{BaseCamera, Camera, CameraSample, FilmRw},
         film::Film,
         geometry::{Point3f, Ray, Vector3f},
-        medium::{MediumDt},
+        medium::MediumDt,
         pbrt::{lerp, Float, PI},
         transform::AnimatedTransform,
     },
@@ -20,7 +20,7 @@ impl EnvironmentCamera {
         camera_to_world: AnimatedTransform,
         shutter_open: Float,
         shutter_close: Float,
-        film: Arc<Film>,
+        film: FilmRw,
         medium: MediumDt,
     ) -> Self {
         EnvironmentCamera {
@@ -35,8 +35,9 @@ impl Camera for EnvironmentCamera {
     }
 
     fn generate_ray(&self, sample: &CameraSample, ray: &mut Ray) -> f32 {
-        let theta = PI * sample.p_film.y / self.film().full_resolution.y as Float;
-        let phi = 2.0 * PI * sample.p_film.x / self.film().full_resolution.x as Float;
+        let theta = PI * sample.p_film.y / self.film().read().unwrap().full_resolution.y as Float;
+        let phi =
+            2.0 * PI * sample.p_film.x / self.film().read().unwrap().full_resolution.x as Float;
         let dir = Vector3f::new(
             theta.sin() * phi.cos(),
             theta.cos(),

@@ -196,8 +196,8 @@ pub struct Shading {
     pub n: Normal3f,
     pub(crate) dpdu: Vector3f,
     dpdv: Vector3f,
-    dndu: Normal3f,
-    dndv: Normal3f,
+    pub(crate) dndu: Normal3f,
+    pub(crate) dndv: Normal3f,
 }
 
 #[derive(Default, Deref, DerefMut)]
@@ -215,12 +215,12 @@ pub struct SurfaceInteraction {
     pub primitive: Option<PrimitiveDt>,
     pub bsdf: Option<Arc<BSDF>>,
     pub bssrdf: Option<BSSRDFDt>,
-    dpdx: Vector3f,
-    dpdy: Vector3f,
-    dudx: Float,
-    dvdx: Float,
-    dudy: Float,
-    dvdy: Float,
+    pub(crate) dpdx: Vector3f,
+    pub(crate) dpdy: Vector3f,
+    pub(crate) dudx: Float,
+    pub(crate) dvdx: Float,
+    pub(crate) dudy: Float,
+    pub(crate) dvdy: Float,
     face_index: i32,
 }
 

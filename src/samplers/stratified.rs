@@ -1,13 +1,13 @@
 use crate::{
     core::{
         geometry::Point2i,
-        sampler::{PixelSampler, Sampler, SamplerDt},
+        sampler::{PixelSampler, Sampler, SamplerDt, SamplerDtRw},
         sampling::{latin_hyper_cube, shuffle, stratified_sample_1d, stratified_sample_2d},
     },
     impl_pixel_sampler,
 };
 use derive_more::{Deref, DerefMut};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Deref, DerefMut)]
 pub struct StratifiedSampler {
@@ -104,9 +104,9 @@ impl Sampler for StratifiedSampler {
         }
     }
 
-    fn clone(&self, seed: usize) -> SamplerDt {
+    fn clone_sampler(&self, seed: usize) -> SamplerDtRw {
         let mut ss = Clone::clone(self);
         ss.base.rng.set_sequence(seed);
-        Arc::new(Box::new(ss))
+        Arc::new(RwLock::new(Box::new(ss)))
     }
 }

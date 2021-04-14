@@ -76,7 +76,7 @@ pub trait Sampler {
         self.set_current_pixel_sample_index(self.current_pixel_sample_index() + 1);
         self.current_pixel_sample_index() < self.samples_per_pixel()
     }
-    fn clone(&self, seed: usize) -> SamplerDt;
+    fn clone_sampler(&self, seed: usize) -> SamplerDtRw;
     fn set_sample_number(&mut self, sample_num: i64) -> bool {
         self.set_array_1d_offset(0);
         self.set_array_2d_offset(0);
@@ -299,7 +299,7 @@ impl Sampler for PixelSampler {
         Sampler::start_next_sample(self)
     }
 
-    fn clone(&self, _seed: usize) -> SamplerDt {
+    fn clone_sampler(&self, _seed: usize) -> SamplerDtRw {
         unimplemented!()
     }
 
@@ -397,7 +397,7 @@ impl Sampler for GlobalSampler {
         Sampler::start_next_sample(self)
     }
 
-    fn clone(&self, _seed: usize) -> SamplerDt {
+    fn clone_sampler(&self, _seed: usize) -> SamplerDtRw {
         unimplemented!()
     }
 

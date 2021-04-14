@@ -228,7 +228,7 @@ impl BSDF {
         sample: &Point2f,
         pdf: &mut f32,
         typ: BxDFType,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         todo!()
     }

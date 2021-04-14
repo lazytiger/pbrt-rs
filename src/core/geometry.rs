@@ -1,18 +1,17 @@
 use std::ops::{
-    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
-    SubAssign,
+    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
 };
 
 use super::RealNum;
 use crate::core::{
     efloat::EFloat,
-    medium::{MediumDt},
+    medium::MediumDt,
     pbrt::{gamma, next_float_down, next_float_up, Float},
     transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref},
 };
 use derive_more::{Deref, DerefMut};
 use num::Bounded;
-use std::{mem::swap};
+use std::mem::swap;
 
 macro_rules! strip_plus {
     (+ $($rest:expr)+) => {
@@ -602,6 +601,45 @@ impl From<Bounds2f> for Bounds2i {
         Self {
             min: Point2i::new(bounds.min.x as i32, bounds.min.y as i32),
             max: Point2i::new(bounds.max.x as i32, bounds.max.y as i32),
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a Bounds2i {
+    type Item = Point2i;
+    type IntoIter = Bounds2iIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Bounds2iIterator::new(self)
+    }
+}
+
+pub struct Bounds2iIterator<'a> {
+    bounds: &'a Bounds2i,
+    point: Point2i,
+}
+
+impl<'a> Bounds2iIterator<'a> {
+    pub fn new(bounds: &'a Bounds2i) -> Self {
+        let mut point = bounds.min;
+        point.x -= 1;
+        Self { point, bounds }
+    }
+}
+
+impl<'a> Iterator for Bounds2iIterator<'a> {
+    type Item = Point2i;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.point.x += 1;
+        if self.point.x == self.bounds.max.x {
+            self.point.x = self.bounds.min.x;
+            self.point.y += 1;
+        }
+        if self.point.y >= self.bounds.max.y {
+            None
+        } else {
+            Some(self.point)
         }
     }
 }

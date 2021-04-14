@@ -1,6 +1,6 @@
 use crate::{
     core::{
-        camera::{BaseCamera, Camera, CameraSample},
+        camera::{BaseCamera, Camera, CameraSample, FilmRw},
         film::Film,
         geometry::{
             Bounds2f, Normal3f, Point2f, Point3f, Ray, RayDifferentials, Vector3, Vector3f,
@@ -39,13 +39,13 @@ impl PerspectiveCamera {
         lens_radius: Float,
         focal_distance: Float,
         fov: Float,
-        film: Arc<Film>,
+        film: FilmRw,
         medium: MediumDt,
     ) -> PerspectiveCamera {
         let camera_to_screen = Transformf::perspective(fov, 1e-2, 1000.0);
         let screen_to_raster = Transformf::scale(
-            film.full_resolution.x as Float,
-            film.full_resolution.y as Float,
+            film.read().unwrap().full_resolution.x as Float,
+            film.read().unwrap().full_resolution.y as Float,
             1.0,
         ) * Transformf::scale(
             1.0 / (screen_window.max.x - screen_window.min.x),
@@ -58,7 +58,7 @@ impl PerspectiveCamera {
         ));
         let raster_to_screen = screen_to_raster.inverse();
         let raster_to_camera = camera_to_screen.inverse() * raster_to_screen;
-        let res = film.full_resolution;
+        let res = film.read().unwrap().full_resolution;
         let mut p_min = &raster_to_camera * Point3Ref(&Point3f::new(0.0, 0.0, 0.0));
         let mut p_max =
             &raster_to_camera * Point3Ref(&Point3f::new(res.x as Float, res.y as Float, 0.0));
@@ -181,7 +181,7 @@ impl Camera for PerspectiveCamera {
             *p_raster2 = Point2f::new(p_raster.x, p_raster.y);
         }
 
-        let sample_bounds = self.film().get_sample_bounds();
+        let sample_bounds = self.film().read().unwrap().get_sample_bounds();
         if p_raster.x < sample_bounds.min.x as Float
             || p_raster.x >= sample_bounds.max.x as Float
             || p_raster.y < sample_bounds.min.y as Float
@@ -220,7 +220,7 @@ impl Camera for PerspectiveCamera {
         );
         let p_raster = &(self.raster_to_camera.inverse() * (c2w.inverse())) * Point3Ref(&p_focus);
 
-        let sample_bounds = self.film().get_sample_bounds();
+        let sample_bounds = self.film().read().unwrap().get_sample_bounds();
         if p_raster.x < sample_bounds.min.x as Float
             || p_raster.x >= sample_bounds.max.x as Float
             || p_raster.y < sample_bounds.min.y as Float

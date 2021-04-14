@@ -2,11 +2,11 @@ use crate::{
     core::{
         geometry::{Point2f, Point2i},
         rng::RNG,
-        sampler::{BaseSampler, Sampler, SamplerDt},
+        sampler::{BaseSampler, Sampler, SamplerDt, SamplerDtRw},
     },
     impl_base_sampler,
 };
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
 pub struct RandomSampler {
@@ -49,10 +49,10 @@ impl Sampler for RandomSampler {
         Point2f::new(self.rng.uniform_float(), self.rng.uniform_float())
     }
 
-    fn clone(&self, seed: usize) -> SamplerDt {
+    fn clone_sampler(&self, seed: usize) -> SamplerDtRw {
         let mut rs = Clone::clone(self);
         rs.rng.set_sequence(seed);
-        Arc::new(Box::new(rs))
+        Arc::new(RwLock::new(Box::new(rs)))
     }
 
     fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {

@@ -3,11 +3,11 @@ use crate::{
         geometry::{Bounds2f, Bounds2i, Point2i},
         lowdiscrepancy::sobol_interval_to_index,
         pbrt::{is_power_of_2, log_2_int_i32, round_up_pow2_i32, round_up_pow2_i64},
-        sampler::{GlobalSampler, Sampler, SamplerDt},
+        sampler::{GlobalSampler, Sampler, SamplerDt, SamplerDtRw},
     },
     impl_global_sampler,
 };
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
 pub struct SobolSampler {
@@ -40,9 +40,9 @@ impl SobolSampler {
 impl Sampler for SobolSampler {
     impl_global_sampler!();
 
-    fn clone(&self, _seed: usize) -> SamplerDt {
+    fn clone_sampler(&self, _seed: usize) -> SamplerDtRw {
         let ss = Clone::clone(self);
-        Arc::new(Box::new(ss))
+        Arc::new(RwLock::new(Box::new(ss)))
     }
 
     fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {

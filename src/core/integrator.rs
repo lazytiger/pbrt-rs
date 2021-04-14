@@ -1,7 +1,8 @@
 use crate::core::{
     arena::Arena,
     camera::{Camera, CameraDt},
-    geometry::{Bounds2i, Point2f, RayDifferentials, Vector3f},
+    film::FilmTile,
+    geometry::{Bounds2i, Point2f, Point2i, Ray, RayDifferentials, Vector3f},
     interaction::{Interaction, InteractionDt, MediumInteraction, SurfaceInteraction},
     light::{is_delta_light, Light, LightDt, VisibilityTester},
     pbrt::{any_equal, Float},
@@ -11,6 +12,7 @@ use crate::core::{
     scene::Scene,
     spectrum::{spectrum_lerp, Spectrum},
 };
+use num::integer::Roots;
 use std::{
     any::Any,
     io::Write,
@@ -27,6 +29,14 @@ pub type SamplerIntegratorDtRw = Arc<RwLock<Box<dyn SamplerIntegrator>>>;
 pub trait Integrator {
     fn as_any(&self) -> &dyn Any;
     fn render(&self, scene: &Scene);
+    fn pre_process(&self, _scene: &Scene, _sampler: SamplerDtRw) {}
+    fn li(
+        &self,
+        ray: &RayDifferentials,
+        scene: &Scene,
+        sampler: SamplerDtRw,
+        depth: i32,
+    ) -> Spectrum;
 }
 
 pub fn uniform_sample_all_lights(
@@ -73,7 +83,6 @@ pub fn uniform_sample_all_lights(
             }
         }
     }
-    todo!()
 }
 
 pub fn uniform_sample_one_light(
@@ -191,7 +200,7 @@ pub fn estimate_direct(
                 u_scattering,
                 &mut scattering_pdf,
                 bsdf_flags,
-                &mut sampled_type,
+                Some(&mut sampled_type),
             );
             f *= wi.abs_dot(&isect.shading.n);
             sampled_specular = !(sampled_type & BxDFType::BSDF_SPECULAR).is_empty();
@@ -259,19 +268,16 @@ pub fn compute_light_power_distribution(scene: &Scene) -> Option<Box<Distributio
     Some(Box::new(Distribution1D::new(light_power.as_slice())))
 }
 
-pub trait SamplerIntegrator: Integrator {
-    fn pre_process(&self, _scene: &Scene, _sampler: SamplerDt) {}
-    fn li(&self, ray: &RayDifferentials, scene: &Scene, sampler: SamplerDt, depth: i32);
-}
+pub trait SamplerIntegrator: Integrator {}
 
 pub struct BaseSamplerIntegrator {
     pub camera: CameraDt,
-    sampler: SamplerDt,
+    sampler: SamplerDtRw,
     pixel_bounds: Bounds2i,
 }
 
 impl BaseSamplerIntegrator {
-    pub fn new(camera: CameraDt, sampler: SamplerDt, pixel_bounds: Bounds2i) -> Self {
+    pub fn new(camera: CameraDt, sampler: SamplerDtRw, pixel_bounds: Bounds2i) -> Self {
         Self {
             camera,
             sampler,
@@ -281,24 +287,101 @@ impl BaseSamplerIntegrator {
 
     pub fn specular_reflect(
         &self,
-        _ray: &RayDifferentials,
-        _isect: &SurfaceInteraction,
-        _scene: &Scene,
-        _sampler: SamplerDt,
-        _depth: i32,
-    ) {
-        todo!()
+        ray: &RayDifferentials,
+        isect: &SurfaceInteraction,
+        scene: &Scene,
+        sampler: SamplerDtRw,
+        depth: i32,
+    ) -> Spectrum {
+        let wo = isect.wo;
+        let mut wi = Vector3f::default();
+        let mut pdf = 0.0;
+        let typ = BxDFType::BSDF_REFLECTION | BxDFType::BSDF_SPECULAR;
+        let f = isect.bsdf.as_ref().unwrap().sample_f(
+            &wo,
+            &mut wi,
+            &sampler.write().unwrap().get_2d(),
+            &mut pdf,
+            typ,
+            None,
+        );
+        let ns = &isect.shading.n;
+        if pdf > 0.0 && !f.is_black() && wi.abs_dot(ns) != 0.0 {
+            let mut rd: RayDifferentials = isect.spawn_ray(&wi).into();
+            if ray.has_differentials {
+                rd.has_differentials = true;
+                rd.rx_origin = isect.p + isect.dpdx;
+                rd.ry_origin = isect.p + isect.dpdy;
+                let dndx = isect.shading.dndu * isect.dudx + isect.shading.dndv * isect.dvdx;
+                let dndy = isect.shading.dndu * isect.dudy + isect.shading.dndv * isect.dvdy;
+                let dwodx = -ray.rx_direction - wo;
+                let dwody = -ray.ry_direction - wo;
+                let ddndx = dwodx.dot(ns) + wo.dot(&dndx);
+                let ddndy = dwody.dot(ns) + wo.dot(&dndy);
+                rd.rx_direction = wi - dwodx + (dndx * wo.dot(ns) + *ns * ddndx) * 2.0;
+                rd.ry_direction = wi - dwody + (dndy * wo.dot(ns) + *ns * ddndy) * 2.0;
+            }
+            f * self.li(&rd, scene, sampler.clone(), depth + 1) * wi.abs_dot(ns) / pdf
+        } else {
+            Spectrum::new(0.0)
+        }
     }
 
     pub fn specular_transmit(
         &self,
-        _ray: &RayDifferentials,
-        _isect: &SurfaceInteraction,
-        _scene: &Scene,
-        _sampler: SamplerDt,
-        _depth: i32,
-    ) {
-        todo!()
+        ray: &RayDifferentials,
+        isect: &SurfaceInteraction,
+        scene: &Scene,
+        sampler: SamplerDtRw,
+        depth: i32,
+    ) -> Spectrum {
+        let wo = isect.wo;
+        let mut wi = Vector3f::default();
+        let mut pdf = 0.0;
+        let bsdf = isect.bsdf.clone().unwrap();
+        let f = bsdf.sample_f(
+            &wo,
+            &mut wi,
+            &sampler.write().unwrap().get_2d(),
+            &mut pdf,
+            BxDFType::BSDF_TRANSMISSION | BxDFType::BSDF_SPECULAR,
+            None,
+        );
+
+        let mut l = Spectrum::new(0.0);
+        let mut ns = isect.shading.n;
+        if pdf > 0.0 && !f.is_black() && wi.abs_dot(&ns) != 0.0 {
+            let mut rd: RayDifferentials = isect.spawn_ray(&wi).into();
+            if ray.has_differentials {
+                rd.has_differentials = true;
+                rd.rx_origin = isect.p + isect.dpdx;
+                rd.ry_origin = isect.p + isect.dpdy;
+                let mut dndx = isect.shading.dndu * isect.dudx + isect.shading.dndv * isect.dvdx;
+                let mut dndy = isect.shading.dndu * isect.dudy + isect.shading.dndv * isect.dvdy;
+
+                let mut eta = 1.0 / bsdf.eta;
+                if wo.dot(&ns) < 0.0 {
+                    eta = 1.0 / eta;
+                    ns = -ns;
+                    dndx = -dndx;
+                    dndy = -dndy;
+                }
+
+                let dwodx = -ray.rx_direction - wo;
+                let dwody = -ray.ry_direction - wo;
+                let ddndx = dwodx.dot(&ns) + wo.dot(&dndx);
+                let ddndy = dwody.dot(&ns) + wo.dot(&dndy);
+
+                let mu = eta * wo.dot(&ns) + wi.abs_dot(&ns);
+                let dmudx = (eta - (eta * eta * wo.dot(&ns)) / wi.abs_dot(&ns)) * ddndx;
+                let dmudy = (eta - (eta * eta * wo.dot(&ns)) / wi.abs_dot(&ns)) * ddndy;
+
+                rd.rx_direction = wi - dwodx * eta + (dndx * mu + ns * dmudx);
+                rd.ry_direction = wi - dwody * eta + (dndy * mu + ns * dmudy);
+            }
+            l = f * self.li(&rd, scene, sampler.clone(), depth + 1) * wi.abs_dot(&ns) / pdf;
+        }
+        l
     }
 }
 
@@ -308,6 +391,95 @@ impl Integrator for BaseSamplerIntegrator {
     }
 
     fn render(&self, scene: &Scene) {
-        todo!()
+        self.pre_process(scene, self.sampler.clone());
+
+        let sample_bounds = self.camera.film().read().unwrap().get_sample_bounds();
+        let sample_extent = sample_bounds.diagonal();
+        const TILE_SIZE: i32 = 16;
+
+        let n_tiles = Point2i::new(
+            (sample_extent.x + TILE_SIZE - 1) / TILE_SIZE,
+            (sample_extent.y + TILE_SIZE - 1) / TILE_SIZE,
+        );
+
+        //todo parallel
+        for y in 0..n_tiles.y as usize {
+            for x in 0..n_tiles.x as usize {
+                let tile = Point2i::new(x as i32, y as i32);
+
+                let seed = tile.y * n_tiles.x + tile.x;
+                let tile_sampler = self.sampler.write().unwrap().clone_sampler(seed as usize);
+
+                let x0 = sample_bounds.min.x + tile.x * TILE_SIZE;
+                let x1 = std::cmp::min(x0 + TILE_SIZE, sample_bounds.max.x);
+                let y0 = sample_bounds.min.y + tile.y * TILE_SIZE;
+                let y1 = std::cmp::min(y0 + TILE_SIZE, sample_bounds.max.y);
+
+                let tile_bounds = Bounds2i::from((Point2i::new(x0, y0), Point2i::new(x1, y1)));
+
+                let mut film_tile = self
+                    .camera
+                    .film()
+                    .read()
+                    .unwrap()
+                    .get_film_tile(&tile_bounds);
+
+                for pixel in &tile_bounds {
+                    tile_sampler.write().unwrap().start_pixel(pixel);
+
+                    if !self.pixel_bounds.inside(&pixel) {
+                        continue;
+                    }
+
+                    loop {
+                        let camera_sample = tile_sampler.write().unwrap().get_camera_sample(&pixel);
+
+                        let mut ray = RayDifferentials::default();
+                        let ray_weight = self
+                            .camera
+                            .generate_ray_differential(&camera_sample, &mut ray);
+                        ray.scale_differentials(
+                            1.0 / (tile_sampler.read().unwrap().samples_per_pixel() as Float)
+                                .sqrt(),
+                        );
+
+                        let mut l = Spectrum::new(0.0);
+                        if ray_weight > 0.0 {
+                            l = self.li(&ray, scene, tile_sampler.clone(), 0);
+                        }
+
+                        if l.has_nans() || l.y_value() < -1e-5 || l.y_value().is_finite() {
+                            l = Spectrum::new(0.0);
+                        }
+
+                        film_tile.add_sample(
+                            &camera_sample.p_film,
+                            l,
+                            ray_weight,
+                            &self.camera.film().read().unwrap().filter_table,
+                        );
+                        if !tile_sampler.write().unwrap().start_next_sample() {
+                            break;
+                        }
+                    }
+                }
+                self.camera
+                    .film()
+                    .write()
+                    .unwrap()
+                    .merge_film_tile(film_tile);
+            }
+        }
+        self.camera.film().write().unwrap().write_image(1.0);
+    }
+
+    fn li(
+        &self,
+        ray: &RayDifferentials,
+        scene: &Scene,
+        sampler: SamplerDtRw,
+        depth: i32,
+    ) -> Spectrum {
+        unimplemented!()
     }
 }

@@ -80,7 +80,7 @@ pub trait Camera {
     fn camera_to_world(&self) -> &AnimatedTransform;
     fn shutter_open(&self) -> Float;
     fn shutter_close(&self) -> Float;
-    fn film(&self) -> Arc<Film>;
+    fn film(&self) -> FilmRw;
     fn medium(&self) -> MediumDt;
 }
 
@@ -88,16 +88,18 @@ pub(crate) struct BaseCamera {
     pub camera_to_world: AnimatedTransform,
     pub shutter_open: Float,
     pub shutter_close: Float,
-    pub film: Arc<Film>,
+    pub film: FilmRw,
     pub medium: MediumDt,
 }
+
+pub type FilmRw = Arc<RwLock<Box<Film>>>;
 
 impl BaseCamera {
     pub fn new(
         camera_to_world: AnimatedTransform,
         shutter_open: Float,
         shutter_close: Float,
-        film: Arc<Film>,
+        film: FilmRw,
         medium: MediumDt,
     ) -> BaseCamera {
         if camera_to_world.has_scale() {
@@ -138,7 +140,7 @@ macro_rules! impl_base_camera {
         }
 
         #[inline]
-        fn film(&self) -> std::sync::Arc<crate::core::film::Film> {
+        fn film(&self) -> $crate::core::camera::FilmRw {
             self.base.film.clone()
         }
 

@@ -7,12 +7,12 @@ use crate::{
         },
         pbrt::Float,
         rng::RNG,
-        sampler::{GlobalSampler, Sampler, SamplerDt},
+        sampler::{GlobalSampler, Sampler, SamplerDt, SamplerDtRw},
     },
     impl_global_sampler,
 };
 use derive_more::{Deref, DerefMut};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 lazy_static::lazy_static! {
     static ref RADICAL_INVERSE_PERMUTATIONS:Vec<u64> = {
@@ -111,8 +111,8 @@ impl HaltonSampler {
 impl Sampler for HaltonSampler {
     impl_global_sampler!();
 
-    fn clone(&self, _seed: usize) -> SamplerDt {
-        Arc::new(Box::new(Clone::clone(self)))
+    fn clone_sampler(&self, _seed: usize) -> SamplerDtRw {
+        Arc::new(RwLock::new(Box::new(Clone::clone(self))))
     }
 
     fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {

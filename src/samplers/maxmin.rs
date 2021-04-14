@@ -3,13 +3,13 @@ use crate::{
         geometry::{Point2f, Point2i},
         lowdiscrepancy::{sample_generator_matrix, sobol_2d, van_der_corput, MAX_MIN_DIST},
         pbrt::{is_power_of_2, log_2_int_i64, round_up_pow2_i64},
-        sampler::{PixelSampler, Sampler, SamplerDt},
+        sampler::{PixelSampler, Sampler, SamplerDt, SamplerDtRw},
         sampling::shuffle,
     },
     impl_pixel_sampler, Float,
 };
 use derive_more::{Deref, DerefMut};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Deref, DerefMut)]
 pub struct MaxMinDistSampler {
@@ -97,9 +97,9 @@ impl Sampler for MaxMinDistSampler {
         self.base.start_pixel(p);
     }
 
-    fn clone(&self, seed: usize) -> SamplerDt {
+    fn clone_sampler(&self, seed: usize) -> SamplerDtRw {
         let mut mmd = Clone::clone(self);
         mmd.rng.set_sequence(seed);
-        Arc::new(Box::new(mmd))
+        Arc::new(RwLock::new(Box::new(mmd)))
     }
 }
