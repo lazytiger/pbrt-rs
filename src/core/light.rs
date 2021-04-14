@@ -10,6 +10,7 @@ use crate::core::{
 };
 use std::{
     any::Any,
+    cmp::Eq,
     sync::{Arc, Mutex, RwLock},
 };
 

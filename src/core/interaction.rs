@@ -185,7 +185,7 @@ impl From<(Point3f, Float, MediumInterface)> for BaseInteraction {
     }
 }
 
-#[derive(Deref, DerefMut)]
+#[derive(Deref, DerefMut, Default)]
 pub struct MediumInteraction {
     #[deref]
     #[deref_mut]

@@ -66,9 +66,9 @@ pub fn latin_hyper_cube<T: IndexMut<usize, Output = Float>>(
 }
 
 pub struct Distribution1D {
-    func: Vec<Float>,
+    pub(crate) func: Vec<Float>,
     cdf: Vec<Float>,
-    func_int: Float,
+    pub(crate) func_int: Float,
 }
 
 impl Distribution1D {

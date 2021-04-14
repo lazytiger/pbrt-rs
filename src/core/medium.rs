@@ -32,6 +32,12 @@ pub struct MediumInterface {
     pub outside: Option<MediumDt>,
 }
 
+impl From<Option<MediumDt>> for MediumInterface {
+    fn from(side: Option<MediumDt>) -> Self {
+        Self::new(side.clone(), side)
+    }
+}
+
 impl MediumInterface {
     pub fn new(inside: Option<MediumDt>, outside: Option<MediumDt>) -> MediumInterface {
         MediumInterface { inside, outside }
@@ -50,6 +56,7 @@ impl MediumInterface {
     }
 }
 
+#[derive(Default)]
 pub struct HenyeyGreenstein {}
 
 impl HenyeyGreenstein {
