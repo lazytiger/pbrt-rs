@@ -1,12 +1,16 @@
 use crate::core::{
     bssrdf::BSSRDFDt,
-    geometry::{offset_ray_origin, Normal3f, Point2f, Point3f, Ray, Vector3f},
+    geometry::{
+        offset_ray_origin, Normal3f, Point2f, Point3f, Ray, RayDifferentials, Vector3, Vector3f,
+    },
+    material::TransportMode,
     medium::{HenyeyGreenstein, MediumInterface, PhaseFunction},
     pbrt::{Float, SHADOW_EPSILON},
     primitive::{Primitive, PrimitiveDt},
     reflection::BSDF,
     shape::{Shape, ShapeDt},
     spectrum::Spectrum,
+    transform::solve_linear_system_2x2,
 };
 use derive_more::{Deref, DerefMut};
 use std::{
@@ -293,6 +297,75 @@ impl SurfaceInteraction {
         self.shading.dpdv = dpdv;
         self.shading.dndu = dndu;
         self.shading.dndv = dndv;
+    }
+
+    pub fn compute_scattering_functions(
+        &mut self,
+        ray: &RayDifferentials,
+        allow_multiple_lobes: bool,
+        mode: TransportMode,
+    ) {
+        self.compute_differentials(ray);
+        self.primitive
+            .clone()
+            .unwrap()
+            .compute_scattering_functions(self, mode, allow_multiple_lobes);
+    }
+
+    fn fail(&mut self) {
+        self.dudx = 0.0;
+        self.dvdx = 0.0;
+        self.dpdx = Vector3::default();
+        self.dpdy = Vector3::default();
+    }
+
+    pub fn compute_differentials(&mut self, ray: &RayDifferentials) {
+        if ray.has_differentials {
+            let d = self.n.dot(&self.p);
+            let tx = -(self.n.dot(&ray.rx_origin) - d) / self.n.dot(&ray.rx_direction);
+            if tx.is_infinite() || tx.is_nan() {
+                return self.fail();
+            }
+            let px = ray.rx_origin + ray.rx_direction * tx;
+
+            let ty = -(self.n.dot(&ray.ry_origin) - d) / self.n.dot(&ray.ry_direction);
+            if ty.is_infinite() || ty.is_nan() {
+                return self.fail();
+            }
+            let py = ray.ry_origin + ray.ry_direction * ty;
+
+            self.dpdx = px - self.p;
+            self.dpdy = py - self.p;
+
+            let mut dim = [0; 2];
+            if self.n.x.abs() > self.n.y.abs() && self.n.x.abs() > self.n.z.abs() {
+                dim[0] = 1;
+                dim[1] = 2;
+            } else if self.n.y.abs() > self.n.z.abs() {
+                dim[0] = 0;
+                dim[1] = 2;
+            } else {
+                dim[0] = 0;
+                dim[1] = 1;
+            }
+
+            let a = [
+                [self.dpdu[dim[0]], self.dpdv[dim[0]]],
+                [self.dpdu[dim[1]], self.dpdv[dim[1]]],
+            ];
+            let bx = [px[dim[0]] - self.p[dim[0]], px[dim[1]] - self.p[dim[1]]];
+            let by = [py[dim[0]] - self.p[dim[0]], py[dim[1]] - self.p[dim[1]]];
+            if !solve_linear_system_2x2(a, bx, &mut self.dudx, &mut self.dvdx) {
+                self.dudx = 0.0;
+                self.dvdx = 0.0;
+            }
+            if !solve_linear_system_2x2(a, by, &mut self.dudy, &mut self.dvdy) {
+                self.dudy = 0.0;
+                self.dvdy = 0.0;
+            }
+        } else {
+            return self.fail();
+        }
     }
 
     pub fn le(&self, w: &Vector3f) -> Spectrum {

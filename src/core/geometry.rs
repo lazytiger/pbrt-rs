@@ -755,7 +755,7 @@ pub struct Ray {
 pub struct RayDifferentials {
     #[deref]
     #[deref_mut]
-    base: Ray,
+    pub(crate) base: Ray,
     pub has_differentials: bool,
     pub rx_origin: Point3f,
     pub ry_origin: Point3f,

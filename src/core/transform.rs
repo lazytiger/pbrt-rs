@@ -12,6 +12,25 @@ use std::{
     ops::{Add, Mul, Sub},
 };
 
+pub fn solve_linear_system_2x2(
+    a: [[Float; 2]; 2],
+    b: [Float; 2],
+    x0: &mut Float,
+    x1: &mut Float,
+) -> bool {
+    let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
+    if det.abs() < 1e-10 {
+        return false;
+    }
+    *x0 = (a[1][1] * b[0] - a[0][1] * b[1]) / det;
+    *x1 = (a[0][0] * b[1] - a[1][0] * b[0]) / det;
+    if x0.is_nan() || x1.is_nan() {
+        false
+    } else {
+        true
+    }
+}
+
 #[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub struct Matrix4x4<T> {
     pub m: [[T; 4]; 4],
