@@ -1,24 +1,28 @@
-use crate::core::{
-    camera::CameraDt,
-    geometry::{Bounds2i, Normal3f, Point3f, Ray, RayDifferentials, Vector3f},
-    integrator::{BaseSamplerIntegrator, Integrator},
-    interaction::{
-        BaseInteraction, Interaction, InteractionDt, MediumInteraction, SurfaceInteraction,
+use crate::{
+    core::{
+        camera::CameraDt,
+        geometry::{Bounds2i, Normal3f, Point2f, Point3f, Ray, RayDifferentials, Vector3f},
+        integrator::{BaseSamplerIntegrator, Integrator},
+        interaction::{
+            BaseInteraction, Interaction, InteractionDt, MediumInteraction, SurfaceInteraction,
+        },
+        light::{is_delta_light, LightDt, LightFlags},
+        material::TransportMode,
+        pbrt::{any_equal, Float, PI},
+        reflection::BxDFType,
+        sampler::SamplerDtRw,
+        sampling::Distribution1D,
+        scene::Scene,
+        spectrum::Spectrum,
     },
-    light::{is_delta_light, LightDt, LightFlags},
-    material::TransportMode,
-    pbrt::{any_equal, Float},
-    reflection::BxDFType,
-    sampler::SamplerDtRw,
-    sampling::Distribution1D,
-    scene::Scene,
-    spectrum::Spectrum,
+    shapes::curve::CurveType::Flat,
 };
 use derive_more::{Deref, DerefMut};
 use std::{
     any::Any,
     collections::HashMap,
     hash::{Hash, Hasher},
+    io::SeekFrom::End,
     path::Prefix::Verbatim,
     raw::TraitObject,
     sync::Arc,
@@ -167,6 +171,9 @@ impl<'a, T: Default + Copy> ScopedAssignment<'a, T> {
     }
 
     pub fn replace(&mut self, other: &mut ScopedAssignment<'a, T>) {
+        if self.target.is_some() {
+            *self.target.take().unwrap() = self.backup;
+        }
         self.target = other.target.take();
         self.backup = other.backup;
     }
@@ -195,7 +202,7 @@ impl Hash for LightKey {
 pub fn infinite_light_density(
     scene: &Scene,
     light_distr: &Distribution1D,
-    light2distr_index: HashMap<LightKey, usize>,
+    light2distr_index: &HashMap<LightKey, usize>,
     w: &Vector3f,
 ) -> Float {
     let mut pdf = 0.0;
@@ -283,11 +290,19 @@ impl Vertex {
     }
 
     pub fn create_camera(camera: CameraDt, ray: &Ray, beta: Spectrum) -> Self {
-        todo!()
+        Vertex::new(
+            VertexType::Camera,
+            EndPointInteraction::from((camera, ray)),
+            beta,
+        )
     }
 
-    pub fn create_camera2(camera: CameraDt, it: InteractionDt, beta: Spectrum) -> Self {
-        todo!()
+    pub fn create_camera2(camera: CameraDt, it: BaseInteraction, beta: Spectrum) -> Self {
+        Vertex::new(
+            VertexType::Camera,
+            EndPointInteraction::from((it, camera)),
+            beta,
+        )
     }
 
     pub fn create_light(
@@ -297,15 +312,25 @@ impl Vertex {
         le: Spectrum,
         pdf: Float,
     ) -> Self {
-        todo!()
+        let mut v = Vertex::new(
+            VertexType::Light,
+            EndPointInteraction::from((light, ray, n_light)),
+            le,
+        );
+        v.pdf_fwd = pdf;
+        v
     }
 
     pub fn create_light2(ei: EndPointInteraction, beta: Spectrum, pdf: Float) -> Self {
-        todo!()
+        let mut v = Vertex::new(VertexType::Light, ei, beta);
+        v.pdf_fwd = pdf;
+        v
     }
 
     pub fn create_medium(mi: MediumInteraction, beta: Spectrum, pdf: Float, prev: Vertex) -> Self {
-        todo!()
+        let mut v = Vertex::from((mi, beta));
+        v.pdf_fwd = prev.convert_density(pdf, &v);
+        v
     }
 
     pub fn create_surface(
@@ -314,7 +339,9 @@ impl Vertex {
         pdf: Float,
         prev: Vertex,
     ) -> Self {
-        todo!()
+        let mut v = Vertex::from((si, beta));
+        v.pdf_fwd = prev.convert_density(pdf, &v);
+        v
     }
 
     pub fn get_interaction(&self) -> &dyn Interaction {
@@ -509,7 +536,75 @@ impl Vertex {
     }
 
     pub fn pdf_light(&self, scene: &Scene, v: &Vertex) -> Float {
-        todo!()
+        let mut w = *v.p() - *self.p();
+        let inv_dist2 = 1.0 / w.length_squared();
+        w *= inv_dist2.sqrt();
+        let mut pdf = 0.0;
+        if self.is_infinite_light() {
+            let mut world_center = Point3f::default();
+            let mut world_radius = 0.0;
+            scene
+                .world_bound()
+                .bounding_sphere(&mut world_center, &mut world_radius);
+            pdf = 1.0 / (PI * world_radius * world_radius);
+        } else {
+            let mut pdf_pos = 0.0;
+            let mut pdf_dir = 0.0;
+            let ray = Ray::new(*self.p(), w, Float::INFINITY, self.time(), None);
+            let light = if let VertexType::Light = self.typ {
+                self.ei
+                    .light
+                    .clone()
+                    .unwrap()
+                    .pdf_le(&ray, self.ng(), &mut pdf_pos, &mut pdf_dir);
+            } else {
+                self.si
+                    .primitive
+                    .clone()
+                    .unwrap()
+                    .get_area_light()
+                    .unwrap()
+                    .pdf_le(&ray, self.ng(), &mut pdf_pos, &mut pdf_dir);
+            };
+            pdf = pdf_dir * inv_dist2;
+        }
+        if v.is_on_surface() {
+            pdf *= v.ng().abs_dot(&w);
+        }
+        pdf
+    }
+
+    pub fn pdf_light_origin(
+        &self,
+        scene: &Scene,
+        v: &Vertex,
+        light_distr: &Distribution1D,
+        light2distr_index: &HashMap<LightKey, usize>,
+    ) -> Float {
+        let w = *v.p() - *self.p();
+        if w.length_squared() == 0.0 {
+            return 0.0;
+        }
+        let w = w.normalize();
+        if self.is_infinite_light() {
+            infinite_light_density(scene, light_distr, light2distr_index, &w)
+        } else {
+            let (mut pdf_pos, mut pdf_dir, mut pdf_choice) = (0.0, 0.0, 0.0);
+            let light = if let VertexType::Light = self.typ {
+                self.ei.light.clone().unwrap()
+            } else {
+                self.si.primitive.clone().unwrap().get_area_light().unwrap()
+            };
+            let index = *light2distr_index.get(&LightKey(light.clone())).unwrap();
+            pdf_choice = light_distr.discrete_pdf(index);
+            light.pdf_le(
+                &Ray::new(*self.p(), w, Float::INFINITY, self.time(), None),
+                self.ng(),
+                &mut pdf_pos,
+                &mut pdf_dir,
+            );
+            pdf_pos * pdf_choice
+        }
     }
 }
 
@@ -540,4 +635,42 @@ impl From<(SurfaceInteraction, Spectrum)> for Vertex {
             delta: false,
         }
     }
+}
+
+fn generate_camera_sub_path(
+    scene: &Scene,
+    sampler: SamplerDtRw,
+    max_depth: usize,
+    camera: CameraDt,
+    p_film: Point2f,
+    path: &mut [Vertex],
+) {
+    todo!()
+}
+
+fn generate_light_sub_path(
+    scene: &Scene,
+    sampler: &SamplerDtRw,
+    max_depth: usize,
+    time: Float,
+    light_distr: &Distribution1D,
+    light2index: &HashMap<LightKey, usize>,
+    path: &mut [Vertex],
+) {
+    todo!()
+}
+
+fn connect_bdpt(
+    scene: &Scene,
+    light_vertices: &mut [Vertex],
+    camera_vertices: &mut [Vertex],
+    s: usize,
+    light_distr: &Distribution1D,
+    light2index: &HashMap<LightKey, usize>,
+    camera: CameraDt,
+    sampler: SamplerDtRw,
+    p_raster: &mut Point2f,
+    mis_weight: Option<&mut Float>,
+) {
+    todo!()
 }

@@ -1,7 +1,7 @@
 use crate::core::{
     geometry::{Bounds3f, Ray},
     interaction::SurfaceInteraction,
-    light::AreaLightDt,
+    light::LightDt,
     material::{Material, MaterialDt, TransportMode},
     medium::MediumInterface,
     pbrt::Float,
@@ -18,7 +18,7 @@ pub trait Primitive {
     fn world_bound(&self) -> Bounds3f;
     fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> bool;
     fn intersect_p(&self, r: &Ray) -> bool;
-    fn get_area_light(&self) -> Option<AreaLightDt>;
+    fn get_area_light(&self) -> Option<LightDt>;
     fn get_material(&self) -> Option<MaterialDt>;
     fn compute_scattering_functions(
         &self,
@@ -31,7 +31,7 @@ pub trait Primitive {
 pub struct GeometricPrimitive {
     shape: ShapeDt,
     material: Option<MaterialDt>,
-    area_light: Option<AreaLightDt>,
+    area_light: Option<LightDt>,
     medium_interface: MediumInterface,
 }
 
@@ -39,7 +39,7 @@ impl GeometricPrimitive {
     pub fn new(
         shape: ShapeDt,
         material: Option<MaterialDt>,
-        area_light: Option<AreaLightDt>,
+        area_light: Option<LightDt>,
         medium_interface: MediumInterface,
     ) -> GeometricPrimitive {
         GeometricPrimitive {
@@ -79,7 +79,7 @@ impl Primitive for GeometricPrimitive {
         self.shape.intersect_p(r, true)
     }
 
-    fn get_area_light(&self) -> Option<AreaLightDt> {
+    fn get_area_light(&self) -> Option<LightDt> {
         self.area_light.clone()
     }
 
@@ -155,7 +155,7 @@ impl Primitive for TransformedPrimitive {
         }
     }
 
-    fn get_area_light(&self) -> Option<AreaLightDt> {
+    fn get_area_light(&self) -> Option<LightDt> {
         None
     }
 

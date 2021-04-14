@@ -1,7 +1,7 @@
 use crate::core::{
     geometry::{offset_ray_origin, Bounds3f, IntersectP, Point2f, Ray, Union, Vector3f},
     interaction::{Interaction, SurfaceInteraction},
-    light::{AreaLight, AreaLightDt},
+    light::LightDt,
     material::{Material, MaterialDt, TransportMode},
     pbrt::{log_2_int_u64, Float},
     primitive::{Primitive, PrimitiveDt},
@@ -585,7 +585,7 @@ impl Primitive for KdTreeAccel {
         false
     }
 
-    fn get_area_light(&self) -> Option<AreaLightDt> {
+    fn get_area_light(&self) -> Option<LightDt> {
         unimplemented!(
             "Aggregate does not support get_area_light method, use GeometricPrimitive instead"
         )

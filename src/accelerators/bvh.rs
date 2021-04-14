@@ -2,7 +2,7 @@ use crate::core::{
     arena::{Arena, Indexed},
     geometry::{Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f},
     interaction::SurfaceInteraction,
-    light::{AreaLight, AreaLightDt},
+    light::LightDt,
     material::{Material, MaterialDt, TransportMode},
     pbrt::Float,
     primitive::{Primitive, PrimitiveDt},
@@ -888,7 +888,7 @@ impl Primitive for BVHAccel {
         }
     }
 
-    fn get_area_light(&self) -> Option<AreaLightDt> {
+    fn get_area_light(&self) -> Option<LightDt> {
         unimplemented!(
             "Aggregate does not support get_area_light method, use GeometricPrimitive instead"
         )

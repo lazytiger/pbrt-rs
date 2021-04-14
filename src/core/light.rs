@@ -62,6 +62,8 @@ pub trait Light {
     fn flags(&self) -> LightFlags;
 
     fn pdf_le(&self, ray: &Ray, n_light: &Vector3f, pdf_pos: &mut Float, pdf_dir: &mut Float);
+
+    fn l(&self, si: &SurfaceInteraction, v: &Vector3f) -> Spectrum;
 }
 
 pub struct BaseLight {
@@ -70,10 +72,6 @@ pub struct BaseLight {
     pub medium_interface: MediumInterface,
     pub light_to_world: Transformf,
     pub world_to_light: Transformf,
-}
-
-pub trait AreaLight: Light {
-    fn l(&self, si: &SurfaceInteraction, v: &Vector3f) -> Spectrum;
 }
 
 #[derive(Default)]
@@ -107,6 +105,3 @@ impl VisibilityTester {
 pub type LightDt = Arc<Box<dyn Light>>;
 pub type LightDtMut = Arc<Mutex<Box<dyn Light>>>;
 pub type LightDtRw = Arc<RwLock<Box<dyn Light>>>;
-pub type AreaLightDt = Arc<Box<dyn AreaLight>>;
-pub type AreaLightDtMut = Arc<Mutex<Box<dyn AreaLight>>>;
-pub type AreaLightDtRw = Arc<RwLock<Box<dyn AreaLight>>>;

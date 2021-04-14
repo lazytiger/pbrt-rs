@@ -32,3 +32,32 @@ fn test_traits() {
     let t: &Test<MyPhase> = p.as_any().downcast_ref().unwrap();
     t.a.dummy();
 }
+
+#[test]
+fn test_two_level() {
+    trait Level1 {
+        fn as_any(&self) -> &dyn Any;
+    }
+
+    trait Level2: Level1 {
+        fn test(&self);
+    }
+
+    struct Test {}
+
+    impl Level1 for Test {
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+
+    impl Level2 for Test {
+        fn test(&self) {
+            println!("level2 called");
+        }
+    }
+
+    let t: Arc<Box<dyn Level1>> = Arc::new(Box::new(Test {}));
+    let l2: &Test = t.as_any().downcast_ref().unwrap();
+    l2.test();
+}
