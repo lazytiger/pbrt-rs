@@ -4,6 +4,7 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
+#[derive(Clone, Copy)]
 pub enum TransportMode {
     Radiance,
     Importance,

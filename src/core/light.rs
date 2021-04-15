@@ -57,7 +57,7 @@ pub trait Light {
         n_light: &mut Normal3f,
         pdf_pos: &mut Float,
         pdf_dir: &mut Float,
-    );
+    ) -> Spectrum;
 
     fn flags(&self) -> LightFlags;
 
@@ -72,6 +72,12 @@ pub struct BaseLight {
     pub medium_interface: MediumInterface,
     pub light_to_world: Transformf,
     pub world_to_light: Transformf,
+}
+
+macro_rules! impl_base_light {
+    () => {
+        todo!()
+    };
 }
 
 #[derive(Default)]

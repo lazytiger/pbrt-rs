@@ -319,6 +319,12 @@ macro_rules! define_spectrum {
                 }
             }
         }
+
+        impl From<Float> for $name {
+            fn from(v: Float) -> Self {
+                Self::new(v)
+            }
+        }
     };
 }
 

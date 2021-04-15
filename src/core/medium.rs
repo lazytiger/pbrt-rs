@@ -1,5 +1,6 @@
 use crate::core::{
     geometry::{Point2f, Ray, Vector3f},
+    interaction::MediumInteraction,
     pbrt::{any_equal, Float},
     sampler::SamplerDtRw,
     spectrum::Spectrum,
@@ -19,7 +20,7 @@ pub trait PhaseFunction {
 pub trait Medium {
     fn as_any(&self) -> &dyn Any;
     fn tr(&self, ray: &Ray, sampler: SamplerDtRw) -> Spectrum;
-    fn sample(&self, ray: &Ray, sampler: SamplerDtRw, mi: &mut MediumInterface) -> Spectrum;
+    fn sample(&self, ray: &Ray, sampler: SamplerDtRw, mi: &mut MediumInteraction) -> Spectrum;
 }
 
 pub type MediumDt = Arc<Box<dyn Medium>>;
@@ -56,7 +57,7 @@ impl MediumInterface {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct HenyeyGreenstein {}
 
 impl HenyeyGreenstein {

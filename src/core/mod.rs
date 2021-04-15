@@ -17,6 +17,7 @@ pub mod material;
 pub mod medium;
 pub mod microfacet;
 pub mod mipmap;
+pub mod parallel;
 pub mod pbrt;
 pub mod primitive;
 pub mod quaternion;

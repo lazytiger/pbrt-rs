@@ -4,7 +4,7 @@ use crate::core::{
         offset_ray_origin, Normal3f, Point2f, Point3f, Ray, RayDifferentials, Vector3, Vector3f,
     },
     material::TransportMode,
-    medium::{HenyeyGreenstein, MediumInterface, PhaseFunction},
+    medium::{HenyeyGreenstein, MediumDt, MediumInterface, PhaseFunction},
     pbrt::{Float, SHADOW_EPSILON},
     primitive::{Primitive, PrimitiveDt},
     reflection::BSDF,
@@ -185,15 +185,31 @@ impl From<(Point3f, Float, MediumInterface)> for BaseInteraction {
     }
 }
 
-#[derive(Deref, DerefMut, Default)]
+#[derive(Deref, DerefMut, Default, Clone)]
 pub struct MediumInteraction {
     #[deref]
     #[deref_mut]
     base: BaseInteraction,
-    pub phase: HenyeyGreenstein,
+    pub phase: Option<HenyeyGreenstein>,
 }
 
-impl MediumInteraction {}
+impl MediumInteraction {
+    pub fn new(
+        p: Point3f,
+        wo: Vector3f,
+        time: Float,
+        medium: MediumDt,
+        phase: Option<HenyeyGreenstein>,
+    ) -> Self {
+        Self {
+            base: BaseInteraction::from((p, wo, time, Some(medium).into())),
+            phase,
+        }
+    }
+    pub fn is_valid(&self) -> bool {
+        self.phase.is_some()
+    }
+}
 
 #[derive(Copy, Clone, Default)]
 pub struct Shading {
@@ -204,7 +220,7 @@ pub struct Shading {
     pub(crate) dndv: Normal3f,
 }
 
-#[derive(Default, Deref, DerefMut)]
+#[derive(Default, Deref, DerefMut, Clone)]
 pub struct SurfaceInteraction {
     #[deref]
     #[deref_mut]

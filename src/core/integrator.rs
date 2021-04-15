@@ -163,7 +163,7 @@ pub fn estimate_direct(
                 * wi.abs_dot(&isect.shading.n)
         } else {
             let mi: &MediumInteraction = it.as_any().downcast_ref().unwrap();
-            let p = mi.phase.p(&mi.wo, &wi);
+            let p = mi.phase.as_ref().unwrap().p(&mi.wo, &wi);
             scattering_pdf = p;
             Spectrum::new(p)
         };
@@ -207,7 +207,11 @@ pub fn estimate_direct(
             f
         } else {
             let mi: &MediumInteraction = it.as_any().downcast_ref().unwrap();
-            let p = mi.phase.sample_p(&mi.wo, &mut wi, u_scattering);
+            let p = mi
+                .phase
+                .as_ref()
+                .unwrap()
+                .sample_p(&mi.wo, &mut wi, u_scattering);
             scattering_pdf = p;
             Spectrum::new(p)
         };
