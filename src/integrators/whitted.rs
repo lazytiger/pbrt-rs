@@ -1,7 +1,7 @@
 use crate::core::{
     camera::CameraDt,
     geometry::{Bounds2i, RayDifferentials},
-    integrator::{BaseSamplerIntegrator, Integrator},
+    integrator::{Integrator, SamplerIntegrator},
     sampler::SamplerDtRw,
     scene::Scene,
     spectrum::Spectrum,
@@ -13,7 +13,7 @@ use std::any::Any;
 pub struct WhittedIntegrator {
     #[deref]
     #[deref_mut]
-    base: BaseSamplerIntegrator,
+    base: SamplerIntegrator,
     cos_sample: bool,
     n_samples: usize,
 }
@@ -35,16 +35,16 @@ impl Integrator for WhittedIntegrator {
         self
     }
 
-    fn render(&self, scene: &Scene) {
+    fn render(&mut self, scene: &Scene) {
         self.base.render(scene)
     }
 
     fn li(
         &self,
-        ray: &RayDifferentials,
+        ray: &mut RayDifferentials,
         scene: &Scene,
         sampler: SamplerDtRw,
-        depth: i32,
+        depth: usize,
     ) -> Spectrum {
         todo!()
     }

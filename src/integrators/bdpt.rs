@@ -6,7 +6,7 @@ use crate::{
             Bounds2f, Bounds2i, Normal3f, Point2f, Point2i, Point3f, Ray, RayDifferentials,
             Vector3f,
         },
-        integrator::{BaseSamplerIntegrator, Integrator},
+        integrator::{Integrator, SamplerIntegrator},
         interaction::{
             BaseInteraction, Interaction, InteractionDt, MediumInteraction, SurfaceInteraction,
         },
@@ -271,7 +271,7 @@ impl Integrator for BDPTIntegrator {
         self
     }
 
-    fn render(&self, scene: &Scene) {
+    fn render(&mut self, scene: &Scene) {
         let light_distribution =
             create_light_sample_distribution(self.light_sample_strategy.clone(), scene);
         let mut light2index = HashMap::new();
@@ -436,10 +436,10 @@ impl Integrator for BDPTIntegrator {
 
     fn li(
         &self,
-        ray: &RayDifferentials,
+        ray: &mut RayDifferentials,
         scene: &Scene,
         sampler: SamplerDtRw,
-        depth: i32,
+        depth: usize,
     ) -> Spectrum {
         unimplemented!()
     }

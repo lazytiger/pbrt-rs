@@ -59,11 +59,13 @@ pub trait Light {
         pdf_dir: &mut Float,
     ) -> Spectrum;
 
-    fn flags(&self) -> LightFlags;
-
     fn pdf_le(&self, ray: &Ray, n_light: &Vector3f, pdf_pos: &mut Float, pdf_dir: &mut Float);
 
     fn l(&self, si: &SurfaceInteraction, v: &Vector3f) -> Spectrum;
+
+    fn n_samples(&self) -> usize;
+
+    fn flags(&self) -> LightFlags;
 }
 
 pub struct BaseLight {

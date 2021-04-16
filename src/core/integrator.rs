@@ -22,20 +22,17 @@ use std::{
 pub type IntegratorDt = Arc<Box<dyn Integrator>>;
 pub type IntegratorDtMut = Arc<Mutex<Box<dyn Integrator>>>;
 pub type IntegratorDtRw = Arc<RwLock<Box<dyn Integrator>>>;
-pub type SamplerIntegratorDt = Arc<Box<dyn SamplerIntegrator>>;
-pub type SamplerIntegratorDtMut = Arc<Mutex<Box<dyn SamplerIntegrator>>>;
-pub type SamplerIntegratorDtRw = Arc<RwLock<Box<dyn SamplerIntegrator>>>;
 
 pub trait Integrator {
     fn as_any(&self) -> &dyn Any;
-    fn render(&self, scene: &Scene);
-    fn pre_process(&self, _scene: &Scene, _sampler: SamplerDtRw) {}
+    fn render(&mut self, scene: &Scene);
+    fn pre_process(&mut self, _scene: &Scene, _sampler: SamplerDtRw) {}
     fn li(
         &self,
-        ray: &RayDifferentials,
+        ray: &mut RayDifferentials,
         scene: &Scene,
         sampler: SamplerDtRw,
-        depth: i32,
+        depth: usize,
     ) -> Spectrum;
 }
 
@@ -43,9 +40,9 @@ pub fn uniform_sample_all_lights(
     it: InteractionDt,
     scene: &Scene,
     sampler: SamplerDtRw,
-    n_light_samples: Vec<usize>,
+    n_light_samples: &Vec<usize>,
     handle_media: bool,
-) {
+) -> Spectrum {
     let mut l = Spectrum::new(0.0);
     for j in 0..scene.lights.len() {
         let light = scene.lights[j].clone();
@@ -81,8 +78,10 @@ pub fn uniform_sample_all_lights(
                     false,
                 );
             }
+            l += ld / n_samples as Float;
         }
     }
+    l
 }
 
 pub fn uniform_sample_one_light(
@@ -272,15 +271,13 @@ pub fn compute_light_power_distribution(scene: &Scene) -> Option<Box<Distributio
     Some(Box::new(Distribution1D::new(light_power.as_slice())))
 }
 
-pub trait SamplerIntegrator: Integrator {}
-
-pub struct BaseSamplerIntegrator {
+pub struct SamplerIntegrator {
     pub camera: CameraDt,
     sampler: SamplerDtRw,
     pixel_bounds: Bounds2i,
 }
 
-impl BaseSamplerIntegrator {
+impl SamplerIntegrator {
     pub fn new(camera: CameraDt, sampler: SamplerDtRw, pixel_bounds: Bounds2i) -> Self {
         Self {
             camera,
@@ -295,7 +292,7 @@ impl BaseSamplerIntegrator {
         isect: &SurfaceInteraction,
         scene: &Scene,
         sampler: SamplerDtRw,
-        depth: i32,
+        depth: usize,
     ) -> Spectrum {
         let wo = isect.wo;
         let mut wi = Vector3f::default();
@@ -325,7 +322,7 @@ impl BaseSamplerIntegrator {
                 rd.rx_direction = wi - dwodx + (dndx * wo.dot(ns) + *ns * ddndx) * 2.0;
                 rd.ry_direction = wi - dwody + (dndy * wo.dot(ns) + *ns * ddndy) * 2.0;
             }
-            f * self.li(&rd, scene, sampler.clone(), depth + 1) * wi.abs_dot(ns) / pdf
+            f * self.li(&mut rd, scene, sampler.clone(), depth + 1) * wi.abs_dot(ns) / pdf
         } else {
             Spectrum::new(0.0)
         }
@@ -337,7 +334,7 @@ impl BaseSamplerIntegrator {
         isect: &SurfaceInteraction,
         scene: &Scene,
         sampler: SamplerDtRw,
-        depth: i32,
+        depth: usize,
     ) -> Spectrum {
         let wo = isect.wo;
         let mut wi = Vector3f::default();
@@ -383,18 +380,18 @@ impl BaseSamplerIntegrator {
                 rd.rx_direction = wi - dwodx * eta + (dndx * mu + ns * dmudx);
                 rd.ry_direction = wi - dwody * eta + (dndy * mu + ns * dmudy);
             }
-            l = f * self.li(&rd, scene, sampler.clone(), depth + 1) * wi.abs_dot(&ns) / pdf;
+            l = f * self.li(&mut rd, scene, sampler.clone(), depth + 1) * wi.abs_dot(&ns) / pdf;
         }
         l
     }
 }
 
-impl Integrator for BaseSamplerIntegrator {
+impl Integrator for SamplerIntegrator {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
-    fn render(&self, scene: &Scene) {
+    fn render(&mut self, scene: &Scene) {
         self.pre_process(scene, self.sampler.clone());
 
         let sample_bounds = self.camera.film().read().unwrap().get_sample_bounds();
@@ -449,7 +446,7 @@ impl Integrator for BaseSamplerIntegrator {
 
                         let mut l = Spectrum::new(0.0);
                         if ray_weight > 0.0 {
-                            l = self.li(&ray, scene, tile_sampler.clone(), 0);
+                            l = self.li(&mut ray, scene, tile_sampler.clone(), 0);
                         }
 
                         if l.has_nans() || l.y_value() < -1e-5 || l.y_value().is_finite() {
@@ -479,10 +476,10 @@ impl Integrator for BaseSamplerIntegrator {
 
     fn li(
         &self,
-        ray: &RayDifferentials,
+        ray: &mut RayDifferentials,
         scene: &Scene,
         sampler: SamplerDtRw,
-        depth: i32,
+        depth: usize,
     ) -> Spectrum {
         unimplemented!()
     }

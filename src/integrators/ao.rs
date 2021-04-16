@@ -1,7 +1,7 @@
 use crate::core::{
     camera::CameraDt,
     geometry::{Bounds2i, RayDifferentials, Vector3f},
-    integrator::{BaseSamplerIntegrator, Integrator},
+    integrator::{Integrator, SamplerIntegrator},
     interaction::SurfaceInteraction,
     material::TransportMode,
     pbrt::Float,
@@ -20,7 +20,7 @@ use std::any::Any;
 pub struct AOIntegrator {
     #[deref]
     #[deref_mut]
-    base: BaseSamplerIntegrator,
+    base: SamplerIntegrator,
     cos_sample: bool,
     n_samples: usize,
 }
@@ -36,7 +36,7 @@ impl AOIntegrator {
         let n_samples = sampler.read().unwrap().round_count(n_samples);
         sampler.write().unwrap().request_2d_array(n_samples);
         Self {
-            base: BaseSamplerIntegrator::new(camera, sampler, pixel_bounds),
+            base: SamplerIntegrator::new(camera, sampler, pixel_bounds),
             cos_sample,
             n_samples,
         }
@@ -48,19 +48,19 @@ impl Integrator for AOIntegrator {
         self
     }
 
-    fn render(&self, scene: &Scene) {
+    fn render(&mut self, scene: &Scene) {
         self.base.render(scene)
     }
 
     fn li(
         &self,
-        r: &RayDifferentials,
+        ray: &mut RayDifferentials,
         scene: &Scene,
         sampler: SamplerDtRw,
-        depth: i32,
+        depth: usize,
     ) -> Spectrum {
         let mut l = Spectrum::new(0.0);
-        let mut ray = r.clone();
+        let mut ray = ray.clone();
         let mut isect = SurfaceInteraction::default();
 
         loop {

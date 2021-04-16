@@ -1,7 +1,7 @@
 use crate::core::{
     camera::CameraDt,
     geometry::{Bounds2i, RayDifferentials},
-    integrator::{BaseSamplerIntegrator, Integrator},
+    integrator::{Integrator, SamplerIntegrator},
     sampler::SamplerDtRw,
     scene::Scene,
     spectrum::Spectrum,
@@ -31,16 +31,16 @@ impl Integrator for SPPMIntegrator {
         self
     }
 
-    fn render(&self, scene: &Scene) {
+    fn render(&mut self, scene: &Scene) {
         todo!()
     }
 
     fn li(
         &self,
-        ray: &RayDifferentials,
+        ray: &mut RayDifferentials,
         scene: &Scene,
         sampler: SamplerDtRw,
-        depth: i32,
+        depth: usize,
     ) -> Spectrum {
         todo!()
     }
