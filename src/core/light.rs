@@ -61,7 +61,9 @@ pub trait Light {
 
     fn pdf_le(&self, ray: &Ray, n_light: &Vector3f, pdf_pos: &mut Float, pdf_dir: &mut Float);
 
-    fn l(&self, si: &SurfaceInteraction, v: &Vector3f) -> Spectrum;
+    fn l(&self, si: &SurfaceInteraction, v: &Vector3f) -> Spectrum {
+        unimplemented!("l only implemented in AreaLight")
+    }
 
     fn n_samples(&self) -> usize;
 

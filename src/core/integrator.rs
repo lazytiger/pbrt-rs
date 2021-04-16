@@ -33,7 +33,9 @@ pub trait Integrator {
         scene: &Scene,
         sampler: SamplerDtRw,
         depth: usize,
-    ) -> Spectrum;
+    ) -> Spectrum {
+        unimplemented!("li only implemented in SamplerIntegrator")
+    }
 }
 
 pub fn uniform_sample_all_lights(

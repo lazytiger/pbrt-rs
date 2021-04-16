@@ -7,3 +7,9 @@ pub fn parallel_for_2d<F: Fn(Point2i)>(func: F, count: &Point2i) {
         }
     }
 }
+
+pub fn parallel_for<F: Fn(usize)>(func: F, count: usize, chunk_size: usize) {
+    for i in 0..count {
+        func(i)
+    }
+}

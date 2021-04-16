@@ -34,14 +34,4 @@ impl Integrator for SPPMIntegrator {
     fn render(&mut self, scene: &Scene) {
         todo!()
     }
-
-    fn li(
-        &self,
-        ray: &mut RayDifferentials,
-        scene: &Scene,
-        sampler: SamplerDtRw,
-        depth: usize,
-    ) -> Spectrum {
-        todo!()
-    }
 }

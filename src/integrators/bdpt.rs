@@ -199,7 +199,7 @@ impl<'a, T: Default + Clone> ScopedAssignment<'a, T> {
     }
 }
 
-pub struct LightKey(LightDt);
+pub struct LightKey(pub LightDt);
 
 impl PartialEq for LightKey {
     fn eq(&self, other: &Self) -> bool {
@@ -432,16 +432,6 @@ impl Integrator for BDPTIntegrator {
                 &Point2i::new(n_x_tiles, n_y_tiles),
             );
         }
-    }
-
-    fn li(
-        &self,
-        ray: &mut RayDifferentials,
-        scene: &Scene,
-        sampler: SamplerDtRw,
-        depth: usize,
-    ) -> Spectrum {
-        unimplemented!()
     }
 }
 
@@ -829,7 +819,7 @@ impl From<(SurfaceInteraction, Spectrum)> for Vertex {
     }
 }
 
-fn generate_camera_sub_path(
+pub fn generate_camera_sub_path(
     scene: &Scene,
     sampler: SamplerDtRw,
     max_depth: usize,
@@ -966,7 +956,7 @@ fn random_walk(
     1
 }
 
-fn generate_light_sub_path(
+pub fn generate_light_sub_path(
     scene: &Scene,
     sampler: SamplerDtRw,
     max_depth: usize,
@@ -1032,7 +1022,7 @@ fn generate_light_sub_path(
     n_vertices + 1
 }
 
-fn connect_bdpt(
+pub fn connect_bdpt(
     scene: &Scene,
     light_vertices: &mut [Vertex],
     camera_vertices: &mut [Vertex],

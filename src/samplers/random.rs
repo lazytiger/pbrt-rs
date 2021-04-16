@@ -54,12 +54,4 @@ impl Sampler for RandomSampler {
         rs.rng.set_sequence(seed);
         Arc::new(RwLock::new(Box::new(rs)))
     }
-
-    fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {
-        unimplemented!("This method is not supported for RandomSampler")
-    }
-
-    fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
-        unimplemented!("This method is not supported for RandomSampler")
-    }
 }

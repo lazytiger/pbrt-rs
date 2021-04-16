@@ -14,6 +14,7 @@ use derive_more::{Deref, DerefMut};
 
 pub trait Sampler {
     fn as_any(&self) -> &dyn Any;
+    fn as_mut_any(&mut self) -> &mut dyn Any;
     fn start_pixel(&mut self, p: Point2i) {
         self.set_current_pixel(p);
         self.set_current_pixel_sample_index(0);
@@ -86,8 +87,12 @@ pub trait Sampler {
     fn current_sample_number(&self) -> i64 {
         self.current_pixel_sample_index()
     }
-    fn get_index_for_sample(&mut self, sample_num: usize) -> i64;
-    fn sample_dimension(&self, index: i64, dimension: usize) -> Float;
+    fn get_index_for_sample(&mut self, sample_num: usize) -> i64 {
+        unimplemented!("get_index_for_sample only implemented for GlobalSampler")
+    }
+    fn sample_dimension(&self, index: i64, dimension: usize) -> Float {
+        unimplemented!("sample_dimension only implemented for GlobalSampler")
+    }
     fn samples_per_pixel(&self) -> i64;
 
     #[inline]
@@ -149,6 +154,10 @@ impl BaseSampler {
 macro_rules! impl_base_sampler {
     () => {
         fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+
+        fn as_mut_any(&mut self) -> &mut dyn std::any::Any {
             self
         }
 
@@ -308,14 +317,6 @@ impl Sampler for PixelSampler {
         self.current_1d_dimension = 0;
         Sampler::set_sample_number(self, sample_num)
     }
-
-    fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {
-        unimplemented!()
-    }
-
-    fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
-        unimplemented!()
-    }
 }
 
 const ARRAY_START_DIM: usize = 5;
@@ -406,14 +407,6 @@ impl Sampler for GlobalSampler {
         self.interval_sample_index = self.get_index_for_sample(sample_num as usize);
         Sampler::set_sample_number(self, sample_num)
     }
-
-    fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {
-        unimplemented!()
-    }
-
-    fn sample_dimension(&self, _index: i64, _dimension: usize) -> f32 {
-        unimplemented!()
-    }
 }
 
 #[macro_export]
@@ -450,14 +443,6 @@ macro_rules! impl_pixel_sampler {
 
         fn set_sample_number(&mut self, sample_num: i64) -> bool {
             self.set_sample_number(sample_num)
-        }
-
-        fn get_index_for_sample(&mut self, _sample_num: usize) -> i64 {
-            unimplemented!("PixelSampler does not support this method");
-        }
-
-        fn sample_dimension(&self, _index: i64, _dimension: usize) -> $crate::core::pbrt::Float {
-            unimplemented!("PixelSampler does not support this method");
         }
     };
 }
