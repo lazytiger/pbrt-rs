@@ -159,6 +159,7 @@ impl FourierBSDFTable {
     }
 }
 
+#[derive(Clone)]
 pub struct BSDF {
     pub eta: Float,
     ns: Normal3f,
