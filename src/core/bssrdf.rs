@@ -1,4 +1,10 @@
-use crate::core::pbrt::Float;
+use crate::core::{
+    geometry::{Point2f, Vector3f},
+    interaction::SurfaceInteraction,
+    pbrt::Float,
+    scene::Scene,
+    spectrum::Spectrum,
+};
 use std::sync::{Arc, Mutex, RwLock};
 
 pub fn fresnel_moment1(inv_eta: Float) -> Float {
@@ -13,4 +19,14 @@ pub type BSSRDFDt = Arc<Box<dyn BSSRDF>>;
 pub type BSSRDFDtMut = Arc<Mutex<Box<dyn BSSRDF>>>;
 pub type BSSRDFDtRw = Arc<RwLock<Box<dyn BSSRDF>>>;
 
-pub trait BSSRDF {}
+pub trait BSSRDF {
+    fn s(&self, pi: &SurfaceInteraction, wi: &Vector3f) -> Spectrum;
+    fn sample_s(
+        &self,
+        scene: &Scene,
+        u1: Float,
+        u2: &Point2f,
+        si: &mut SurfaceInteraction,
+        pdf: &mut Float,
+    ) -> Spectrum;
+}
