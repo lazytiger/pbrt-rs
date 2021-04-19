@@ -3,13 +3,13 @@ use crate::{
         camera::CameraDt,
         geometry::{Bounds2i, Bounds3f, Point2i, Point3f, Point3i, RayDifferentials, Vector3f},
         integrator::{compute_light_power_distribution, Integrator, SamplerIntegrator},
-        parallel::parallel_for_2d,
         pbrt::{clamp, Float},
         reflection::BSDF,
         sampler::SamplerDtRw,
         scene::Scene,
         spectrum::Spectrum,
     },
+    parallel_for_2d,
     samplers::halton::HaltonSampler,
 };
 use derive_more::{Deref, DerefMut};
@@ -140,7 +140,7 @@ impl Integrator for SPPMIntegrator {
             (pixel_extent.y + tile_size - 1) / tile_size,
         );
         for iter in 0..self.n_iterations {
-            parallel_for_2d(|tile| {}, &n_tiles);
+            parallel_for_2d!(|tile| {}, n_tiles);
 
             let mut grid_res = [0; 3];
             let mut grid_bounds = Bounds3f::default();

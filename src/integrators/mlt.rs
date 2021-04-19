@@ -3,7 +3,6 @@ use crate::{
         camera::CameraDt,
         geometry::{Bounds2f, Bounds2i, Point2f, Point2i, RayDifferentials},
         integrator::{compute_light_power_distribution, Integrator, SamplerIntegrator},
-        parallel::parallel_for,
         pbrt::{clamp, erf_inv, Float},
         primitive::Primitive,
         rng::RNG,
@@ -16,6 +15,7 @@ use crate::{
     integrators::bdpt::{
         connect_bdpt, generate_camera_sub_path, generate_light_sub_path, LightKey, Vertex,
     },
+    parallel_for,
 };
 use derive_more::{Deref, DerefMut};
 use num::integer::Roots;
@@ -302,7 +302,7 @@ impl Integrator for MLTIntegrator {
         let mut bootstrap_weights = RwLock::new(vec![0.0; n_bootstrap_samples]);
         if scene.lights.len() > 0 {
             let chunk_size = clamp(self.n_bootstrap as isize / 128, 1, 8192) as usize;
-            parallel_for(
+            parallel_for!(
                 |i: usize| {
                     for depth in 0..self.max_depth + 1 {
                         let rng_index = i * (self.max_depth + 1) + depth;
@@ -341,7 +341,7 @@ impl Integrator for MLTIntegrator {
         let n_total_mutations =
             self.mutation_per_pixel * film.read().unwrap().get_sample_bounds().area() as usize;
         if scene.lights.len() > 0 {
-            parallel_for(
+            parallel_for!(
                 |i| {
                     let n_chain_mutations = std::cmp::min(
                         (i + 1) * n_total_mutations / self.n_chains,

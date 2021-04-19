@@ -13,7 +13,6 @@ use crate::{
         light::{is_delta_light, LightDt, LightFlags, VisibilityTester},
         lightdistrib::create_light_sample_distribution,
         material::TransportMode,
-        parallel::parallel_for_2d,
         pbrt::{any_equal, Float, PI},
         reflection::BxDFType,
         sampler::SamplerDtRw,
@@ -23,6 +22,7 @@ use crate::{
     },
     filters::boxf::create_box_filter,
     integrators::bdpt::VertexType::Surface,
+    parallel_for_2d,
     shapes::curve::CurveType::Flat,
 };
 use derive_more::{Deref, DerefMut};
@@ -314,8 +314,8 @@ impl Integrator for BDPTIntegrator {
         }
 
         if scene.lights.len() > 0 {
-            parallel_for_2d(
-                |tile| {
+            parallel_for_2d!(
+                |tile: Arc<Box<Point2i>>| {
                     let seed = tile.y * n_x_tiles + tile.x;
                     let tile_sampler = self.sampler.read().unwrap().clone_sampler(seed as usize);
                     let x0 = sample_bounds.min.x + tile.x * tile_size;
@@ -429,7 +429,7 @@ impl Integrator for BDPTIntegrator {
                     }
                     film.write().unwrap().merge_film_tile(film_tile);
                 },
-                &Point2i::new(n_x_tiles, n_y_tiles),
+                Point2i::new(n_x_tiles, n_y_tiles)
             );
         }
     }
