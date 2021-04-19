@@ -151,6 +151,6 @@ macro_rules! impl_base_camera {
     };
 }
 
-pub type CameraDt = Arc<Box<dyn Camera>>;
-pub type CameraDtMut = Arc<Mutex<Box<dyn Camera>>>;
-pub type CameraDtRw = Arc<RwLock<Box<dyn Camera>>>;
+pub type CameraDt = Arc<Box<dyn Camera + Sync + Send>>;
+pub type CameraDtMut = Arc<Mutex<Box<dyn Camera + Sync + Send>>>;
+pub type CameraDtRw = Arc<RwLock<Box<dyn Camera + Sync + Send>>>;

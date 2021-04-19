@@ -112,6 +112,6 @@ impl VisibilityTester {
     }
 }
 
-pub type LightDt = Arc<Box<dyn Light>>;
-pub type LightDtMut = Arc<Mutex<Box<dyn Light>>>;
-pub type LightDtRw = Arc<RwLock<Box<dyn Light>>>;
+pub type LightDt = Arc<Box<dyn Light + Sync + Send>>;
+pub type LightDtMut = Arc<Mutex<Box<dyn Light + Sync + Send>>>;
+pub type LightDtRw = Arc<RwLock<Box<dyn Light + Sync + Send>>>;

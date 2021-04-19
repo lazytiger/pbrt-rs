@@ -173,6 +173,6 @@ impl Primitive for TransformedPrimitive {
     }
 }
 
-pub type PrimitiveDt = Arc<Box<dyn Primitive>>;
-pub type PrimitiveDtMut = Arc<Mutex<Box<dyn Primitive>>>;
-pub type PrimitiveDtRw = Arc<RwLock<Box<dyn Primitive>>>;
+pub type PrimitiveDt = Arc<Box<dyn Primitive + Sync + Send>>;
+pub type PrimitiveDtMut = Arc<Mutex<Box<dyn Primitive + Sync + Send>>>;
+pub type PrimitiveDtRw = Arc<RwLock<Box<dyn Primitive + Sync + Send>>>;

@@ -77,7 +77,7 @@ fn average_spectrum_samples(
 
     while i + 1 < n && lambda_end >= lambda[i] {
         let seg_lambda_start = lambda_start.max(lambda[i]);
-        let seg_lambda_end = lambda_end.min(lambda[i]);
+        let seg_lambda_end = lambda_end.min(lambda[i + 1]);
         sum += 0.5
             * (interp(seg_lambda_start, i) + interp(seg_lambda_end, i))
             * (seg_lambda_end - seg_lambda_start);

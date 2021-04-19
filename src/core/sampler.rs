@@ -447,6 +447,6 @@ macro_rules! impl_pixel_sampler {
     };
 }
 
-pub type SamplerDt = Arc<Box<dyn Sampler>>;
-pub type SamplerDtMut = Arc<Mutex<Box<dyn Sampler>>>;
-pub type SamplerDtRw = Arc<RwLock<Box<dyn Sampler>>>;
+pub type SamplerDt = Arc<Box<dyn Sampler + Send + Sync>>;
+pub type SamplerDtMut = Arc<Mutex<Box<dyn Sampler + Send + Sync>>>;
+pub type SamplerDtRw = Arc<RwLock<Box<dyn Sampler + Send + Sync>>>;

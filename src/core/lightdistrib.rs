@@ -1,7 +1,7 @@
 use crate::core::{geometry::Point3f, sampling::Distribution1D, scene::Scene};
 use std::{any::Any, sync::Arc};
 
-pub type LightDistributionDt = Arc<Box<dyn LightDistribution>>;
+pub type LightDistributionDt = Arc<Box<dyn LightDistribution + Sync + Send>>;
 
 pub trait LightDistribution {
     fn as_any(&self) -> &dyn Any;

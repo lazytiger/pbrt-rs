@@ -43,6 +43,6 @@ macro_rules! impl_base_filter {
     };
 }
 
-pub type FilterDt = Arc<Box<dyn Filter>>;
-pub type FilterDtMut = Arc<Mutex<Box<dyn Filter>>>;
-pub type FilterDtRw = Arc<RwLock<Box<dyn Filter>>>;
+pub type FilterDt = Arc<Box<dyn Filter + Sync + Send>>;
+pub type FilterDtMut = Arc<Mutex<Box<dyn Filter + Sync + Send>>>;
+pub type FilterDtRw = Arc<RwLock<Box<dyn Filter + Sync + Send>>>;
