@@ -420,7 +420,6 @@ impl Integrator for MLTIntegrator {
                     }
                 },
                 self.n_chains,
-                1,
             );
         }
         self.camera
