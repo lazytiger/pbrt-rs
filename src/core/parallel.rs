@@ -6,7 +6,7 @@ macro_rules! parallel_for_2d {
         rayon::scope(|s| {
             for y in 0..$count.y {
                 for x in 0..$count.x {
-                    let p = Arc::new(Box::new(Point2i::new(x, y)));
+                    let p = Arc::new(Point2i::new(x, y));
                     s.spawn(|_| $func(p));
                 }
             }

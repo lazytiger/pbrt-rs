@@ -315,7 +315,7 @@ impl Integrator for BDPTIntegrator {
 
         if scene.lights.len() > 0 {
             parallel_for_2d!(
-                |tile: Arc<Box<Point2i>>| {
+                |tile: Arc<Point2i>| {
                     let seed = tile.y * n_x_tiles + tile.x;
                     let tile_sampler = self.sampler.read().unwrap().clone_sampler(seed as usize);
                     let x0 = sample_bounds.min.x + tile.x * tile_size;
