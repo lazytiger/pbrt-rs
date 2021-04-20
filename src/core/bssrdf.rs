@@ -15,9 +15,9 @@ pub fn fresnel_moment2(inv_eta_: Float) -> Float {
     todo!()
 }
 
-pub type BSSRDFDt = Arc<Box<dyn BSSRDF>>;
-pub type BSSRDFDtMut = Arc<Mutex<Box<dyn BSSRDF>>>;
-pub type BSSRDFDtRw = Arc<RwLock<Box<dyn BSSRDF>>>;
+pub type BSSRDFDt = Arc<Box<dyn BSSRDF + Sync + Send>>;
+pub type BSSRDFDtMut = Arc<Mutex<Box<dyn BSSRDF + Sync + Send>>>;
+pub type BSSRDFDtRw = Arc<RwLock<Box<dyn BSSRDF + Sync + Send>>>;
 
 pub trait BSSRDF {
     fn s(&self, pi: &SurfaceInteraction, wi: &Vector3f) -> Spectrum;

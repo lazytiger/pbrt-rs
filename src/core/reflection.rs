@@ -259,7 +259,7 @@ impl BSDF {
     }
 }
 
-pub type BxDFDt = Arc<Box<dyn BxDF>>;
+pub type BxDFDt = Arc<Box<dyn BxDF + Sync + Send>>;
 
 pub trait BxDF {
     fn as_any(&self) -> &dyn Any;

@@ -41,3 +41,13 @@ fn test_lifetime() {
         }
     }
 }
+
+#[test]
+fn test_for() {
+    for mut i in 0..5 {
+        println!("{}", i);
+        if i == 3 {
+            i -= 1;
+        }
+    }
+}
