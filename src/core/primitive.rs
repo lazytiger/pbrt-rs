@@ -10,10 +10,11 @@ use crate::core::{
 };
 use std::{
     any::Any,
+    fmt::Debug,
     sync::{Arc, Mutex, RwLock},
 };
 
-pub trait Primitive {
+pub trait Primitive: Debug {
     fn as_any(&self) -> &dyn Any;
     fn world_bound(&self) -> Bounds3f;
     fn intersect(&self, r: &mut Ray, si: &mut SurfaceInteraction) -> bool;
@@ -28,6 +29,7 @@ pub trait Primitive {
     );
 }
 
+#[derive(Debug)]
 pub struct GeometricPrimitive {
     shape: ShapeDt,
     material: Option<MaterialDt>,
@@ -99,6 +101,7 @@ impl Primitive for GeometricPrimitive {
     }
 }
 
+#[derive(Debug)]
 struct TransformedPrimitive {
     primitive: Option<PrimitiveDt>,
     primitive_to_world: AnimatedTransform,

@@ -7,6 +7,7 @@ use crate::core::{
 };
 use std::{
     any::Any,
+    fmt::Debug,
     sync::{Arc, Mutex, RwLock},
 };
 
@@ -17,7 +18,7 @@ pub trait PhaseFunction {
     fn to_string(&self) -> String;
 }
 
-pub trait Medium {
+pub trait Medium: Debug {
     fn as_any(&self) -> &dyn Any;
     fn tr(&self, ray: &Ray, sampler: SamplerDtRw) -> Spectrum;
     fn sample(&self, ray: &Ray, sampler: SamplerDtRw, mi: &mut MediumInteraction) -> Spectrum;
@@ -27,7 +28,7 @@ pub type MediumDt = Arc<Box<dyn Medium>>;
 pub type MediumDtMut = Arc<Mutex<Box<dyn Medium>>>;
 pub type MediumDtRw = Arc<RwLock<Box<dyn Medium>>>;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct MediumInterface {
     pub inside: Option<MediumDt>,
     pub outside: Option<MediumDt>,

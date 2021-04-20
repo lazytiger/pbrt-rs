@@ -1,6 +1,7 @@
 use crate::core::interaction::SurfaceInteraction;
 use std::{
     any::Any,
+    fmt::Debug,
     sync::{Arc, Mutex, RwLock},
 };
 
@@ -10,7 +11,7 @@ pub enum TransportMode {
     Importance,
 }
 
-pub trait Material {
+pub trait Material: Debug {
     fn as_any(&self) -> &dyn Any;
     fn compute_scattering_functions(
         &self,

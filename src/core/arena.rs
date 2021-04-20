@@ -1,3 +1,5 @@
+use std::sync::{Arc, RwLock};
+
 pub struct Arena<T> {
     data: Vec<T>,
 }
@@ -40,3 +42,5 @@ impl<T: Indexed> Arena<T> {
         offset
     }
 }
+
+pub type ArenaRw<T> = Arc<RwLock<Arena<T>>>;

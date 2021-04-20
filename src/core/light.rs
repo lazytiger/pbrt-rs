@@ -11,6 +11,7 @@ use crate::core::{
 use std::{
     any::Any,
     cmp::Eq,
+    fmt::Debug,
     sync::{Arc, Mutex, RwLock},
 };
 
@@ -29,7 +30,7 @@ pub fn is_delta_light(flags: LightFlags) -> bool {
         || (flags & LightFlags::DELTA_POSITION).is_empty()
 }
 
-pub trait Light {
+pub trait Light: Debug {
     fn as_any(&self) -> &dyn Any;
     fn sample_li(
         &self,

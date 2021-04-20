@@ -1,12 +1,15 @@
-use crate::core::{
-    arena::{Arena, Indexed},
-    geometry::{Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f},
-    interaction::SurfaceInteraction,
-    light::LightDt,
-    material::{Material, MaterialDt, TransportMode},
-    pbrt::Float,
-    primitive::{Primitive, PrimitiveDt},
-    RealNum,
+use crate::{
+    core::{
+        arena::{Arena, ArenaRw, Indexed},
+        geometry::{Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f},
+        interaction::SurfaceInteraction,
+        light::LightDt,
+        material::{Material, MaterialDt, TransportMode},
+        pbrt::Float,
+        primitive::{Primitive, PrimitiveDt},
+        RealNum,
+    },
+    parallel_for,
 };
 use num::traits::real::Real;
 use std::{
@@ -16,7 +19,7 @@ use std::{
     mem::swap,
     sync::{
         atomic::{AtomicI32, AtomicUsize},
-        Arc,
+        Arc, RwLock,
     },
 };
 
@@ -55,33 +58,33 @@ impl BVHBuildNode {
     }
 
     fn static_init_interior(
-        arena: &mut Arena<BVHBuildNode>,
+        arena: ArenaRw<BVHBuildNode>,
         axis: usize,
         s: usize,
         c0: usize,
         c1: usize,
     ) {
         let (bounds, children) = {
-            let c0 = arena.get(c0);
-            let c1 = arena.get(c1);
+            let read_lock = arena.read().unwrap();
+            let c0 = read_lock.get(c0);
+            let c1 = read_lock.get(c1);
             (c0.bounds.union(&c1.bounds), [c0.index, c1.index])
         };
-        let node = arena.get_mut(s);
-        node.bounds = bounds;
-        node.children = children;
-        node.split_axis = axis;
-        node.n_primitives = 0;
+
+        {
+            let mut write_lock = arena.write().unwrap();
+            let node = write_lock.get_mut(s);
+            node.bounds = bounds;
+            node.children = children;
+            node.split_axis = axis;
+            node.n_primitives = 0;
+        }
     }
 
-    fn init_interior(
-        &mut self,
-        arena: &mut Arena<BVHBuildNode>,
-        axis: usize,
-        c0: usize,
-        c1: usize,
-    ) {
-        let c0 = arena.get(c0);
-        let c1 = arena.get(c1);
+    fn init_interior(&mut self, arena: ArenaRw<BVHBuildNode>, axis: usize, c0: usize, c1: usize) {
+        let read_lock = arena.read().unwrap();
+        let c0 = read_lock.get(c0);
+        let c1 = read_lock.get(c1);
         self.bounds = c0.bounds.union(&c1.bounds);
         self.children = [c0.index, c1.index];
         self.split_axis = axis;
@@ -104,20 +107,12 @@ struct LBVHTreelet {
 }
 
 impl LBVHTreelet {
-    fn node<'a>(&self, arena: &'a Arena<BVHBuildNode>, offset: usize) -> &'a BVHBuildNode {
-        arena.get(offset + self.node_start)
+    fn node(&self, offset: usize) -> usize {
+        offset + self.node_start
     }
 
-    fn node_mut<'a>(
-        &self,
-        arena: &'a mut Arena<BVHBuildNode>,
-        offset: usize,
-    ) -> &'a mut BVHBuildNode {
-        arena.get_mut(offset + self.node_start)
-    }
-
-    fn root_node<'a>(&self, arena: &'a Arena<BVHBuildNode>) -> &'a BVHBuildNode {
-        arena.get(self.root_index + self.node_start)
+    fn root_node(&self) -> usize {
+        self.root_index + self.node_start
     }
 }
 
@@ -131,7 +126,7 @@ impl Indexed for BVHBuildNode {
     }
 }
 
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Copy, Clone, Debug)]
 struct LinearBVHNode {
     bounds: Bounds3f,
     primitive_or_second_child_offset: usize,
@@ -201,6 +196,7 @@ fn radix_sort(v: &mut Vec<MortonPrimitive>) {
     }
 }
 
+#[derive(Debug)]
 pub enum SplitMethod {
     SAH,
     HLBVH,
@@ -208,6 +204,7 @@ pub enum SplitMethod {
     EqualCounts,
 }
 
+#[derive(Debug)]
 pub struct BVHAccel {
     max_prims_in_node: usize,
     split_method: SplitMethod,
@@ -238,31 +235,35 @@ impl BVHAccel {
             primitive_infos.push(info);
         }
 
-        let mut arena: Arena<BVHBuildNode> = Arena::with_capacity(1024 * 1024);
+        let mut arena: ArenaRw<BVHBuildNode> =
+            Arc::new(RwLock::new(Arena::with_capacity(1024 * 1024)));
         let mut total_nodes = 0;
-        let mut ordered_prims = Vec::with_capacity(accel.primitives.len());
+        let mut ordered_prims = Arc::new(RwLock::new(Vec::with_capacity(accel.primitives.len())));
         let root = if let SplitMethod::HLBVH = accel.split_method {
             accel.hlbvh_build(
-                &mut arena,
+                arena.clone(),
                 &primitive_infos,
                 &mut total_nodes,
-                &mut ordered_prims,
+                ordered_prims.clone(),
             )
         } else {
             accel.recursive_build(
-                &mut arena,
+                arena.clone(),
                 primitive_infos.as_mut_slice(),
                 0,
                 accel.primitives.len(),
                 &mut total_nodes,
-                &mut ordered_prims,
+                ordered_prims.clone(),
             )
         };
 
-        accel.primitives = ordered_prims;
+        accel.primitives = Arc::try_unwrap(ordered_prims)
+            .unwrap()
+            .into_inner()
+            .unwrap();
         accel.nodes = Some(vec![LinearBVHNode::default(); total_nodes]);
         let mut offset = 0;
-        accel.flatten_bvh_tree(&arena, root, &mut offset);
+        accel.flatten_bvh_tree(arena.clone(), root, &mut offset);
         if total_nodes != offset {
             panic!("flattern_bvh_tree failed");
         }
@@ -271,14 +272,14 @@ impl BVHAccel {
 
     fn recursive_build<'a>(
         &self,
-        arena: &mut Arena<BVHBuildNode>,
+        arena: ArenaRw<BVHBuildNode>,
         primitive_info: &mut [BVHPrimitiveInfo],
         start: usize,
         end: usize,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<PrimitiveDt>,
+        ordered_prims: Arc<RwLock<Vec<PrimitiveDt>>>,
     ) -> usize {
-        let (index, _) = arena.alloc(BVHBuildNode::default());
+        let (index, _) = arena.write().unwrap().alloc(BVHBuildNode::default());
         *total_nodes += 1;
         let mut bounds = Bounds3f::default();
         for i in start..end {
@@ -286,14 +287,19 @@ impl BVHAccel {
         }
         let n_primitives = end - start;
         if n_primitives == 1 {
-            let first_prim_offset = ordered_prims.len();
+            let first_prim_offset = ordered_prims.read().unwrap().len();
             for i in start..end {
                 let prim_num = primitive_info[i].primitive_number;
-                ordered_prims.push(self.primitives[prim_num].clone());
+                ordered_prims
+                    .write()
+                    .unwrap()
+                    .push(self.primitives[prim_num].clone());
             }
-            arena
-                .get_mut(index)
-                .init_leaf(first_prim_offset, n_primitives, bounds);
+            arena.write().unwrap().get_mut(index).init_leaf(
+                first_prim_offset,
+                n_primitives,
+                bounds,
+            );
             return index;
         } else {
             let centroid_bounds = Bounds3f::default();
@@ -304,14 +310,19 @@ impl BVHAccel {
 
             let mut mid = (start + end) / 2;
             if centroid_bounds.max[dim] == centroid_bounds.min[dim] {
-                let first_prim_offset = ordered_prims.len();
+                let first_prim_offset = ordered_prims.read().unwrap().len();
                 for i in start..end {
                     let prim_num = primitive_info[i].primitive_number;
-                    ordered_prims.push(self.primitives[prim_num].clone());
+                    ordered_prims
+                        .write()
+                        .unwrap()
+                        .push(self.primitives[prim_num].clone());
                 }
-                arena
-                    .get_mut(index)
-                    .init_leaf(first_prim_offset, n_primitives, bounds);
+                arena.write().unwrap().get_mut(index).init_leaf(
+                    first_prim_offset,
+                    n_primitives,
+                    bounds,
+                );
                 return index;
             } else {
                 match self.split_method {
@@ -420,12 +431,15 @@ impl BVHAccel {
                                     })
                                     + start;
                             } else {
-                                let first_prim_offset = ordered_prims.len();
+                                let first_prim_offset = ordered_prims.read().unwrap().len();
                                 for i in start..end {
                                     let prim_num = primitive_info[i].primitive_number;
-                                    ordered_prims.push(self.primitives[prim_num].clone());
+                                    ordered_prims
+                                        .write()
+                                        .unwrap()
+                                        .push(self.primitives[prim_num].clone());
                                 }
-                                arena.get_mut(index).init_leaf(
+                                arena.write().unwrap().get_mut(index).init_leaf(
                                     first_prim_offset,
                                     n_primitives,
                                     bounds,
@@ -436,22 +450,22 @@ impl BVHAccel {
                     }
                 }
                 let c0 = self.recursive_build(
-                    arena,
+                    arena.clone(),
                     primitive_info,
                     start,
                     mid,
                     total_nodes,
-                    ordered_prims,
+                    ordered_prims.clone(),
                 );
                 let c1 = self.recursive_build(
-                    arena,
+                    arena.clone(),
                     primitive_info,
                     mid,
                     end,
                     total_nodes,
-                    ordered_prims,
+                    ordered_prims.clone(),
                 );
-                BVHBuildNode::static_init_interior(arena, dim, index, c0, c1);
+                BVHBuildNode::static_init_interior(arena.clone(), dim, index, c0, c1);
             }
         }
 
@@ -460,31 +474,36 @@ impl BVHAccel {
 
     fn hlbvh_build(
         &self,
-        arena: &mut Arena<BVHBuildNode>,
+        arena: ArenaRw<BVHBuildNode>,
         primitive_info: &Vec<BVHPrimitiveInfo>,
         total_node: &mut usize,
-        ordered_prims: &mut Vec<PrimitiveDt>,
+        ordered_prims: Arc<RwLock<Vec<PrimitiveDt>>>,
     ) -> usize {
         let bounds = Bounds3f::default();
         for pi in primitive_info {
             bounds.union(&pi.centroid);
         }
 
-        let mut morton_prims = vec![MortonPrimitive::default(); primitive_info.len()];
+        let mut morton_prims = RwLock::new(vec![MortonPrimitive::default(); primitive_info.len()]);
 
         //TODO parallel
-        for i in 0..primitive_info.len() {
-            let morton_bits = 10;
-            let morton_scale = 1 << morton_bits;
-            morton_prims[i].primitive_index = primitive_info[i].primitive_number;
-            let centroid_offset = bounds.offset(&primitive_info[i].centroid);
-            morton_prims[i].morton_code =
-                encode_morton3(&(centroid_offset * morton_scale as Float));
-        }
+        parallel_for!(
+            |i: usize| {
+                let morton_bits = 10;
+                let morton_scale = 1 << morton_bits;
+                let centroid_offset = bounds.offset(&primitive_info[i].centroid);
+                let code = encode_morton3(&(centroid_offset * morton_scale as Float));
+                let mut write_lock = morton_prims.write().unwrap();
+                write_lock[i].primitive_index = primitive_info[i].primitive_number;
+                write_lock[i].morton_code = code;
+            },
+            primitive_info.len()
+        );
 
+        let mut morton_prims = morton_prims.into_inner().unwrap();
         radix_sort(&mut morton_prims);
 
-        let mut treelets_to_build = Vec::new();
+        let mut treelets_to_build = Arc::new(RwLock::new(Vec::new()));
         let start = 0;
         for end in 1..morton_prims.len() + 1 {
             let mask = 0b00111111111111000000000000000000;
@@ -495,8 +514,10 @@ impl BVHAccel {
                 let n_primitives = end - start;
                 let max_bvh_nodes = 2 * n_primitives;
                 let node_start = arena
+                    .write()
+                    .unwrap()
                     .alloc_extend(std::iter::repeat(BVHBuildNode::default()).take(max_bvh_nodes));
-                treelets_to_build.push(LBVHTreelet {
+                treelets_to_build.write().unwrap().push(LBVHTreelet {
                     start_index: start,
                     n_primitive: n_primitives,
                     node_start,
@@ -505,34 +526,39 @@ impl BVHAccel {
             }
         }
         let atomic_total = AtomicUsize::new(0);
-        let mut ordered_prim_offset = AtomicUsize::new(0);
-        //TODO parallel
-        let mut finished_treelets = Vec::with_capacity(treelets_to_build.len());
-        for i in 0..treelets_to_build.len() {
-            let mut nodes_created = 0;
-            let first_bit_index = 29 - 12;
-            let treelet = treelets_to_build[i];
-            self.emit_lbvh(
-                arena,
-                &mut treelets_to_build[i],
-                0,
-                primitive_info,
-                &morton_prims[treelet.start_index..],
-                treelet.n_primitive,
-                &mut nodes_created,
-                ordered_prims,
-                &mut ordered_prim_offset,
-                first_bit_index,
-            );
-            let node = treelets_to_build[i].root_node(arena);
-            finished_treelets.push(node.index);
-            atomic_total.fetch_add(nodes_created, std::sync::atomic::Ordering::SeqCst);
-        }
+        let ordered_prim_offset = Arc::new(RwLock::new(AtomicUsize::new(0)));
+        let mut finished_treelets =
+            RwLock::new(Vec::with_capacity(treelets_to_build.read().unwrap().len()));
+        parallel_for!(
+            |i: usize| {
+                let mut nodes_created = 0;
+                let first_bit_index = 29 - 12;
+                let treelet = treelets_to_build.read().unwrap()[i];
+                self.emit_lbvh(
+                    arena.clone(),
+                    treelets_to_build.clone(),
+                    i,
+                    0,
+                    primitive_info,
+                    &morton_prims[treelet.start_index..],
+                    treelet.n_primitive,
+                    &mut nodes_created,
+                    ordered_prims.clone(),
+                    ordered_prim_offset.clone(),
+                    first_bit_index,
+                );
+                let node = treelets_to_build.read().unwrap()[i].root_node();
+                finished_treelets.write().unwrap().push(node);
+                atomic_total.fetch_add(nodes_created, std::sync::atomic::Ordering::SeqCst);
+            },
+            treelets_to_build.read().unwrap().len()
+        );
         *total_node = atomic_total.load(std::sync::atomic::Ordering::SeqCst);
 
+        let mut finished_treelets = finished_treelets.into_inner().unwrap();
         let length = finished_treelets.len();
         self.build_upper_sah(
-            arena,
+            arena.clone(),
             finished_treelets.as_mut_slice(),
             0,
             length,
@@ -542,30 +568,38 @@ impl BVHAccel {
 
     fn emit_lbvh(
         &self,
-        arena: &mut Arena<BVHBuildNode>,
-        treelet: &mut LBVHTreelet,
+        arena: ArenaRw<BVHBuildNode>,
+        treelets: Arc<RwLock<Vec<LBVHTreelet>>>,
+        i: usize,
         mut offset: usize,
         primitive_info: &Vec<BVHPrimitiveInfo>,
         morton_prims: &[MortonPrimitive],
         n_primitives: usize,
         total_nodes: &mut usize,
-        ordered_prims: &mut Vec<PrimitiveDt>,
-        ordered_prims_offset: &mut AtomicUsize,
+        ordered_prims: Arc<RwLock<Vec<PrimitiveDt>>>,
+        ordered_prims_offset: Arc<RwLock<AtomicUsize>>,
         bit_index: i32,
     ) -> usize {
         if bit_index == -1 || n_primitives < self.max_prims_in_node {
             *total_nodes += 1;
-            let node = treelet.node_mut(arena, offset);
-            treelet.root_index = offset;
+            let node_index = treelets.read().unwrap()[i].node(offset);
+            treelets.write().unwrap()[i].root_index = offset;
             let bounds = Bounds3f::default();
-            let first_prim_offset =
-                ordered_prims_offset.fetch_add(n_primitives, std::sync::atomic::Ordering::SeqCst);
+            let first_prim_offset = ordered_prims_offset
+                .write()
+                .unwrap()
+                .fetch_add(n_primitives, std::sync::atomic::Ordering::SeqCst);
             for i in 0..n_primitives {
                 let primitive_index = morton_prims[i].primitive_index;
-                ordered_prims[first_prim_offset + i] = self.primitives[primitive_index].clone();
+                ordered_prims.write().unwrap()[first_prim_offset + i] =
+                    self.primitives[primitive_index].clone();
                 bounds.union(&primitive_info[primitive_index].bounds);
             }
-            node.init_leaf(first_prim_offset, n_primitives, bounds);
+            arena.write().unwrap().get_mut(node_index).init_leaf(
+                first_prim_offset,
+                n_primitives,
+                bounds,
+            );
             offset + 1
         } else {
             let mask = 1 << bit_index;
@@ -574,7 +608,8 @@ impl BVHAccel {
             {
                 return self.emit_lbvh(
                     arena,
-                    treelet,
+                    treelets.clone(),
+                    i,
                     offset,
                     primitive_info,
                     morton_prims,
@@ -603,42 +638,44 @@ impl BVHAccel {
             *total_nodes += 1;
             let origin_offset = offset;
             offset = self.emit_lbvh(
-                arena,
-                treelet,
+                arena.clone(),
+                treelets.clone(),
+                i,
                 offset + 1,
                 primitive_info,
                 morton_prims,
                 split_offset,
                 total_nodes,
-                ordered_prims,
-                ordered_prims_offset,
+                ordered_prims.clone(),
+                ordered_prims_offset.clone(),
                 bit_index - 1,
             );
-            let c0 = treelet.root_node(arena).index;
+            let c0 = treelets.read().unwrap()[i].root_node();
             offset = self.emit_lbvh(
-                arena,
-                treelet,
+                arena.clone(),
+                treelets.clone(),
+                i,
                 offset,
                 primitive_info,
                 &morton_prims[split_offset..],
                 n_primitives - split_offset,
                 total_nodes,
-                ordered_prims,
-                ordered_prims_offset,
+                ordered_prims.clone(),
+                ordered_prims_offset.clone(),
                 bit_index - 1,
             );
-            let c1 = treelet.root_node(arena).index;
+            let c1 = treelets.read().unwrap()[i].root_node();
 
             let axis = (bit_index % 3) as usize;
-            BVHBuildNode::static_init_interior(arena, axis, origin_offset, c0, c1);
-            treelet.root_index = origin_offset;
+            BVHBuildNode::static_init_interior(arena.clone(), axis, origin_offset, c0, c1);
+            treelets.write().unwrap()[i].root_index = origin_offset;
             offset
         }
     }
 
     fn build_upper_sah(
         &self,
-        arena: &mut Arena<BVHBuildNode>,
+        arena: ArenaRw<BVHBuildNode>,
         treelet_roots: &mut [usize],
         start: usize,
         end: usize,
@@ -649,15 +686,16 @@ impl BVHAccel {
             return treelet_roots[start];
         }
         *total_nodes += 1;
-        let (index, _) = arena.alloc(BVHBuildNode::default());
+        let (index, _) = arena.write().unwrap().alloc(BVHBuildNode::default());
         let bounds = Bounds3f::default();
         for i in start..end {
-            bounds.union(&arena.get(treelet_roots[i]).bounds);
+            bounds.union(&arena.read().unwrap().get(treelet_roots[i]).bounds);
         }
 
         let centroid_bounds = Bounds3f::default();
         for i in start..end {
-            let node = arena.get(treelet_roots[i]);
+            let read_lock = arena.read().unwrap();
+            let node = read_lock.get(treelet_roots[i]);
             let centroid = (node.bounds.min + node.bounds.max) * 0.5;
             centroid_bounds.union(&centroid);
         }
@@ -666,7 +704,8 @@ impl BVHAccel {
         let mut buckets = [BucketInfo::default(); 12];
 
         for i in start..end {
-            let node = arena.get(treelet_roots[i]);
+            let read_lock = arena.read().unwrap();
+            let node = read_lock.get(treelet_roots[i]);
             let centroid = (node.bounds.min[dim] + node.bounds.max[dim]) * 0.5;
             let mut b = n_buckets
                 * ((centroid - centroid_bounds.min[dim])
@@ -711,7 +750,8 @@ impl BVHAccel {
         let mid = *&mut treelet_roots[start..end + 1]
             .iter_mut()
             .partition_in_place(|index| {
-                let node = arena.get(*index);
+                let read_lock = arena.read().unwrap();
+                let node = read_lock.get(*index);
                 let centroid = (node.bounds.min[dim] + node.bounds.max[dim]) * 0.5;
                 let mut b = n_buckets
                     * ((centroid - centroid_bounds.min[dim])
@@ -723,19 +763,20 @@ impl BVHAccel {
                 b < min_cost_split_bucket
             })
             + start;
-        let c0 = self.build_upper_sah(arena, treelet_roots, start, mid, total_nodes);
-        let c1 = self.build_upper_sah(arena, treelet_roots, mid, end, total_nodes);
-        BVHBuildNode::static_init_interior(arena, dim, index, c0, c1);
+        let c0 = self.build_upper_sah(arena.clone(), treelet_roots, start, mid, total_nodes);
+        let c1 = self.build_upper_sah(arena.clone(), treelet_roots, mid, end, total_nodes);
+        BVHBuildNode::static_init_interior(arena.clone(), dim, index, c0, c1);
         index
     }
 
     fn flatten_bvh_tree(
         &mut self,
-        arena: &Arena<BVHBuildNode>,
+        arena: ArenaRw<BVHBuildNode>,
         index: usize,
         offset: &mut usize,
     ) -> usize {
-        let node = arena.get(index);
+        let read_lock = arena.read().unwrap();
+        let node = read_lock.get(index);
         let (ok, my_offset) = if let Some(nodes) = &mut self.nodes {
             let linear_node = &mut nodes[*offset as usize];
             linear_node.bounds = node.bounds;
@@ -757,9 +798,9 @@ impl BVHAccel {
             return my_offset;
         }
 
-        self.flatten_bvh_tree(arena, node.children[0], offset);
+        self.flatten_bvh_tree(arena.clone(), node.children[0], offset);
         let primitive_or_second_child_offset =
-            self.flatten_bvh_tree(arena, node.children[1], offset);
+            self.flatten_bvh_tree(arena.clone(), node.children[1], offset);
         if let Some(nodes) = &mut self.nodes {
             let linear_node = &mut nodes[my_offset];
             linear_node.primitive_or_second_child_offset = primitive_or_second_child_offset;

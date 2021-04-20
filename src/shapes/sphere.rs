@@ -14,7 +14,7 @@ use crate::{
     shapes::{compute_normal_differential, BaseShape},
 };
 use std::sync::Arc;
-
+#[derive(Debug)]
 pub struct Sphere {
     base: BaseShape,
     radius: Float,

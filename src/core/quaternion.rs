@@ -5,7 +5,7 @@ use crate::core::{
 };
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Default, Debug)]
 pub struct Quaternion {
     pub v: Vector3f,
     pub w: Float,

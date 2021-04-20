@@ -11,7 +11,7 @@ use crate::{
     shapes::{compute_normal_differential, BaseShape},
 };
 use num::traits::Pow;
-
+#[derive(Debug)]
 pub struct Paraboloid {
     base: BaseShape,
     radius: Float,

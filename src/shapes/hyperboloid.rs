@@ -11,7 +11,7 @@ use crate::{
     shapes::{compute_normal_differential, BaseShape},
 };
 use std::mem::swap;
-
+#[derive(Debug)]
 pub struct Hyperboloid {
     base: BaseShape,
     p1: Point3f,

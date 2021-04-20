@@ -1,5 +1,4 @@
 use crate::core::{
-    arena::Arena,
     camera::{Camera, CameraDt},
     film::FilmTile,
     geometry::{Bounds2i, Point2f, Point2i, Ray, RayDifferentials, Vector3f},

@@ -16,6 +16,7 @@ pub mod plymesh;
 pub mod sphere;
 pub mod triangle;
 
+#[derive(Debug)]
 pub(crate) struct BaseShape {
     object_to_world: Transformf,
     world_to_object: Transformf,

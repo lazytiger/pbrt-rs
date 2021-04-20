@@ -10,13 +10,13 @@ use crate::{
     shapes::BaseShape,
 };
 use std::sync::Arc;
-
+#[derive(Debug)]
 pub enum CurveType {
     Flat,
     Cylinder,
     Ribbon,
 }
-
+#[derive(Debug)]
 pub struct CurveCommon {
     typ: CurveType,
     cp_obj: [Point3f; 4],
@@ -54,6 +54,7 @@ impl CurveCommon {
     }
 }
 
+#[derive(Debug)]
 pub struct Curve {
     base: BaseShape,
     common: Arc<CurveCommon>,

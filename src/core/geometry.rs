@@ -419,7 +419,7 @@ pub trait Union<T> {
 
 macro_rules! make_bounds {
     ($name:ident, $p:ident, $v:ident, $($field:ident),+) => {
-        #[derive(Copy, Clone)]
+        #[derive(Copy, Clone, Debug)]
         pub struct $name<T> {
             pub min: $p<T>,
             pub max: $p<T>,

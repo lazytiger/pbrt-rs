@@ -8,7 +8,11 @@ use crate::core::{
     shape::Shape,
     transform::Transformf,
 };
-use std::{any::Any, cmp::Ordering};
+use std::{
+    any::Any,
+    cmp::Ordering,
+    fmt::{Debug, Formatter},
+};
 
 #[derive(Default, Copy, Clone)]
 struct KdTodo<'a> {
@@ -18,6 +22,7 @@ struct KdTodo<'a> {
     t_max: Float,
 }
 
+#[derive(Debug)]
 struct KdTreeAccel {
     isect_cost: i32,
     traversal_cost: i32,
@@ -39,6 +44,12 @@ union NodeData {
     primitive_indices_offset: usize,
 }
 
+impl Debug for NodeData {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 union NodeFlag {
@@ -47,7 +58,13 @@ union NodeFlag {
     above_child: usize,
 }
 
-#[derive(Copy, Clone)]
+impl Debug for NodeFlag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 struct KdAccelNode {
     data: NodeData,
     flag: NodeFlag,

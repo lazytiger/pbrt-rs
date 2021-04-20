@@ -11,7 +11,7 @@ use crate::{
     shapes::BaseShape,
 };
 use std::sync::Arc;
-
+#[derive(Debug)]
 pub struct Disk {
     base: BaseShape,
     height: Float,

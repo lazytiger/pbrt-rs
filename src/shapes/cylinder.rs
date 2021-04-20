@@ -10,7 +10,7 @@ use crate::{
     impl_base_shape,
     shapes::{compute_normal_differential, BaseShape},
 };
-
+#[derive(Debug)]
 pub struct Cylinder {
     base: BaseShape,
     radius: Float,

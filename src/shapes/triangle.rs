@@ -13,7 +13,7 @@ use crate::{
 
 use crate::core::interaction::{BaseInteraction, InteractionDt};
 use std::sync::Arc;
-
+#[derive(Debug)]
 pub struct TriangleMesh {
     vertex_indices: Vec<i32>,
     p: Vec<Point3f>,
@@ -24,7 +24,7 @@ pub struct TriangleMesh {
     n_triangles: usize,
     n_vertices: usize,
 }
-
+#[derive(Debug)]
 pub struct Triangle {
     base: BaseShape,
     mesh: Arc<TriangleMesh>,

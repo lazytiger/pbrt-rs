@@ -31,7 +31,7 @@ pub fn solve_linear_system_2x2(
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Clone, Copy, Eq, PartialEq, Default, Debug)]
 pub struct Matrix4x4<T> {
     pub m: [[T; 4]; 4],
 }
@@ -191,7 +191,7 @@ impl<T: RealNum<T>> Mul for Matrix4x4<T> {
     }
 }
 
-#[derive(PartialEq, Clone, Copy, Default)]
+#[derive(PartialEq, Clone, Copy, Default, Debug)]
 pub struct Transform<T> {
     pub m: Matrix4x4<T>,
     pub m_inv: Matrix4x4<T>,
@@ -831,7 +831,7 @@ pub fn interval_find_zeros(
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 struct DerivativeTerm {
     kc: Float,
     kx: Float,
@@ -849,6 +849,7 @@ impl DerivativeTerm {
     }
 }
 
+#[derive(Debug)]
 pub struct AnimatedTransform {
     pub(crate) start_transform: Transformf,
     pub(crate) end_transform: Transformf,

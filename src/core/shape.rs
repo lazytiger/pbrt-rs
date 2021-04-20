@@ -8,10 +8,11 @@ use crate::core::{
 };
 use std::{
     any::Any,
+    fmt::Debug,
     sync::{Arc, Mutex, RwLock},
 };
 
-pub trait Shape {
+pub trait Shape: Debug {
     fn as_any(&self) -> &dyn Any;
     fn object_bound(&self) -> Bounds3f;
     fn world_bound(&self) -> Bounds3f {
