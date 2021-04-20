@@ -9,11 +9,14 @@ use crate::{
         transform::{AnimatedTransform, Transformf},
         RealNum,
     },
-    impl_base_camera,
+    impl_base_camera, parallel_for,
 };
 
 use crate::core::{camera::FilmRw, medium::MediumDt};
-use std::{any::Any, sync::Arc};
+use std::{
+    any::Any,
+    sync::{Arc, RwLock},
+};
 
 struct LensElementInterface {
     curvature_radius: Float,
@@ -72,16 +75,22 @@ impl RealisticCamera {
         rc.element_interfaces.last_mut().unwrap().thickness = rc.focus_thick_lens(focus_distance);
         const N_SAMPLES: usize = 64;
         rc.exit_pupil_bounds.resize(N_SAMPLES, Bounds2f::default());
-        for i in 0..N_SAMPLES {
-            let r0 = i as Float / N_SAMPLES as Float * film.read().unwrap().diagonal / 2.0;
-            let r1 = (i + 1) as Float / N_SAMPLES as Float * film.read().unwrap().diagonal / 2.0;
-            rc.exit_pupil_bounds[i] = rc.bound_exit_pupil(r0, r1);
-        }
+        let rc = RwLock::new(rc);
+        parallel_for!(
+            |i: usize| {
+                let r0 = i as Float / N_SAMPLES as Float * film.read().unwrap().diagonal / 2.0;
+                let r1 =
+                    (i + 1) as Float / N_SAMPLES as Float * film.read().unwrap().diagonal / 2.0;
+                let bound = { rc.read().unwrap().bound_exit_pupil(r0, r1) };
+                rc.write().unwrap().exit_pupil_bounds[i] = bound;
+            },
+            N_SAMPLES
+        );
 
         if simple_weighting {
             log::warn!("deprecated option");
         }
-        rc
+        rc.into_inner().unwrap()
     }
 
     fn trace_lenses_from_film(&self, r_camera: &Ray, r_out: Option<&mut Ray>) -> bool {

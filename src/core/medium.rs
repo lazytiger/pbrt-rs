@@ -24,9 +24,9 @@ pub trait Medium: Debug {
     fn sample(&self, ray: &Ray, sampler: SamplerDtRw, mi: &mut MediumInteraction) -> Spectrum;
 }
 
-pub type MediumDt = Arc<Box<dyn Medium>>;
-pub type MediumDtMut = Arc<Mutex<Box<dyn Medium>>>;
-pub type MediumDtRw = Arc<RwLock<Box<dyn Medium>>>;
+pub type MediumDt = Arc<Box<dyn Medium + Sync + Send>>;
+pub type MediumDtMut = Arc<Mutex<Box<dyn Medium + Sync + Send>>>;
+pub type MediumDtRw = Arc<RwLock<Box<dyn Medium + Sync + Send>>>;
 
 #[derive(Default, Clone, Debug)]
 pub struct MediumInterface {

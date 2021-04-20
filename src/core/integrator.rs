@@ -1,15 +1,18 @@
-use crate::core::{
-    camera::{Camera, CameraDt},
-    film::FilmTile,
-    geometry::{Bounds2i, Point2f, Point2i, Ray, RayDifferentials, Vector3f},
-    interaction::{Interaction, InteractionDt, MediumInteraction, SurfaceInteraction},
-    light::{is_delta_light, Light, LightDt, VisibilityTester},
-    pbrt::{any_equal, Float},
-    reflection::{BxDF, BxDFType},
-    sampler::{Sampler, SamplerDt, SamplerDtMut, SamplerDtRw},
-    sampling::{power_heuristic, Distribution1D},
-    scene::Scene,
-    spectrum::{spectrum_lerp, Spectrum},
+use crate::{
+    core::{
+        camera::{Camera, CameraDt},
+        film::FilmTile,
+        geometry::{Bounds2i, Point2f, Point2i, Ray, RayDifferentials, Vector3f},
+        interaction::{Interaction, InteractionDt, MediumInteraction, SurfaceInteraction},
+        light::{is_delta_light, Light, LightDt, VisibilityTester},
+        pbrt::{any_equal, Float},
+        reflection::{BxDF, BxDFType},
+        sampler::{Sampler, SamplerDt, SamplerDtMut, SamplerDtRw},
+        sampling::{power_heuristic, Distribution1D},
+        scene::Scene,
+        spectrum::{spectrum_lerp, Spectrum},
+    },
+    parallel_for_2d,
 };
 use num::integer::Roots;
 use std::{
@@ -405,10 +408,8 @@ impl Integrator for SamplerIntegrator {
         );
 
         //todo parallel
-        for y in 0..n_tiles.y as usize {
-            for x in 0..n_tiles.x as usize {
-                let tile = Point2i::new(x as i32, y as i32);
-
+        parallel_for_2d!(
+            |tile: Arc<Box<Point2i>>| {
                 let seed = tile.y * n_tiles.x + tile.x;
                 let tile_sampler = self.sampler.write().unwrap().clone_sampler(seed as usize);
 
@@ -470,8 +471,10 @@ impl Integrator for SamplerIntegrator {
                     .write()
                     .unwrap()
                     .merge_film_tile(film_tile);
-            }
-        }
+            },
+            n_tiles
+        );
+
         self.camera.film().write().unwrap().write_image(1.0);
     }
 
