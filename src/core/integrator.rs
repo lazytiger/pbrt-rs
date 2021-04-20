@@ -409,7 +409,7 @@ impl Integrator for SamplerIntegrator {
 
         //todo parallel
         parallel_for_2d!(
-            |tile: Arc<Point2i>| {
+            |tile: Point2i| {
                 let seed = tile.y * n_tiles.x + tile.x;
                 let tile_sampler = self.sampler.write().unwrap().clone_sampler(seed as usize);
 

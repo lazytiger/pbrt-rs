@@ -497,7 +497,8 @@ impl BVHAccel {
                 write_lock[i].primitive_index = primitive_info[i].primitive_number;
                 write_lock[i].morton_code = code;
             },
-            primitive_info.len()
+            primitive_info.len(),
+            512,
         );
 
         let mut morton_prims = morton_prims.into_inner().unwrap();

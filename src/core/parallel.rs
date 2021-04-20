@@ -7,7 +7,10 @@ macro_rules! parallel_for_2d {
             for y in 0..$count.y {
                 for x in 0..$count.x {
                     let p = Arc::new(Point2i::new(x, y));
-                    s.spawn(|_| $func(p));
+                    s.spawn(|_| {
+                        let p = Arc::try_unwrap(p).unwrap();
+                        $func(p);
+                    });
                 }
             }
         });
@@ -26,7 +29,7 @@ macro_rules! parallel_for {
             for j in 0..max_j {
                 let n = Arc::new(j);
                 s.spawn(|_| {
-                    let j = unsafe { *Arc::into_raw(n) };
+                    let j = Arc::try_unwrap(n).unwrap();
                     for i in 0..$chunk_size {
                         let index = j * $chunk_size + i;
                         $func(index);
