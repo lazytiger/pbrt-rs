@@ -38,3 +38,13 @@ pub fn sample_fourier(
 ) -> Float {
     todo!()
 }
+
+pub fn catmull_rom_weights(
+    size: usize,
+    nodes: &[Float],
+    x: Float,
+    offset: &mut usize,
+    weights: &mut [Float],
+) -> bool {
+    todo!()
+}

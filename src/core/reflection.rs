@@ -2,11 +2,11 @@ use crate::{
     core::{
         geometry::{Normal3f, Point2f, Vector3f},
         interaction::SurfaceInteraction,
-        interpolation::{fourier, sample_catmull_rom_2d, sample_fourier},
+        interpolation::{catmull_rom_weights, fourier, sample_catmull_rom_2d, sample_fourier},
         material::TransportMode,
         microfacet::MicrofacetDistributionDt,
-        pbrt::{clamp, radians, Float, INV_PI, ONE_MINUS_EPSILON},
-        sampling::cosine_sample_hemisphere,
+        pbrt::{any_equal, clamp, radians, Float, INV_PI, ONE_MINUS_EPSILON, PI},
+        sampling::{cosine_sample_hemisphere, uniform_hemisphere_pdf, uniform_sample_hemisphere},
         spectrum::{Spectrum, SpectrumType},
     },
     integrators::path::PathIntegrator,
@@ -14,7 +14,7 @@ use crate::{
 use bitflags::bitflags;
 use core::num::FpCategory::Normal;
 use log::Level::Trace;
-use std::{any::Any, f32::consts::PI, sync::Arc};
+use std::{any::Any, sync::Arc};
 
 pub fn fr_dielectric(cos_theta_i: Float, mut eta_i: Float, mut eta_t: Float) -> Float {
     let mut cos_theta_i = clamp(cos_theta_i, -1.0, 1.0);
@@ -199,7 +199,7 @@ impl FourierBSDFTable {
         offset: &mut usize,
         weights: &mut [Float],
     ) -> bool {
-        todo!()
+        catmull_rom_weights(self.n_mu, self.mu.as_slice(), cos_theta, offset, weights)
     }
 }
 
@@ -262,30 +262,141 @@ impl BSDF {
         )
     }
 
-    pub fn f(&self, wo: &Vector3f, wi: &Vector3f, flags: BxDFType) -> Spectrum {
-        todo!()
+    pub fn f(&self, wo_w: &Vector3f, wi_w: &Vector3f, flags: BxDFType) -> Spectrum {
+        let wi = self.world_to_local(wi_w);
+        let wo = self.world_to_local(wo_w);
+        if wo.z == 0.0 {
+            return 0.0.into();
+        }
+        let reflect = wi_w.dot(&self.ng) * wo_w.dot(&self.ng) > 0.0;
+        let mut f = Spectrum::default();
+        for i in 0..self.n_bxdfs {
+            if let Some(bxdf) = &self.bxdfs[i] {
+                if bxdf.matches_flags(flags)
+                    && (reflect && bxdf.typ().contains(BxDFType::BSDF_REFLECTION)
+                        || !reflect && bxdf.typ().contains(BxDFType::BSDF_TRANSMISSION))
+                {
+                    f += bxdf.f(&wo, &wi);
+                }
+            }
+        }
+        f
     }
 
     pub fn sample_f(
         &self,
-        wo: &Vector3f,
-        wi: &mut Vector3f,
-        sample: &Point2f,
+        wo_w: &Vector3f,
+        wi_w: &mut Vector3f,
+        u: &Point2f,
         pdf: &mut f32,
         typ: BxDFType,
-        sample_type: Option<&mut BxDFType>,
+        mut sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
-        todo!()
+        let matching_comps = self.num_components(typ);
+        if matching_comps == 0 {
+            *pdf = 0.0;
+            if let Some(sample_type) = sample_type {
+                *sample_type = BxDFType::empty();
+            }
+            return 0.0.into();
+        }
+
+        let comp = std::cmp::min(
+            (u[0] * matching_comps as Float).floor() as usize,
+            matching_comps - 1,
+        );
+
+        let mut count = comp as isize;
+        let mut bxdf = None;
+        for i in 0..self.n_bxdfs {
+            if let Some(_bxdf) = &self.bxdfs[i] {
+                if _bxdf.matches_flags(typ) && {
+                    let ret = count == 0;
+                    count -= 1;
+                    ret
+                } {
+                    bxdf.replace(_bxdf);
+                    break;
+                }
+            }
+        }
+        let bxdf = bxdf.unwrap();
+
+        let u_rempped = Point2f::new(
+            ONE_MINUS_EPSILON.min(u[0] * matching_comps as Float - comp as Float),
+            u[1],
+        );
+        let mut wi = Vector3f::default();
+        let wo = self.world_to_local(wo_w);
+        if wo.z == 0.0 {
+            return 0.0.into();
+        }
+        *pdf = 0.0;
+        if let Some(sample_type) = &mut sample_type {
+            **sample_type = bxdf.typ();
+        }
+
+        let mut f = bxdf.sample_f(
+            &wo,
+            &mut wi,
+            &u_rempped,
+            pdf,
+            Some(*sample_type.as_mut().unwrap()),
+        );
+        if *pdf == 0.0 {
+            if let Some(sample_type) = sample_type {
+                *sample_type = BxDFType::empty();
+                return 0.0.into();
+            }
+        }
+        *wi_w = self.local_to_world(&wi);
+        if !bxdf.typ().contains(BxDFType::BSDF_SPECULAR) && matching_comps > 1 {
+            for i in 0..self.n_bxdfs {
+                if let Some(_bxdf) = &self.bxdfs[i] {
+                    if !any_equal(bxdf.as_any(), _bxdf.as_any()) && _bxdf.matches_flags(typ) {
+                        *pdf += _bxdf.pdf(&wo, &wi);
+                    }
+                }
+            }
+        }
+        if matching_comps > 1 {
+            *pdf /= matching_comps as Float;
+        }
+
+        if !bxdf.typ().contains(BxDFType::BSDF_SPECULAR) {
+            let reflect = wi_w.dot(&self.ng) * wo_w.dot(&self.ng) > 0.0;
+            f = Spectrum::new(0.0);
+            for i in 0..self.n_bxdfs {
+                if let Some(bxdf) = &self.bxdfs[i] {
+                    if bxdf.matches_flags(typ)
+                        && (reflect && bxdf.typ().contains(BxDFType::BSDF_REFLECTION)
+                            || !reflect && bxdf.typ().contains(BxDFType::BSDF_TRANSMISSION))
+                    {
+                        f += bxdf.f(&wo, &wi);
+                    }
+                }
+            }
+        }
+        f
     }
 
     pub fn rho(
         &self,
-        wo: &Vector3f,
+        wo_w: &Vector3f,
         n_samples: usize,
         samples: &[Point2f],
         flags: BxDFType,
     ) -> Spectrum {
-        todo!()
+        let wo = self.world_to_local(wo_w);
+        let mut ret = Spectrum::new(0.0);
+        for i in 0..self.n_bxdfs {
+            if let Some(bxdf) = &self.bxdfs[i] {
+                if bxdf.matches_flags(flags) {
+                    ret += bxdf.rho(&wo, n_samples, samples);
+                }
+            }
+        }
+        ret
     }
 
     pub fn rho2(
@@ -295,11 +406,45 @@ impl BSDF {
         samples2: &[Point2f],
         flags: BxDFType,
     ) -> Spectrum {
-        todo!()
+        let mut ret = Spectrum::default();
+        for i in 0..self.n_bxdfs {
+            if let Some(bxdf) = &self.bxdfs[i] {
+                if bxdf.matches_flags(flags) {
+                    ret += bxdf.rho2(n_samples, samples1, samples2);
+                }
+            }
+        }
+        ret
     }
 
     pub fn pdf(&self, wo: &Vector3f, wi: &Vector3f, flags: BxDFType) -> f32 {
-        todo!()
+        if self.n_bxdfs == 0 {
+            return 0.0;
+        }
+
+        let wo = self.world_to_local(wo);
+        let wi = self.world_to_local(wi);
+        if wo.z == 0.0 {
+            return 0.0;
+        }
+
+        let mut pdf = 0.0;
+        let mut matching_comps = 0;
+        for i in 0..self.n_bxdfs {
+            if let Some(bxdf) = &self.bxdfs[i] {
+                if bxdf.matches_flags(flags) {
+                    matching_comps += 1;
+                    pdf += bxdf.pdf(&wo, &wi);
+                }
+            }
+        }
+
+        let v = if matching_comps > 0 {
+            pdf / matching_comps as Float
+        } else {
+            0.0
+        };
+        v
     }
 }
 
@@ -315,20 +460,50 @@ pub trait BxDF {
         &self,
         wo: &Vector3f,
         wi: &mut Vector3f,
-        sample: &Point2f,
+        u: &Point2f,
         pdf: &mut Float,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
-        todo!()
+        *wi = cosine_sample_hemisphere(u);
+        if wo.z < 0.0 {
+            wi.z *= -1.0;
+        }
+        *pdf = self.pdf(wo, wi);
+        self.f(wo, wi)
     }
-    fn rho(&self, wo: &Vector3f, n_samples: usize, samples: &[Point2f]) -> Spectrum {
-        todo!()
+    fn rho(&self, w: &Vector3f, n_samples: usize, u: &[Point2f]) -> Spectrum {
+        let mut r = Spectrum::new(0.0);
+        for i in 0..n_samples {
+            let mut wi = Vector3f::default();
+            let mut pdf = 0.0;
+            let f = self.sample_f(w, &mut wi, &u[i], &mut pdf, None);
+            if pdf > 0.0 {
+                r += f * abs_cos_theta(&wi) / pdf;
+            }
+        }
+        r / n_samples as Float
     }
     fn rho2(&self, n_samples: usize, samples1: &[Point2f], samples2: &[Point2f]) -> Spectrum {
-        todo!()
+        let mut r = Spectrum::new(0.0);
+        for i in 0..n_samples {
+            let mut wo = Vector3f::default();
+            let mut wi = Vector3f::default();
+            wo = uniform_sample_hemisphere(&samples1[i]);
+            let pdfo = uniform_hemisphere_pdf();
+            let mut pdfi = 0.0;
+            let f = self.sample_f(&wo, &mut wi, &samples2[i], &mut pdfi, None);
+            if pdfi > 0.0 {
+                r += f * abs_cos_theta(&wi) * abs_cos_theta(&wo) / (pdfo * pdfi);
+            }
+        }
+        r / (PI * n_samples as Float)
     }
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> Float {
-        todo!()
+        if same_hemisphere(wo, wi) {
+            abs_cos_theta(wi) * INV_PI
+        } else {
+            0.0
+        }
     }
     fn typ(&self) -> BxDFType;
 }
@@ -364,7 +539,7 @@ impl BxDF for ScaledBxDF {
         wi: &mut Vector3f,
         sample: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         let f = self.bxdf.sample_f(wo, wi, sample, pdf, sample_type);
         f * self.scale
@@ -467,7 +642,7 @@ impl BxDF for SpecularReflection {
         wi: &mut Vector3f,
         sample: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         *wi = Vector3f::new(-wo.x, -wo.y, wo.z);
         *pdf = 1.0;
@@ -520,7 +695,7 @@ impl BxDF for SpecularTransmission {
         wi: &mut Vector3f,
         sample: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         let entering = cos_theta(wo) > 0.0;
         let (eta_i, eta_t) = if entering {
@@ -594,12 +769,14 @@ impl BxDF for FresnelSpecular {
         wi: &mut Vector3f,
         u: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         let f = fr_dielectric(cos_theta(wo), self.eta_a, self.eta_b);
         if u[0] < f {
             *wi = Vector3f::new(-wo.x, -wo.y, wo.z);
-            *sample_type = BxDFType::BSDF_SPECULAR | BxDFType::BSDF_REFLECTION;
+            if let Some(sample_type) = sample_type {
+                *sample_type = BxDFType::BSDF_SPECULAR | BxDFType::BSDF_REFLECTION;
+            }
             *pdf = f;
             self.r * f / abs_cos_theta(wi)
         } else {
@@ -624,7 +801,9 @@ impl BxDF for FresnelSpecular {
             if let TransportMode::Radiance = self.mode {
                 ft *= (eta_i * eta_i) / (eta_t * eta_t);
             }
-            *sample_type = BxDFType::BSDF_SPECULAR | BxDFType::BSDF_TRANSMISSION;
+            if let Some(sample_type) = sample_type {
+                *sample_type = BxDFType::BSDF_SPECULAR | BxDFType::BSDF_TRANSMISSION;
+            }
             *pdf = 1.0 - f;
             ft / abs_cos_theta(wi)
         }
@@ -704,7 +883,7 @@ impl BxDF for LambertianTransmission {
         wi: &mut Vector3f,
         u: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         *wi = cosine_sample_hemisphere(u);
         if wo.z > 0.0 {
@@ -844,7 +1023,7 @@ impl BxDF for MicrofacetReflection {
         wi: &mut Vector3f,
         u: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         if wo.z == 0.0 {
             return 0.0.into();
@@ -964,7 +1143,7 @@ impl BxDF for MicrofacetTransmission {
         wi: &mut Vector3f,
         u: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         if wo.z == 0.0 {
             return 0.0.into();
@@ -1064,7 +1243,7 @@ impl BxDF for FresnelBlend {
         wi: &mut Vector3f,
         u_orig: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         let mut u = *u_orig;
         if u[0] < 0.5 {
@@ -1200,7 +1379,7 @@ impl BxDF for FourierBSDF {
         wi: &mut Vector3f,
         u: &Point2f,
         pdf: &mut f32,
-        sample_type: &mut BxDFType,
+        sample_type: Option<&mut BxDFType>,
     ) -> Spectrum {
         let mu_o = cos_theta(wo);
         let mut pdf_mu = 0.0;
@@ -1297,7 +1476,57 @@ impl BxDF for FourierBSDF {
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
-        todo!()
+        let mu_i = cos_theta(&-*wi);
+        let mu_o = cos_theta(wo);
+        let cos_phi = cos_d_phi(-*wi, *wo);
+        let mut offset_i = 0;
+        let mut offset_o = 0;
+        let mut weights_i = [0.0; 4];
+        let mut weights_o = [0.0; 4];
+        if !self
+            .bsdf_table
+            .get_weights_and_offset(mu_i, &mut offset_i, &mut weights_i)
+            || !self
+                .bsdf_table
+                .get_weights_and_offset(mu_o, &mut offset_o, &mut weights_o)
+        {
+            return 0.0;
+        }
+        let mut ak = vec![0.0; self.bsdf_table.m_max];
+        let mut m_max = 0;
+        for o in 0..4 {
+            for i in 0..4 {
+                let weight = weights_i[i] * weights_o[o];
+                if weight == 0.0 {
+                    continue;
+                }
+
+                let mut order = 0;
+                let coeffs = self
+                    .bsdf_table
+                    .get_ak(offset_i + i, offset_o + o, &mut order);
+                m_max = std::cmp::max(m_max, order);
+                for k in 0..order {
+                    ak[k] += coeffs[k] * weight;
+                }
+            }
+        }
+        let mut rho = 0.0;
+        for o in 0..4 {
+            if weights_o[o] == 0.0 {
+                continue;
+            }
+            rho += weights_o[o]
+                * self.bsdf_table.cdf
+                    [(offset_o + o) * self.bsdf_table.n_mu + self.bsdf_table.n_mu - 1]
+                * (2.0 * PI);
+        }
+        let y = fourier(ak.as_slice(), m_max, cos_phi as f64);
+        if rho > 0.0 && y > 0.0 {
+            y / rho
+        } else {
+            0.0
+        }
     }
 
     fn typ(&self) -> BxDFType {
