@@ -1,16 +1,42 @@
-use crate::core::{
-    geometry::{Normal3f, Point2f, Vector3f},
-    interaction::SurfaceInteraction,
-    material::TransportMode,
-    microfacet::MicrofacetDistributionDt,
-    pbrt::{clamp, radians, Float},
-    spectrum::Spectrum,
+use crate::{
+    core::{
+        geometry::{Normal3f, Point2f, Vector3f},
+        interaction::SurfaceInteraction,
+        interpolation::{fourier, sample_catmull_rom_2d, sample_fourier},
+        material::TransportMode,
+        microfacet::MicrofacetDistributionDt,
+        pbrt::{clamp, radians, Float, INV_PI, ONE_MINUS_EPSILON},
+        sampling::cosine_sample_hemisphere,
+        spectrum::{Spectrum, SpectrumType},
+    },
+    integrators::path::PathIntegrator,
 };
 use bitflags::bitflags;
-use std::{any::Any, sync::Arc};
+use core::num::FpCategory::Normal;
+use log::Level::Trace;
+use std::{any::Any, f32::consts::PI, sync::Arc};
 
-pub fn fr_dielectric(cos_theta_i: Float, eta_i: Float, eta_t: Float) -> Float {
-    todo!()
+pub fn fr_dielectric(cos_theta_i: Float, mut eta_i: Float, mut eta_t: Float) -> Float {
+    let mut cos_theta_i = clamp(cos_theta_i, -1.0, 1.0);
+    let entering = cos_theta_i > 0.0;
+    if !entering {
+        std::mem::swap(&mut eta_i, &mut eta_t);
+        cos_theta_i = cos_theta_i.abs();
+    }
+
+    let sin_theta_i = (1.0 - cos_theta_i * cos_theta_i).max(0.0).sqrt();
+    let sin_tehta_t = eta_i / eta_t * sin_theta_i;
+
+    if sin_tehta_t >= 1.0 {
+        return 1.0;
+    }
+
+    let cos_theta_t = (1.0 - sin_tehta_t * sin_tehta_t).max(0.0).sqrt();
+    let r_parl =
+        (eta_t * cos_theta_i - eta_i * cos_theta_t) / (eta_t * cos_theta_i + eta_i * cos_theta_t);
+    let r_perp =
+        (eta_i * cos_theta_i - eta_t * cos_theta_t) / (eta_i * cos_theta_i + eta_t * cos_theta_t);
+    (r_parl * r_parl + r_perp * r_perp) / 2.0
 }
 
 pub fn fr_conductor(
@@ -19,7 +45,27 @@ pub fn fr_conductor(
     eta_t: &Spectrum,
     k: &Spectrum,
 ) -> Spectrum {
-    todo!()
+    let cos_theta_i = clamp(cos_theta_i, -1.0, 1.0);
+    let eta = eta_t / eta_i;
+    let eta_k = k / eta_i;
+
+    let cos_theta_i2 = cos_theta_i * cos_theta_i;
+    let sin_theta_i2 = 1.0 - cos_theta_i2;
+    let eta2 = eta * eta;
+    let eta_k2 = eta_k * eta_k;
+
+    let t0 = eta2 - eta_k2 - sin_theta_i2.into();
+    let a2_plus_b2 = (t0 * t0 + eta2 * eta_k2 * 4.0).sqrt();
+    let t1 = a2_plus_b2 + cos_theta_i2.into();
+    let a = ((a2_plus_b2 + t0) * 0.5).sqrt();
+    let t2 = a * (2.0 * cos_theta_i);
+    let rs = (t1 - t2) / (t1 + t2);
+
+    let t3 = a2_plus_b2 * cos_theta_i2 + (sin_theta_i2 * sin_theta_i2).into();
+    let t4 = t2 * sin_theta_i2;
+    let rp = rs * (t3 - t4) / (t3 + t4);
+
+    (rp + rs) * 0.5
 }
 
 #[inline]
@@ -142,17 +188,15 @@ impl FourierBSDFTable {
         todo!()
     }
 
-    pub fn get_ak(&self, offset_i: usize, offset_o: usize) -> (&[usize], &[Float]) {
-        (
-            &self.m[(offset_o * self.n_mu + offset_i)..],
-            &self.a[self.a_offset[offset_o * self.n_mu + offset_i]..],
-        )
+    pub fn get_ak(&self, offset_i: usize, offset_o: usize, m_ptr: &mut usize) -> &[Float] {
+        *m_ptr = self.m[(offset_o * self.n_mu + offset_i)];
+        &self.a[self.a_offset[offset_o * self.n_mu + offset_i]..]
     }
 
     pub fn get_weights_and_offset(
         &self,
         cos_theta: Float,
-        offset: &mut [usize],
+        offset: &mut usize,
         weights: &mut [Float],
     ) -> bool {
         todo!()
@@ -311,7 +355,7 @@ impl BxDF for ScaledBxDF {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        self.bxdf.f(wo, wi) * self.scale
     }
 
     fn sample_f(
@@ -322,19 +366,20 @@ impl BxDF for ScaledBxDF {
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        let f = self.bxdf.sample_f(wo, wi, sample, pdf, sample_type);
+        f * self.scale
     }
 
     fn rho(&self, wo: &Vector3f, n_samples: usize, samples: &[Point2f]) -> Spectrum {
-        todo!()
+        self.bxdf.rho(wo, n_samples, samples) * self.scale
     }
 
     fn rho2(&self, n_samples: usize, samples1: &[Point2f], samples2: &[Point2f]) -> Spectrum {
-        todo!()
+        self.bxdf.rho2(n_samples, samples1, samples2) * self.scale
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
-        todo!()
+        self.bxdf.pdf(wo, wi)
     }
 
     fn typ(&self) -> BxDFType {
@@ -362,7 +407,7 @@ impl FresnelConductor {
 
 impl Fresnel for FresnelConductor {
     fn evaluate(&self, cos_i: f32) -> Spectrum {
-        todo!()
+        fr_conductor(cos_i.abs(), &self.eta_i, &self.eta_t, &self.k)
     }
 }
 
@@ -379,7 +424,7 @@ impl FresnelDielectric {
 
 impl Fresnel for FresnelDielectric {
     fn evaluate(&self, cos_i: f32) -> Spectrum {
-        todo!()
+        fr_dielectric(cos_i, self.eta_i, self.eta_t).into()
     }
 }
 
@@ -413,7 +458,7 @@ impl BxDF for SpecularReflection {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        0.0.into()
     }
 
     fn sample_f(
@@ -424,11 +469,13 @@ impl BxDF for SpecularReflection {
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        *wi = Vector3f::new(-wo.x, -wo.y, wo.z);
+        *pdf = 1.0;
+        self.r * self.fresnel.evaluate(cos_theta(wi)) / abs_cos_theta(wi)
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
-        1.0
+        0.0
     }
 
     fn typ(&self) -> BxDFType {
@@ -464,7 +511,7 @@ impl BxDF for SpecularTransmission {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        0.0.into()
     }
 
     fn sample_f(
@@ -475,7 +522,28 @@ impl BxDF for SpecularTransmission {
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        let entering = cos_theta(wo) > 0.0;
+        let (eta_i, eta_t) = if entering {
+            (self.eta_a, self.eta_b)
+        } else {
+            (self.eta_b, self.eta_a)
+        };
+
+        if !refract(
+            wo,
+            &Normal3f::new(0.0, 0.0, 1.0).face_forward(*wo),
+            eta_i / eta_t,
+            wi,
+        ) {
+            return 0.0.into();
+        }
+        *pdf = 1.0;
+        let mut ft = self.t * (Spectrum::new(1.0) - self.fresnel.evaluate(cos_theta(wi)));
+        if let TransportMode::Radiance = self.mode {
+            ft *= (eta_i * eta_i) / (eta_t * eta_t);
+        }
+
+        ft / abs_cos_theta(wi)
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
@@ -517,18 +585,49 @@ impl BxDF for FresnelSpecular {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        0.0.into()
     }
 
     fn sample_f(
         &self,
         wo: &Vector3f,
         wi: &mut Vector3f,
-        sample: &Point2f,
+        u: &Point2f,
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        let f = fr_dielectric(cos_theta(wo), self.eta_a, self.eta_b);
+        if u[0] < f {
+            *wi = Vector3f::new(-wo.x, -wo.y, wo.z);
+            *sample_type = BxDFType::BSDF_SPECULAR | BxDFType::BSDF_REFLECTION;
+            *pdf = f;
+            self.r * f / abs_cos_theta(wi)
+        } else {
+            let entering = cos_theta(wo) > 0.0;
+            let (eta_i, eta_t) = if entering {
+                (self.eta_a, self.eta_b)
+            } else {
+                (self.eta_b, self.eta_a)
+            };
+
+            if !refract(
+                wo,
+                &Normal3f::new(0.0, 0.0, 1.0).face_forward(*wo),
+                eta_i / eta_t,
+                wi,
+            ) {
+                return 0.0.into();
+            }
+
+            let mut ft = self.t * (1.0 - f);
+
+            if let TransportMode::Radiance = self.mode {
+                ft *= (eta_i * eta_i) / (eta_t * eta_t);
+            }
+            *sample_type = BxDFType::BSDF_SPECULAR | BxDFType::BSDF_TRANSMISSION;
+            *pdf = 1.0 - f;
+            ft / abs_cos_theta(wi)
+        }
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
@@ -560,15 +659,15 @@ impl BxDF for LambertianReflection {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        self.r * INV_PI
     }
 
     fn rho(&self, wo: &Vector3f, n_samples: usize, samples: &[Point2f]) -> Spectrum {
-        todo!()
+        self.r
     }
 
     fn rho2(&self, n_samples: usize, samples1: &[Point2f], samples2: &[Point2f]) -> Spectrum {
-        todo!()
+        self.r
     }
 
     fn typ(&self) -> BxDFType {
@@ -596,30 +695,39 @@ impl BxDF for LambertianTransmission {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        self.t * INV_PI
     }
 
     fn sample_f(
         &self,
         wo: &Vector3f,
         wi: &mut Vector3f,
-        sample: &Point2f,
+        u: &Point2f,
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        *wi = cosine_sample_hemisphere(u);
+        if wo.z > 0.0 {
+            wi.z *= -1.0;
+        }
+        *pdf = self.pdf(wo, wi);
+        self.f(wo, wi)
     }
 
     fn rho(&self, wo: &Vector3f, n_samples: usize, samples: &[Point2f]) -> Spectrum {
-        todo!()
+        self.t
     }
 
     fn rho2(&self, n_samples: usize, samples1: &[Point2f], samples2: &[Point2f]) -> Spectrum {
-        todo!()
+        self.t
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
-        todo!()
+        if !same_hemisphere(wo, wi) {
+            abs_cos_theta(wi) * INV_PI
+        } else {
+            0.0
+        }
     }
 
     fn typ(&self) -> BxDFType {
@@ -655,7 +763,31 @@ impl BxDF for OrenNayar {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        let sin_theta_i = sin_theta(wi);
+        let sin_theta_o = sin_theta(wo);
+
+        let mut max_cos = 0.0;
+        if sin_theta_i > 1e-4 && sin_theta_o > 1e-4 {
+            let sin_phi_i = sin_phi(wi);
+            let cos_phi_i = cos_phi(wi);
+            let sin_phi_o = sin_theta(wo);
+            let cos_phi_o = cos_phi(wo);
+            let d_cos = cos_phi_i * cos_phi_o + sin_theta_i * sin_theta_o;
+            max_cos = d_cos.max(0.0);
+        }
+
+        let mut sin_alpha = 0.0;
+        let mut tan_beta = 0.0;
+
+        if abs_cos_theta(wi) > abs_cos_theta(wo) {
+            sin_alpha = sin_theta_o;
+            tan_beta = sin_theta_i / abs_cos_theta(wi);
+        } else {
+            sin_alpha = sin_theta_i;
+            tan_beta = sin_theta_o / abs_cos_theta(wo);
+        }
+
+        self.r * INV_PI * (self.a + self.b * max_cos * sin_alpha * tan_beta)
     }
 
     fn typ(&self) -> BxDFType {
@@ -687,22 +819,56 @@ impl BxDF for MicrofacetReflection {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        let cos_theta_o = abs_cos_theta(wo);
+        let cos_theta_i = abs_cos_theta(wi);
+        let mut wh = *wi + *wo;
+
+        if cos_theta_i == 0.0 || cos_theta_o == 0.0 {
+            return 0.0.into();
+        }
+        if wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0 {
+            return 0.0.into();
+        }
+
+        wh = wh.normalize();
+        let f = self
+            .fresnel
+            .evaluate(wi.dot(&wh.face_forward(Vector3f::new(0.0, 0.0, 1.0))));
+        self.r * self.distribution.d(&wh) * self.distribution.g(wo, wi) * f
+            / (4.0 * cos_theta_i * cos_theta_o)
     }
 
     fn sample_f(
         &self,
         wo: &Vector3f,
         wi: &mut Vector3f,
-        sample: &Point2f,
+        u: &Point2f,
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        if wo.z == 0.0 {
+            return 0.0.into();
+        }
+
+        let wh = self.distribution.sample_wh(wo, u);
+        if wo.dot(&wh) < 0.0 {
+            return 0.0.into();
+        }
+
+        if !same_hemisphere(wo, wi) {
+            return 0.0.into();
+        }
+
+        *pdf = self.distribution.pdf(wo, &wh) / (4.0 * wo.dot(&wh));
+        self.f(wo, wi)
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
-        todo!()
+        if !same_hemisphere(wo, wi) {
+            return 0.0.into();
+        }
+        let wh = (*wo + *wi).normalize();
+        self.distribution.pdf(wo, &wh) / (4.0 * wo.dot(&wh))
     }
 
     fn typ(&self) -> BxDFType {
@@ -746,22 +912,99 @@ impl BxDF for MicrofacetTransmission {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        if same_hemisphere(wo, wi) {
+            return 0.0.into();
+        }
+
+        let cos_theta_o = cos_theta(wo);
+        let cos_theta_i = cos_theta(wi);
+        if cos_theta_i == 0.0 || cos_theta_o == 0.0 {
+            return 0.0.into();
+        }
+
+        let eta = if cos_theta(wo) > 0.0 {
+            self.eta_b / self.eta_a
+        } else {
+            self.eta_a / self.eta_b
+        };
+
+        let mut wh = (*wo + *wi * eta).normalize();
+        if wh.z < 0.0 {
+            wh = -wh;
+        }
+
+        if wo.dot(&wh) * wi.dot(&wh) > 0.0 {
+            return 0.0.into();
+        }
+
+        let f = self.fresnel.evaluate(wo.dot(&wh));
+        let sqrt_denom = wo.dot(&wh) + eta * wi.dot(&wh);
+        let factor = if let TransportMode::Radiance = self.mode {
+            1.0 / eta
+        } else {
+            1.0
+        };
+        (Spectrum::new(1.0) - f)
+            * self.t
+            * ((self.distribution.d(&wh)
+                * self.distribution.g(wo, wi)
+                * eta
+                * eta
+                * wi.abs_dot(&wh)
+                * wo.abs_dot(&wh)
+                * factor
+                * factor)
+                / (cos_theta_i * cos_theta_o * sqrt_denom * sqrt_denom))
+                .abs()
     }
 
     fn sample_f(
         &self,
         wo: &Vector3f,
         wi: &mut Vector3f,
-        sample: &Point2f,
+        u: &Point2f,
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        if wo.z == 0.0 {
+            return 0.0.into();
+        }
+
+        let wh = self.distribution.sample_wh(wo, u);
+        if wo.dot(&wh) < 0.0 {
+            return 0.0.into();
+        }
+
+        let eta = if cos_theta(wo) > 0.0 {
+            self.eta_a / self.eta_b
+        } else {
+            self.eta_b / self.eta_a
+        };
+
+        if !refract(wo, &wh, eta, wi) {
+            return 0.0.into();
+        }
+
+        *pdf = self.pdf(wo, wi);
+        self.f(wo, wi)
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
-        todo!()
+        if same_hemisphere(wo, wi) {
+            return 0.0.into();
+        }
+        let eta = if cos_theta(wo) > 0.0 {
+            self.eta_b / self.eta_a
+        } else {
+            self.eta_a / self.eta_b
+        };
+        let wh = (*wo + *wi * eta).normalize();
+        if wo.dot(&wh) * wi.dot(&wh) > 0.0 {
+            return 0.0.into();
+        }
+        let sqrt_denom = wo.dot(&wh) + eta * wi.dot(&wh);
+        let dwh_dwi = ((eta * eta * wi.dot(&wh)) / sqrt_denom * sqrt_denom).abs();
+        self.distribution.pdf(wo, &wh) * dwh_dwi
     }
 
     fn typ(&self) -> BxDFType {
@@ -798,22 +1041,58 @@ impl BxDF for FresnelBlend {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        let pow5 = |v: Float| -> Float { (v * v) * (v * v) * v };
+        let diffuse = Spectrum::new(28.0 / (23.0 * PI))
+            * self.rd
+            * (Spectrum::new(1.0) - self.rs)
+            * (1.0 - pow5(1.0 - 0.5 * abs_cos_theta(wi)))
+            * (1.0 - pow5(1.0 - 0.5 * abs_cos_theta(wo)));
+        let wh = *wi + *wo;
+        if wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0 {
+            return 0.0.into();
+        }
+        let wh = wh.normalize();
+        let specular = self.schlick_fresnel(wi.dot(&wh))
+            * (self.distribution.d(&wh)
+                / (4.0 * wi.abs_dot(&wh) * abs_cos_theta(wi).max(abs_cos_theta(wo))));
+        diffuse + specular
     }
 
     fn sample_f(
         &self,
         wo: &Vector3f,
         wi: &mut Vector3f,
-        sample: &Point2f,
+        u_orig: &Point2f,
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        let mut u = *u_orig;
+        if u[0] < 0.5 {
+            u[0] = ONE_MINUS_EPSILON.min(2.0 * u[0]);
+            *wi = cosine_sample_hemisphere(&u);
+            if wo.z < 0.0 {
+                wi.z *= -1.0;
+            }
+        } else {
+            u[0] = ONE_MINUS_EPSILON.min(2.0 * (u[0] - 0.5));
+            let wh = self.distribution.sample_wh(wo, &u);
+            *wi = reflect(wo, &wh);
+            if !same_hemisphere(wo, wi) {
+                return 0.0.into();
+            }
+        }
+        *pdf = self.pdf(wo, wi);
+        self.f(wo, wi)
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {
-        todo!()
+        if !same_hemisphere(wo, wi) {
+            return 0.0;
+        }
+
+        let wh = (*wo + *wi).normalize();
+        let pdf_wh = self.distribution.pdf(wo, &wh);
+        0.5 * (abs_cos_theta(wi) * INV_PI + pdf_wh / (4.0 * wo.dot(&wh)))
     }
 
     fn typ(&self) -> BxDFType {
@@ -845,18 +1124,176 @@ impl BxDF for FourierBSDF {
     }
 
     fn f(&self, wo: &Vector3f, wi: &Vector3f) -> Spectrum {
-        todo!()
+        let mu_i = cos_theta(&-*wi);
+        let mu_o = cos_theta(wo);
+        let cos_phi = cos_d_phi(-*wi, *wo);
+
+        let mut offset_i = 0;
+        let mut offset_o = 0;
+
+        let mut weights_i = [0.0; 4];
+        let mut weights_o = [0.0; 4];
+        if !self
+            .bsdf_table
+            .get_weights_and_offset(mu_i, &mut offset_i, &mut weights_i)
+            || !self
+                .bsdf_table
+                .get_weights_and_offset(mu_o, &mut offset_o, &mut weights_o)
+        {
+            return 0.0.into();
+        }
+
+        let mut ak = vec![0.0; self.bsdf_table.m_max * self.bsdf_table.n_channels];
+
+        let mut m_max = 0;
+        for b in 0..4 {
+            for a in 0..4 {
+                let weight = weights_i[a] * weights_o[b];
+                if weight != 0.0 {
+                    let mut m = 0;
+                    let ap = self.bsdf_table.get_ak(offset_i + a, offset_o + b, &mut m);
+                    m_max = std::cmp::max(m_max, m);
+                    for c in 0..self.bsdf_table.n_channels {
+                        for k in 0..m {
+                            ak[c * self.bsdf_table.m_max + k] += weight * ap[c * m + k];
+                        }
+                    }
+                }
+            }
+        }
+
+        let y = fourier(ak.as_slice(), m_max, cos_phi as f64).max(0.0);
+        let mut scale = if mu_i != 0.0 { 1.0 / mu_i.abs() } else { 0.0 };
+
+        if let TransportMode::Radiance = self.mode {
+            if mu_i * mu_o > 0.0 {
+                let eta = if mu_i > 0.0 {
+                    1.0 / self.bsdf_table.eta
+                } else {
+                    self.bsdf_table.eta
+                };
+                scale *= eta * eta;
+            }
+        }
+        if self.bsdf_table.n_channels == 1 {
+            (y * scale).into()
+        } else {
+            let r = fourier(
+                &ak.as_slice()[1 * self.bsdf_table.m_max..],
+                m_max,
+                cos_phi as f64,
+            );
+            let b = fourier(
+                &ak.as_slice()[2 * self.bsdf_table.m_max..],
+                m_max,
+                cos_phi as f64,
+            );
+            let g = 1.39829 * y - 0.100913 * b - 0.297375 * r;
+            let rgb = [r * scale, g * scale, b * scale];
+            Spectrum::from_rgb(&rgb, SpectrumType::Reflectance).clamp(0.0, Float::INFINITY)
+        }
     }
 
     fn sample_f(
         &self,
         wo: &Vector3f,
         wi: &mut Vector3f,
-        sample: &Point2f,
+        u: &Point2f,
         pdf: &mut f32,
         sample_type: &mut BxDFType,
     ) -> Spectrum {
-        todo!()
+        let mu_o = cos_theta(wo);
+        let mut pdf_mu = 0.0;
+        let mu_i = sample_catmull_rom_2d(
+            self.bsdf_table.n_mu,
+            self.bsdf_table.n_mu,
+            self.bsdf_table.mu.as_slice(),
+            self.bsdf_table.mu.as_slice(),
+            self.bsdf_table.a0.as_slice(),
+            self.bsdf_table.cdf.as_slice(),
+            mu_o,
+            u[1],
+            None,
+            Some(&mut pdf_mu),
+        );
+
+        let mut offset_i = 0;
+        let mut offset_o = 0;
+        let mut weights_i = [0.0; 4];
+        let mut weights_o = [0.0; 4];
+
+        let mut ak = vec![0.0; self.bsdf_table.m_max * self.bsdf_table.n_channels];
+
+        let mut m_max = 0;
+        for b in 0..4 {
+            for a in 0..4 {
+                let weight = weights_i[a] * weights_o[b];
+                if weight != 0.0 {
+                    let mut m = 0;
+                    let ap = self.bsdf_table.get_ak(offset_i + a, offset_o + b, &mut m);
+                    m_max = std::cmp::max(m_max, m);
+                    for c in 0..self.bsdf_table.n_channels {
+                        for k in 0..m {
+                            ak[c * self.bsdf_table.m_max + k] += weight * ap[c * m + k];
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut phi = 0.0;
+        let mut pdf_phi = 0.0;
+        let y = sample_fourier(
+            ak.as_slice(),
+            self.bsdf_table.recip.as_slice(),
+            m_max,
+            u[0],
+            &mut pdf_phi,
+            &mut phi,
+        );
+        *pdf = (pdf_phi * pdf_mu).max(0.0);
+
+        let sin2_theta_i = (1.0 - mu_i * mu_i).max(0.0);
+        let mut norm = (sin2_theta_i / sin2_theta(wo)).sqrt();
+        if norm.is_infinite() {
+            norm = 0.0;
+        }
+        let sin_phi = phi.sin();
+        let cos_phi = phi.cos();
+        *wi = -Vector3f::new(
+            norm * (cos_phi * wo.x - sin_phi * wo.y),
+            norm * (sin_phi * wo.x + cos_phi * wo.y),
+            mu_i,
+        );
+        *wi = wi.normalize();
+        let mut scale = if mu_i != 0.0 { 1.0 / mu_i.abs() } else { 0.0 };
+        if let TransportMode::Radiance = self.mode {
+            if mu_i * mu_o > 0.0 {
+                let eta = if mu_i > 0.0 {
+                    1.0 / self.bsdf_table.eta
+                } else {
+                    self.bsdf_table.eta
+                };
+                scale *= eta * eta;
+            }
+        }
+
+        if self.bsdf_table.n_channels == 1 {
+            return (y * scale).into();
+        }
+        let r = fourier(
+            &ak.as_slice()[1 * self.bsdf_table.m_max..],
+            m_max,
+            cos_phi as f64,
+        );
+        let b = fourier(
+            &ak.as_slice()[2 * self.bsdf_table.m_max..],
+            m_max,
+            cos_phi as f64,
+        );
+        let g = 1.39829 * y - 0.100913 * b - 0.297375 * r;
+        let rgb = [r * scale, g * scale, b * scale];
+        Spectrum::from_rgb(&rgb, SpectrumType::Reflectance).clamp(0.0, Float::INFINITY)
     }
 
     fn pdf(&self, wo: &Vector3f, wi: &Vector3f) -> f32 {

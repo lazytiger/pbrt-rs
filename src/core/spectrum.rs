@@ -260,11 +260,47 @@ macro_rules! define_spectrum {
             }
         }
 
-        impl Div for $name {
+        impl Div<&$name> for $name {
+            type Output = $name;
+
+            fn div(self, rhs: &Self) -> Self::Output {
+                let mut ret = self;
+                for i in 0..$size {
+                    ret.c[i] /= rhs.c[i];
+                }
+                ret
+            }
+        }
+
+        impl Div<$name> for $name {
             type Output = $name;
 
             fn div(self, rhs: Self) -> Self::Output {
                 let mut ret = self;
+                for i in 0..$size {
+                    ret.c[i] /= rhs.c[i];
+                }
+                ret
+            }
+        }
+
+        impl Div<$name> for &$name {
+            type Output = $name;
+
+            fn div(self, rhs: $name) -> Self::Output {
+                let mut ret = *self;
+                for i in 0..$size {
+                    ret.c[i] /= rhs.c[i];
+                }
+                ret
+            }
+        }
+
+        impl Div for &$name {
+            type Output = $name;
+
+            fn div(self, rhs: &$name) -> Self::Output {
+                let mut ret = *self;
                 for i in 0..$size {
                     ret.c[i] /= rhs.c[i];
                 }
