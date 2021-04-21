@@ -145,14 +145,12 @@ impl Integrator for SPPMIntegrator {
     fn render(&mut self, scene: &Scene) {
         let pixel_bounds = self.camera.film().read().unwrap().cropped_pixel_bounds;
         let n_pixels = pixel_bounds.area();
-        let mut pixels = vec![
-            Arc::new({
-                let mut pixel = SPPMPixel::default();
-                pixel.radius = self.initial_search_radius;
-                pixel
-            });
-            n_pixels as usize
-        ];
+        let mut pixels = Vec::new();
+        pixels.resize_with(n_pixels as usize, || {
+            let mut pixel = SPPMPixel::default();
+            pixel.radius = self.initial_search_radius;
+            Arc::new(pixel)
+        });
         let inv_sqrt_spp = 1.0 / (self.n_iterations as Float).sqrt();
 
         let light_distr = compute_light_power_distribution(scene);
@@ -227,7 +225,7 @@ impl Integrator for SPPMIntegrator {
                             }
                             pixel_mut.ld += beta
                                 * uniform_sample_one_light(
-                                    Arc::new(Box::new(isect.clone())),
+                                    &isect,
                                     scene,
                                     tile_sampler.clone(),
                                     false,
@@ -285,7 +283,8 @@ impl Integrator for SPPMIntegrator {
             let mut grid_res = [0; 3];
             let mut grid_bounds = Bounds3f::default();
             let hash_size = n_pixels;
-            let grid = vec![Arc::new(AtomicUsize::new(0)); hash_size as usize];
+            let mut grid = Vec::new();
+            grid.resize_with(hash_size as usize, || AtomicUsize::new(0));
             let mut max_radius = 0.0 as Float;
             {
                 for i in 0..n_pixels as usize {

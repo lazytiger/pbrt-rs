@@ -75,7 +75,7 @@ impl Integrator for WhittedIntegrator {
             let mut pdf = 0.0;
             let mut visibility = VisibilityTester::default();
             let li = light.sample_li(
-                Arc::new(Box::new(isect.clone())),
+                &isect.clone(),
                 &sampler.write().unwrap().get_2d(),
                 &mut wi,
                 &mut pdf,

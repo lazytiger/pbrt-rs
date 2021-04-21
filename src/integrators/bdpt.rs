@@ -228,8 +228,7 @@ pub fn infinite_light_density(
     let mut pdf = 0.0;
     for light in &scene.infinite_lights {
         let index = *light2distr_index.get(&LightKey(light.clone())).unwrap();
-        pdf += light.pdf_li(Arc::new(Box::new(BaseInteraction::default())), &-*w)
-            * light_distr.func[index];
+        pdf += light.pdf_li(&BaseInteraction::default(), &-*w) * light_distr.func[index];
     }
     pdf / (light_distr.func_int as Float * light_distr.count() as Float)
 }
@@ -1090,7 +1089,7 @@ pub fn connect_bdpt(
 
             let light = scene.lights[light_num].clone();
             let light_weight = light.sample_li(
-                pt.get_interaction_dt(),
+                pt.get_interaction(),
                 &sampler.write().unwrap().get_2d(),
                 &mut wi,
                 &mut pdf,

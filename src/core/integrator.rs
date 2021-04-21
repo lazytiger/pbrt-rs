@@ -41,7 +41,7 @@ pub trait Integrator {
 }
 
 pub fn uniform_sample_all_lights(
-    it: InteractionDt,
+    it: &dyn Interaction,
     scene: &Scene,
     sampler: SamplerDtRw,
     n_light_samples: &Vec<usize>,
@@ -57,7 +57,7 @@ pub fn uniform_sample_all_lights(
             let u_light = sampler.write().unwrap().get_2d();
             let u_scattering = sampler.write().unwrap().get_2d();
             l += estimate_direct(
-                it.clone(),
+                it,
                 &u_scattering,
                 light,
                 &u_light,
@@ -89,7 +89,7 @@ pub fn uniform_sample_all_lights(
 }
 
 pub fn uniform_sample_one_light(
-    it: InteractionDt,
+    it: &dyn Interaction,
     scene: &Scene,
     sampler: SamplerDtRw,
     handle_media: bool,
@@ -133,7 +133,7 @@ pub fn uniform_sample_one_light(
 }
 
 pub fn estimate_direct(
-    it: InteractionDt,
+    it: &dyn Interaction,
     u_scattering: &Point2f,
     light: LightDt,
     u_light: &Point2f,
@@ -222,7 +222,7 @@ pub fn estimate_direct(
         if !f.is_black() && scattering_pdf > 0.0 {
             let mut weight = 1.0;
             if !sampled_specular {
-                light_pdf = light.pdf_li(it.clone(), &wi);
+                light_pdf = light.pdf_li(it, &wi);
                 if light_pdf == 0.0 {
                     return ld;
                 }

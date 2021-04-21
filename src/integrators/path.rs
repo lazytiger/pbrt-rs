@@ -107,7 +107,7 @@ impl Integrator for PathIntegrator {
             {
                 let ld = beta
                     * uniform_sample_one_light(
-                        Arc::new(Box::new(isect.clone())),
+                        &isect,
                         scene,
                         sampler.clone(),
                         false,
@@ -164,7 +164,7 @@ impl Integrator for PathIntegrator {
 
                 l += beta
                     * uniform_sample_one_light(
-                        Arc::new(Box::new(pi.clone())),
+                        &pi,
                         scene,
                         sampler.clone(),
                         false,

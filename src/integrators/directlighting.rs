@@ -107,7 +107,7 @@ impl Integrator for DirectLightingIntegrator {
             match self.strategy {
                 LightStrategy::UniformSampleAll => {
                     l += uniform_sample_all_lights(
-                        Arc::new(Box::new(isect.clone())),
+                        &isect,
                         scene,
                         sampler.clone(),
                         &self.n_light_samples,
@@ -115,13 +115,7 @@ impl Integrator for DirectLightingIntegrator {
                     );
                 }
                 LightStrategy::UniformSampleOne => {
-                    l += uniform_sample_one_light(
-                        Arc::new(Box::new(isect.clone())),
-                        scene,
-                        sampler.clone(),
-                        false,
-                        None,
-                    );
+                    l += uniform_sample_one_light(&isect, scene, sampler.clone(), false, None);
                 }
             }
         }

@@ -34,7 +34,7 @@ pub trait Light: Debug {
     fn as_any(&self) -> &dyn Any;
     fn sample_li(
         &self,
-        iref: InteractionDt,
+        iref: &dyn Interaction,
         u: &Point2f,
         wi: &mut Vector3f,
         pdf: &mut Float,
@@ -47,7 +47,7 @@ pub trait Light: Debug {
         todo!()
     }
 
-    fn pdf_li(&self, iref: InteractionDt, wi: &Vector3f) -> Float;
+    fn pdf_li(&self, iref: &dyn Interaction, wi: &Vector3f) -> Float;
 
     fn sample_le(
         &self,
