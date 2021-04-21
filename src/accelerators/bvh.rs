@@ -66,14 +66,14 @@ impl BVHBuildNode {
     ) {
         let (bounds, children) = {
             let read_lock = arena.read().unwrap();
-            let c0 = read_lock.get(c0);
-            let c1 = read_lock.get(c1);
+            let c0 = read_lock.get(c0).unwrap();
+            let c1 = read_lock.get(c1).unwrap();
             (c0.bounds.union(&c1.bounds), [c0.index, c1.index])
         };
 
         {
             let mut write_lock = arena.write().unwrap();
-            let node = write_lock.get_mut(s);
+            let node = write_lock.get_mut(s).unwrap();
             node.bounds = bounds;
             node.children = children;
             node.split_axis = axis;
@@ -83,8 +83,8 @@ impl BVHBuildNode {
 
     fn init_interior(&mut self, arena: ArenaRw<BVHBuildNode>, axis: usize, c0: usize, c1: usize) {
         let read_lock = arena.read().unwrap();
-        let c0 = read_lock.get(c0);
-        let c1 = read_lock.get(c1);
+        let c0 = read_lock.get(c0).unwrap();
+        let c1 = read_lock.get(c1).unwrap();
         self.bounds = c0.bounds.union(&c1.bounds);
         self.children = [c0.index, c1.index];
         self.split_axis = axis;
@@ -295,7 +295,7 @@ impl BVHAccel {
                     .unwrap()
                     .push(self.primitives[prim_num].clone());
             }
-            arena.write().unwrap().get_mut(index).init_leaf(
+            arena.write().unwrap().get_mut(index).unwrap().init_leaf(
                 first_prim_offset,
                 n_primitives,
                 bounds,
@@ -318,7 +318,7 @@ impl BVHAccel {
                         .unwrap()
                         .push(self.primitives[prim_num].clone());
                 }
-                arena.write().unwrap().get_mut(index).init_leaf(
+                arena.write().unwrap().get_mut(index).unwrap().init_leaf(
                     first_prim_offset,
                     n_primitives,
                     bounds,
@@ -439,7 +439,7 @@ impl BVHAccel {
                                         .unwrap()
                                         .push(self.primitives[prim_num].clone());
                                 }
-                                arena.write().unwrap().get_mut(index).init_leaf(
+                                arena.write().unwrap().get_mut(index).unwrap().init_leaf(
                                     first_prim_offset,
                                     n_primitives,
                                     bounds,
@@ -596,11 +596,12 @@ impl BVHAccel {
                     self.primitives[primitive_index].clone();
                 bounds.union(&primitive_info[primitive_index].bounds);
             }
-            arena.write().unwrap().get_mut(node_index).init_leaf(
-                first_prim_offset,
-                n_primitives,
-                bounds,
-            );
+            arena
+                .write()
+                .unwrap()
+                .get_mut(node_index)
+                .unwrap()
+                .init_leaf(first_prim_offset, n_primitives, bounds);
             offset + 1
         } else {
             let mask = 1 << bit_index;
@@ -690,13 +691,13 @@ impl BVHAccel {
         let (index, _) = arena.write().unwrap().alloc(BVHBuildNode::default());
         let bounds = Bounds3f::default();
         for i in start..end {
-            bounds.union(&arena.read().unwrap().get(treelet_roots[i]).bounds);
+            bounds.union(&arena.read().unwrap().get(treelet_roots[i]).unwrap().bounds);
         }
 
         let centroid_bounds = Bounds3f::default();
         for i in start..end {
             let read_lock = arena.read().unwrap();
-            let node = read_lock.get(treelet_roots[i]);
+            let node = read_lock.get(treelet_roots[i]).unwrap();
             let centroid = (node.bounds.min + node.bounds.max) * 0.5;
             centroid_bounds.union(&centroid);
         }
@@ -706,7 +707,7 @@ impl BVHAccel {
 
         for i in start..end {
             let read_lock = arena.read().unwrap();
-            let node = read_lock.get(treelet_roots[i]);
+            let node = read_lock.get(treelet_roots[i]).unwrap();
             let centroid = (node.bounds.min[dim] + node.bounds.max[dim]) * 0.5;
             let mut b = n_buckets
                 * ((centroid - centroid_bounds.min[dim])
@@ -752,7 +753,7 @@ impl BVHAccel {
             .iter_mut()
             .partition_in_place(|index| {
                 let read_lock = arena.read().unwrap();
-                let node = read_lock.get(*index);
+                let node = read_lock.get(*index).unwrap();
                 let centroid = (node.bounds.min[dim] + node.bounds.max[dim]) * 0.5;
                 let mut b = n_buckets
                     * ((centroid - centroid_bounds.min[dim])
@@ -777,7 +778,7 @@ impl BVHAccel {
         offset: &mut usize,
     ) -> usize {
         let read_lock = arena.read().unwrap();
-        let node = read_lock.get(index);
+        let node = read_lock.get(index).unwrap();
         let (ok, my_offset) = if let Some(nodes) = &mut self.nodes {
             let linear_node = &mut nodes[*offset as usize];
             linear_node.bounds = node.bounds;

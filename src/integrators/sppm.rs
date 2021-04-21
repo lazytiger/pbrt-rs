@@ -3,15 +3,17 @@ use crate::{
         arena::{Arena, Indexed},
         camera::CameraDt,
         geometry::{
-            Bounds2i, Bounds3f, Point2i, Point3f, Point3i, RayDifferentials, Union, Vector3f,
+            Bounds2i, Bounds3f, Normal3f, Point2f, Point2i, Point3f, Point3i, RayDifferentials,
+            Union, Vector3f,
         },
         integrator::{
             compute_light_power_distribution, uniform_sample_one_light, Integrator,
             SamplerIntegrator,
         },
         interaction::SurfaceInteraction,
+        lowdiscrepancy::radical_inverse,
         material::TransportMode,
-        pbrt::{clamp, Float},
+        pbrt::{clamp, lerp, Float},
         reflection::{BxDFType, BSDF},
         sampler::SamplerDtRw,
         scene::Scene,
@@ -23,6 +25,7 @@ use crate::{
 use derive_more::{Deref, DerefMut};
 use std::{
     any::Any,
+    f32::consts::PI,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, RwLock,
@@ -82,8 +85,8 @@ struct SPPMPixel {
     radius: Float,
     ld: Spectrum,
     vp: VisiblePoint,
-    phi: Arc<RwLock<Vec<Float>>>,
-    m: Arc<RwLock<usize>>,
+    phi: Vec<Float>,
+    m: usize,
     n: Float,
     tau: Spectrum,
 }
@@ -94,7 +97,7 @@ impl SPPMPixel {
             radius: 0.0,
             ld: Default::default(),
             vp: Default::default(),
-            phi: Arc::new(RwLock::new(vec![0.0; Spectrum::n_samples()])),
+            phi: vec![0.0; Spectrum::n_samples()],
             m: Default::default(),
             n: 0.0,
             tau: Default::default(),
@@ -142,10 +145,14 @@ impl Integrator for SPPMIntegrator {
     fn render(&mut self, scene: &Scene) {
         let pixel_bounds = self.camera.film().read().unwrap().cropped_pixel_bounds;
         let n_pixels = pixel_bounds.area();
-        let mut pixels = vec![SPPMPixel::default(); n_pixels as usize];
-        for i in 0..n_pixels as usize {
-            pixels[i].radius = self.initial_search_radius;
-        }
+        let mut pixels = vec![
+            Arc::new({
+                let mut pixel = SPPMPixel::default();
+                pixel.radius = self.initial_search_radius;
+                pixel
+            });
+            n_pixels as usize
+        ];
         let inv_sqrt_spp = 1.0 / (self.n_iterations as Float).sqrt();
 
         let light_distr = compute_light_power_distribution(scene);
@@ -162,7 +169,6 @@ impl Integrator for SPPMIntegrator {
             (pixel_extent.x + tile_size - 1) / tile_size,
             (pixel_extent.y + tile_size - 1) / tile_size,
         );
-        let pixels = RwLock::new(pixels);
         let arena = RwLock::new(Arena::with_capacity(1024));
         for iter in 0..self.n_iterations {
             parallel_for_2d!(
@@ -194,15 +200,16 @@ impl Integrator for SPPMIntegrator {
                         let p_pixel_o = p_pixel - pixel_bounds.min;
                         let pixel_offset =
                             p_pixel_o.x + p_pixel_o.y * (pixel_bounds.max.x - pixel_bounds.min.x);
+                        let mut pixel = pixels[pixel_offset as usize].clone();
+                        let pixel_mut = Arc::get_mut(&mut pixel).unwrap();
                         let mut specular_bounce = false;
                         let mut depth = 0;
                         while depth < self.max_depth {
                             let mut isect = SurfaceInteraction::default();
                             if !scene.intersect(&mut ray.base, &mut isect) {
-                                let mut lock = pixels.write().unwrap();
-                                let pixel = &mut lock[pixel_offset as usize];
+                                let pixel = pixels[pixel_offset as usize].clone();
                                 for light in &scene.lights {
-                                    pixel.ld += beta * light.le(&ray);
+                                    pixel_mut.ld += beta * light.le(&ray);
                                 }
                                 break;
                             }
@@ -216,10 +223,9 @@ impl Integrator for SPPMIntegrator {
                             let bsdf = isect.bsdf.as_ref().unwrap();
                             let wo = -ray.d;
                             if depth == 0 || specular_bounce {
-                                pixels.write().unwrap()[pixel_offset as usize].ld +=
-                                    beta * isect.le(&wo);
+                                pixel_mut.ld += beta * isect.le(&wo);
                             }
-                            pixels.write().unwrap()[pixel_offset as usize].ld += beta
+                            pixel_mut.ld += beta
                                 * uniform_sample_one_light(
                                     Arc::new(Box::new(isect.clone())),
                                     scene,
@@ -238,7 +244,7 @@ impl Integrator for SPPMIntegrator {
                                     | BxDFType::BSDF_TRANSMISSION,
                             ) > 0;
                             if is_diffuse || (is_glossy && depth == self.max_depth - 1) {
-                                pixels.write().unwrap()[pixel_offset as usize].vp =
+                                pixel_mut.vp =
                                     VisiblePoint::new(isect.p, wo, Some(bsdf.clone()), beta);
                                 break;
                             }
@@ -279,12 +285,11 @@ impl Integrator for SPPMIntegrator {
             let mut grid_res = [0; 3];
             let mut grid_bounds = Bounds3f::default();
             let hash_size = n_pixels;
-            let grid = RwLock::new(vec![Arc::new(AtomicUsize::new(0)); hash_size as usize]);
+            let grid = vec![Arc::new(AtomicUsize::new(0)); hash_size as usize];
             let mut max_radius = 0.0 as Float;
             {
-                let mut lock = pixels.read().unwrap();
                 for i in 0..n_pixels as usize {
-                    let pixel = &lock[i];
+                    let pixel = pixels[i].clone();
                     if pixel.vp.beta.is_black() {
                         continue;
                     }
@@ -301,11 +306,9 @@ impl Integrator for SPPMIntegrator {
                 grid_res[i] = (base_grid_res as Float * diag[i] / max_diag).max(1.0) as i32;
             }
 
-            //let pixels = RwLock::new(pixels);
             parallel_for!(
                 |pixel_index: usize| {
-                    let lock = pixels.read().unwrap();
-                    let pixel = &lock[pixel_index];
+                    let pixel = pixels[pixel_index].clone();
                     if pixel.vp.beta.is_black() {
                         let radius = pixel.radius;
                         let mut p_min = Point3i::default();
@@ -332,11 +335,10 @@ impl Integrator for SPPMIntegrator {
                                         let (index, node) =
                                             lock.alloc(SPPMPixelListNode::default());
                                         node.pixel = pixel_index;
-                                        node.next =
-                                            Some(grid.read().unwrap()[h].load(Ordering::SeqCst));
+                                        node.next = Some(grid[h].load(Ordering::SeqCst));
                                         node.clone()
                                     };
-                                    grid.read().unwrap()[h].compare_exchange_weak(
+                                    grid[h].compare_exchange_weak(
                                         node.next.unwrap(),
                                         node.index,
                                         Ordering::SeqCst,
@@ -350,6 +352,203 @@ impl Integrator for SPPMIntegrator {
                 n_pixels as usize,
                 4096
             );
+
+            parallel_for!(
+                |photon_index: usize| {
+                    let halton_index = (iter * self.photon_per_iteration + photon_index) as u64;
+                    let mut halton_dim = 0;
+                    let mut light_pdf = 0.0;
+                    let light_sample = radical_inverse(halton_dim, halton_index);
+                    halton_dim += 1;
+                    let light_num = light_distr.as_ref().unwrap().sample_discrete(
+                        light_sample,
+                        Some(&mut light_pdf),
+                        None,
+                    );
+                    let light = scene.lights[light_num].clone();
+
+                    let u_light0 = Point2f::new(
+                        radical_inverse(halton_dim, halton_index),
+                        radical_inverse(halton_dim + 1, halton_index),
+                    );
+                    let u_light1 = Point2f::new(
+                        radical_inverse(halton_dim + 2, halton_index),
+                        radical_inverse(halton_dim + 3, halton_index),
+                    );
+                    let u_light_time = lerp(
+                        radical_inverse(halton_dim + 4, halton_index),
+                        self.camera.shutter_open(),
+                        self.camera.shutter_close(),
+                    );
+                    halton_dim += 5;
+
+                    let mut photon_ray = RayDifferentials::default();
+                    let mut n_light = Normal3f::default();
+                    let (mut pdf_pos, mut pdf_dir) = (0.0, 0.0);
+                    let le = light.sample_le(
+                        &u_light0,
+                        &u_light1,
+                        u_light_time,
+                        &mut photon_ray,
+                        &mut n_light,
+                        &mut pdf_pos,
+                        &mut pdf_dir,
+                    );
+                    if pdf_pos == 0.0 || pdf_dir == 0.0 || le.is_black() {
+                        return;
+                    }
+
+                    let mut beta =
+                        le * n_light.abs_dot(&photon_ray.d) / (light_pdf * pdf_pos * pdf_dir);
+                    if beta.is_black() {
+                        return;
+                    }
+
+                    let mut isect = SurfaceInteraction::default();
+                    let mut depth = 0;
+                    while depth < self.max_depth {
+                        if !scene.intersect(&mut photon_ray.base, &mut isect) {
+                            break;
+                        }
+                        if depth > 0 {
+                            let mut photon_grid_index = Point3i::default();
+                            if to_grid(&isect.p, &grid_bounds, &grid_res, &mut photon_grid_index) {
+                                let h = hash(photon_grid_index, hash_size);
+
+                                let mut node_index = grid[h].load(Ordering::Relaxed);
+                                while let Some(node) = arena.read().unwrap().get(node_index) {
+                                    let mut pixel = pixels[node.pixel].clone();
+                                    let pixel_mut = Arc::get_mut(&mut pixel).unwrap();
+                                    let radius = pixel_mut.radius;
+                                    if pixel_mut.vp.p.distance_square(&isect.p) > radius * radius {
+                                        continue;
+                                    }
+                                    let mut wi = -photon_ray.d;
+                                    let phi = beta
+                                        * pixel_mut.vp.bsdf.as_ref().unwrap().f(
+                                            &pixel_mut.vp.wo,
+                                            &mut wi,
+                                            BxDFType::all(),
+                                        );
+                                    for i in 0..Spectrum::n_samples() {
+                                        pixel_mut.phi[i] += phi[i];
+                                    }
+                                    pixel_mut.m += 1;
+                                    if let Some(next) = node.next {
+                                        node_index = next;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        isect.compute_scattering_functions(
+                            &photon_ray,
+                            true,
+                            TransportMode::Importance,
+                        );
+                        if isect.bsdf.is_none() {
+                            depth -= 1;
+                            photon_ray = isect.spawn_ray(&photon_ray.d).into();
+                            continue;
+                        }
+
+                        let photon_bsdf = isect.bsdf.as_ref().unwrap();
+
+                        let mut wi = Vector3f::default();
+                        let wo = -photon_ray.d;
+                        let mut pdf = 0.0;
+                        let mut flags = BxDFType::empty();
+
+                        let bsdf_sample = Point2f::new(
+                            radical_inverse(halton_dim, halton_index),
+                            radical_inverse(halton_dim + 1, halton_index),
+                        );
+                        halton_dim += 2;
+                        let fr = photon_bsdf.sample_f(
+                            &wo,
+                            &mut wi,
+                            &bsdf_sample,
+                            &mut pdf,
+                            BxDFType::all(),
+                            Some(&mut flags),
+                        );
+                        if fr.is_black() || pdf == 0.0 {
+                            break;
+                        }
+
+                        let b_new = beta * fr * wi.abs_dot(&isect.shading.n) / pdf;
+
+                        let q = (1.0 - b_new.y_value() / beta.y_value()).min(0.0);
+                        if radical_inverse(halton_dim, halton_index) < q {
+                            break;
+                        }
+                        halton_dim += 1;
+                        beta = b_new / (1.0 - q);
+                        photon_ray = isect.spawn_ray(&wi).into();
+
+                        depth += 1;
+                    }
+                },
+                self.photon_per_iteration,
+                8192
+            );
+
+            parallel_for!(
+                |i: usize| {
+                    let mut pixel = pixels[i].clone();
+                    let p = Arc::get_mut(&mut pixel).unwrap();
+                    if p.m > 0 {
+                        let gamma = 2.0 / 3.0;
+                        let n_new = p.n + gamma * p.m as Float;
+                        let r_new = p.radius * (n_new / (p.n + p.m as Float)).sqrt();
+                        let mut phi = Spectrum::default();
+                        for j in 0..Spectrum::n_samples() {
+                            phi[j] = p.phi[j];
+                        }
+                        p.tau = (p.tau + phi * p.vp.beta) * (r_new * r_new) / (p.radius * p.radius);
+                        p.n = n_new;
+                        p.radius = r_new;
+                        p.m = 0;
+                        for j in 0..Spectrum::n_samples() {
+                            p.phi[j] = 0.0;
+                        }
+                    }
+                    p.vp.beta = Spectrum::new(0.0);
+                    p.vp.bsdf = None;
+                },
+                n_pixels as usize,
+                4096
+            );
+
+            if iter + 1 == self.n_iterations || iter + 1 % self.write_frequency == 0 {
+                let x0 = pixel_bounds.min.x;
+                let x1 = pixel_bounds.max.x;
+                let np = (iter + 1) * self.photon_per_iteration;
+                let mut image = vec![Spectrum::new(0.0); pixel_bounds.area() as usize];
+                let mut offset = 0;
+                for y in pixel_bounds.min.y..pixel_bounds.max.y {
+                    for x in x0..x1 {
+                        let pixel = pixels
+                            [((y - pixel_bounds.min.y) * (x1 - x0) + (x - x0)) as usize]
+                            .clone();
+                        let mut l = pixel.ld / (iter + 1) as Float;
+                        l += pixel.tau / (np as Float * PI * pixel.radius * pixel.radius);
+                        image[offset] = l;
+                        offset += 1;
+                    }
+                }
+
+                self.camera
+                    .film()
+                    .write()
+                    .unwrap()
+                    .set_image(image.as_slice());
+                self.camera.film().write().unwrap().write_image(1.0);
+
+                //TODO
+            }
         }
     }
 }
