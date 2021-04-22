@@ -51,3 +51,21 @@ fn test_for() {
         }
     }
 }
+
+#[test]
+fn test_cast() {
+    let a = 2;
+    let b = &a;
+    unsafe {
+        let c = b as *const i32 as *mut i32;
+        *c = 1;
+    }
+    println!("a = {}", a);
+}
+
+#[test]
+fn expr_test() {
+    let a = loop {
+        break;
+    };
+}
