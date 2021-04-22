@@ -54,6 +54,6 @@ pub trait Material: Debug {
     }
 }
 
-pub type MaterialDt = Arc<Box<dyn Material>>;
-pub type MaterialDtMut = Arc<Mutex<Box<dyn Material>>>;
-pub type MaterialDtRw = Arc<RwLock<Box<dyn Material>>>;
+pub type MaterialDt = Arc<Box<dyn Material + Sync + Send>>;
+pub type MaterialDtMut = Arc<Mutex<Box<dyn Material + Sync + Send>>>;
+pub type MaterialDtRw = Arc<RwLock<Box<dyn Material + Sync + Send>>>;
