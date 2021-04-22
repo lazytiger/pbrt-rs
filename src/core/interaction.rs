@@ -215,7 +215,7 @@ impl MediumInteraction {
 pub struct Shading {
     pub n: Normal3f,
     pub(crate) dpdu: Vector3f,
-    dpdv: Vector3f,
+    pub(crate) dpdv: Vector3f,
     pub(crate) dndu: Normal3f,
     pub(crate) dndv: Normal3f,
 }
@@ -228,8 +228,8 @@ pub struct SurfaceInteraction {
     pub(crate) uv: Point2f,
     pub(crate) dpdu: Vector3f,
     pub(crate) dpdv: Vector3f,
-    dndu: Normal3f,
-    dndv: Normal3f,
+    pub(crate) dndu: Normal3f,
+    pub(crate) dndv: Normal3f,
     shape: Option<ShapeDt>,
     pub shading: Shading,
     pub primitive: Option<PrimitiveDt>,

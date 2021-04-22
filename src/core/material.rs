@@ -1,4 +1,6 @@
-use crate::core::interaction::SurfaceInteraction;
+use crate::core::{
+    geometry::Vector2f, interaction::SurfaceInteraction, pbrt::Float, texture::TextureDt,
+};
 use std::{
     any::Any,
     fmt::Debug,
@@ -19,6 +21,37 @@ pub trait Material: Debug {
         mode: TransportMode,
         allow_multiple_lobes: bool,
     );
+    fn bump(&self, d: TextureDt<Float>, si: &mut SurfaceInteraction) {
+        let mut si_eval = si.clone();
+        let mut du = 0.5 * (si.dudx.abs() + si.dudy.abs());
+        if du == 0.0 {
+            du = 0.0005;
+        }
+        si_eval.p = si.p + si.shading.dpdu * du;
+        si_eval.uv = si.uv + Vector2f::new(du, 0.0);
+        si_eval.n = (si.shading.dpdu.cross(&si.shading.dpdv) + si.dndu * du).normalize();
+        let u_displace = d.evaluate(&si_eval);
+        let mut dv = 0.5 * (si.dvdx.abs() + si.dvdy.abs());
+        if dv == 0.0 {
+            dv = 0.0005;
+        }
+        si_eval.p = si.p + si.shading.dpdv * dv;
+        si_eval.uv = si.uv + Vector2f::new(0.0, dv);
+        si_eval.n = (si.shading.dpdu.cross(&si.shading.dpdv) + si.dndv * dv).normalize();
+
+        let v_displace = d.evaluate(&si_eval);
+        let displace = d.evaluate(si);
+
+        let dpdu = si.shading.dpdu
+            + si.shading.n * ((v_displace - displace) / du)
+            + si.shading.dndu * displace;
+
+        let dpdv = si.shading.dpdv
+            + si.shading.n * ((v_displace - displace) / dv)
+            + si.shading.dndv * displace;
+
+        si.set_shading_geometry(dpdu, dpdv, si.shading.dndu, si.shading.dndv, false);
+    }
 }
 
 pub type MaterialDt = Arc<Box<dyn Material>>;
