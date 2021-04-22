@@ -68,4 +68,8 @@ fn expr_test() {
     let a = loop {
         break;
     };
+
+    struct Test<const N: usize> {
+        data: [f32; N],
+    }
 }

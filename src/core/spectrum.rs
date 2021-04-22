@@ -107,264 +107,272 @@ pub fn rgb_to_xyz(rgb: &[Float], xyz: &mut [Float]) {
 
 const CIE_Y_INTEGRAL: Float = 106.856895;
 
-macro_rules! define_spectrum {
-    ($name:ident, $size:expr) => {
-        #[derive(Copy, Clone, PartialEq)]
-        pub struct $name {
-            c: [Float; $size],
-        }
-
-        impl Default for $name {
-            fn default() -> Self {
-                Self { c: [0.0; $size] }
-            }
-        }
-
-        impl $name {
-            pub fn new(v: Float) -> Self {
-                Self { c: [v; $size] }
-            }
-
-            pub fn sqrt(&self) -> $name {
-                let mut ret = $name::new(0.0);
-                for i in 0..$size {
-                    ret.c[i] = self.c[i].sqrt();
-                }
-                ret
-            }
-
-            pub fn pow(&self, e: Float) -> $name {
-                let mut ret = $name::new(0.0);
-                for i in 0..$size {
-                    ret.c[i] = self.c[i].powf(e);
-                }
-                ret
-            }
-
-            pub fn exp(&self) -> $name {
-                let mut ret = $name::new(0.0);
-                for i in 0..$size {
-                    ret.c[i] = self.c[i].exp();
-                }
-                ret
-            }
-
-            pub fn clamp(&self, low: Float, high: Float) -> $name {
-                let mut ret = $name::new(0.0);
-                for i in 0..$size {
-                    ret.c[i] = clamp(self.c[i], low, high);
-                }
-                ret
-            }
-
-            pub fn max_component_value(&self) -> Float {
-                self.c
-                    .iter()
-                    .fold(Float::MIN, |max, val| if max > *val { max } else { *val })
-            }
-
-            pub fn has_nans(&self) -> bool {
-                for i in 0..$size {
-                    if self.c[i].is_nan() {
-                        return true;
-                    }
-                }
-                false
-            }
-
-            pub fn n_samples() -> usize {
-                $size
-            }
-
-            pub fn is_black(&self) -> bool {
-                for i in 0..$size {
-                    if self.c[i] == 0.0 {
-                        return false;
-                    }
-                }
-                true
-            }
-        }
-
-        impl Index<usize> for $name {
-            type Output = Float;
-
-            fn index(&self, index: usize) -> &Self::Output {
-                &self.c[index]
-            }
-        }
-
-        impl IndexMut<usize> for $name {
-            fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-                &mut self.c[index]
-            }
-        }
-
-        impl Add for $name {
-            type Output = $name;
-
-            fn add(self, rhs: Self) -> Self::Output {
-                let mut ret = self;
-                for i in 0..$size {
-                    ret.c[i] += rhs.c[i];
-                }
-                ret
-            }
-        }
-
-        impl AddAssign for $name {
-            fn add_assign(&mut self, rhs: Self) {
-                for i in 0..$size {
-                    self.c[i] += rhs.c[i];
-                }
-            }
-        }
-
-        impl Sub for $name {
-            type Output = $name;
-
-            fn sub(self, rhs: Self) -> Self::Output {
-                let mut ret = self;
-                for i in 0..$size {
-                    ret.c[i] -= rhs.c[i];
-                }
-                ret
-            }
-        }
-
-        impl SubAssign for $name {
-            fn sub_assign(&mut self, rhs: Self) {
-                for i in 0..$size {
-                    self.c[i] -= rhs.c[i];
-                }
-            }
-        }
-
-        impl Mul for $name {
-            type Output = $name;
-
-            fn mul(self, rhs: Self) -> Self::Output {
-                let mut ret = self;
-                for i in 0..$size {
-                    ret.c[i] *= rhs.c[i];
-                }
-                ret
-            }
-        }
-
-        impl MulAssign for $name {
-            fn mul_assign(&mut self, rhs: Self) {
-                for i in 0..$size {
-                    self.c[i] *= rhs.c[i];
-                }
-            }
-        }
-
-        impl Div<&$name> for $name {
-            type Output = $name;
-
-            fn div(self, rhs: &Self) -> Self::Output {
-                let mut ret = self;
-                for i in 0..$size {
-                    ret.c[i] /= rhs.c[i];
-                }
-                ret
-            }
-        }
-
-        impl Div<$name> for $name {
-            type Output = $name;
-
-            fn div(self, rhs: Self) -> Self::Output {
-                let mut ret = self;
-                for i in 0..$size {
-                    ret.c[i] /= rhs.c[i];
-                }
-                ret
-            }
-        }
-
-        impl Div<$name> for &$name {
-            type Output = $name;
-
-            fn div(self, rhs: $name) -> Self::Output {
-                let mut ret = *self;
-                for i in 0..$size {
-                    ret.c[i] /= rhs.c[i];
-                }
-                ret
-            }
-        }
-
-        impl Div for &$name {
-            type Output = $name;
-
-            fn div(self, rhs: &$name) -> Self::Output {
-                let mut ret = *self;
-                for i in 0..$size {
-                    ret.c[i] /= rhs.c[i];
-                }
-                ret
-            }
-        }
-
-        impl DivAssign for $name {
-            fn div_assign(&mut self, rhs: Self) {
-                for i in 0..$size {
-                    self.c[i] /= rhs.c[i];
-                }
-            }
-        }
-
-        impl Mul<Float> for $name {
-            type Output = $name;
-
-            fn mul(self, rhs: Float) -> Self::Output {
-                let mut ret = self;
-                for i in 0..$size {
-                    ret.c[i] *= rhs;
-                }
-                ret
-            }
-        }
-
-        impl MulAssign<Float> for $name {
-            fn mul_assign(&mut self, rhs: Float) {
-                for i in 0..$size {
-                    self.c[i] *= rhs;
-                }
-            }
-        }
-
-        impl Div<Float> for $name {
-            type Output = $name;
-
-            fn div(self, rhs: Float) -> Self::Output {
-                let mut ret = self;
-                for i in 0..$size {
-                    ret.c[i] /= rhs;
-                }
-                ret
-            }
-        }
-
-        impl DivAssign<Float> for $name {
-            fn div_assign(&mut self, rhs: Float) {
-                for i in 0..$size {
-                    self.c[i] /= rhs;
-                }
-            }
-        }
-
-        impl From<Float> for $name {
-            fn from(v: Float) -> Self {
-                Self::new(v)
-            }
-        }
-    };
+#[derive(Copy, Clone, PartialEq)]
+pub struct CoefficientSpectrum<const N: usize> {
+    c: [Float; N],
 }
 
-define_spectrum!(SampledSpectrum, N_SPECTRAL_SAMPLES);
+impl<const N: usize> Default for CoefficientSpectrum<N> {
+    fn default() -> Self {
+        Self { c: [0.0; N] }
+    }
+}
+
+impl<const N: usize> CoefficientSpectrum<N> {
+    pub fn new(v: Float) -> Self {
+        Self { c: [v; N] }
+    }
+
+    pub fn sqrt(&self) -> CoefficientSpectrum<N> {
+        let mut ret = CoefficientSpectrum::new(0.0);
+        for i in 0..N {
+            ret.c[i] = self.c[i].sqrt();
+        }
+        ret
+    }
+
+    pub fn pow(&self, e: Float) -> CoefficientSpectrum<N> {
+        let mut ret = CoefficientSpectrum::new(0.0);
+        for i in 0..N {
+            ret.c[i] = self.c[i].powf(e);
+        }
+        ret
+    }
+
+    pub fn exp(&self) -> CoefficientSpectrum<N> {
+        let mut ret = CoefficientSpectrum::new(0.0);
+        for i in 0..N {
+            ret.c[i] = self.c[i].exp();
+        }
+        ret
+    }
+
+    pub fn clamp(&self, low: Float, high: Float) -> CoefficientSpectrum<N> {
+        let mut ret = CoefficientSpectrum::new(0.0);
+        for i in 0..N {
+            ret.c[i] = clamp(self.c[i], low, high);
+        }
+        ret
+    }
+
+    pub fn max_component_value(&self) -> Float {
+        self.c
+            .iter()
+            .fold(Float::MIN, |max, val| if max > *val { max } else { *val })
+    }
+
+    pub fn has_nans(&self) -> bool {
+        for i in 0..N {
+            if self.c[i].is_nan() {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn n_samples() -> usize {
+        N
+    }
+
+    pub fn is_black(&self) -> bool {
+        for i in 0..N {
+            if self.c[i] == 0.0 {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl<const N: usize> Index<usize> for CoefficientSpectrum<N> {
+    type Output = Float;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.c[index]
+    }
+}
+
+impl<const N: usize> IndexMut<usize> for CoefficientSpectrum<N> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.c[index]
+    }
+}
+
+impl<const N: usize> Add for CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut ret = self;
+        for i in 0..N {
+            ret.c[i] += rhs.c[i];
+        }
+        ret
+    }
+}
+
+impl<const N: usize> AddAssign for CoefficientSpectrum<N> {
+    fn add_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.c[i] += rhs.c[i];
+        }
+    }
+}
+
+impl<const N: usize> Sub for CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let mut ret = self;
+        for i in 0..N {
+            ret.c[i] -= rhs.c[i];
+        }
+        ret
+    }
+}
+
+impl<const N: usize> SubAssign for CoefficientSpectrum<N> {
+    fn sub_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.c[i] -= rhs.c[i];
+        }
+    }
+}
+
+impl<const N: usize> Mul for CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let mut ret = self;
+        for i in 0..N {
+            ret.c[i] *= rhs.c[i];
+        }
+        ret
+    }
+}
+
+impl<const N: usize> MulAssign for CoefficientSpectrum<N> {
+    fn mul_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.c[i] *= rhs.c[i];
+        }
+    }
+}
+
+impl<const N: usize> Div<&CoefficientSpectrum<N>> for CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn div(self, rhs: &Self) -> Self::Output {
+        let mut ret = self;
+        for i in 0..N {
+            ret.c[i] /= rhs.c[i];
+        }
+        ret
+    }
+}
+
+impl<const N: usize> Div<CoefficientSpectrum<N>> for CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        let mut ret = self;
+        for i in 0..N {
+            ret.c[i] /= rhs.c[i];
+        }
+        ret
+    }
+}
+
+impl<const N: usize> Div<CoefficientSpectrum<N>> for &CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn div(self, rhs: CoefficientSpectrum<N>) -> Self::Output {
+        let mut ret = *self;
+        for i in 0..N {
+            ret.c[i] /= rhs.c[i];
+        }
+        ret
+    }
+}
+
+impl<const N: usize> Div for &CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn div(self, rhs: &CoefficientSpectrum<N>) -> Self::Output {
+        let mut ret = *self;
+        for i in 0..N {
+            ret.c[i] /= rhs.c[i];
+        }
+        ret
+    }
+}
+
+impl<const N: usize> DivAssign for CoefficientSpectrum<N> {
+    fn div_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.c[i] /= rhs.c[i];
+        }
+    }
+}
+
+impl<const N: usize> Mul<Float> for CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn mul(self, rhs: Float) -> Self::Output {
+        let mut ret = self;
+        for i in 0..N {
+            ret.c[i] *= rhs;
+        }
+        ret
+    }
+}
+
+impl<const N: usize> Mul<Float> for &CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn mul(self, rhs: Float) -> Self::Output {
+        let mut ret = *self;
+        for i in 0..N {
+            ret.c[i] *= rhs;
+        }
+        ret
+    }
+}
+
+impl<const N: usize> MulAssign<Float> for CoefficientSpectrum<N> {
+    fn mul_assign(&mut self, rhs: Float) {
+        for i in 0..N {
+            self.c[i] *= rhs;
+        }
+    }
+}
+
+impl<const N: usize> Div<Float> for CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn div(self, rhs: Float) -> Self::Output {
+        let mut ret = self;
+        for i in 0..N {
+            ret.c[i] /= rhs;
+        }
+        ret
+    }
+}
+
+impl<const N: usize> DivAssign<Float> for CoefficientSpectrum<N> {
+    fn div_assign(&mut self, rhs: Float) {
+        for i in 0..N {
+            self.c[i] /= rhs;
+        }
+    }
+}
+
+impl<const N: usize> From<Float> for CoefficientSpectrum<N> {
+    fn from(v: Float) -> Self {
+        Self::new(v)
+    }
+}
+
+pub type SampledSpectrum = CoefficientSpectrum<N_SPECTRAL_SAMPLES>;
 
 macro_rules! define_xyz {
     ($cie:ident) => {{
@@ -631,7 +639,7 @@ pub enum SpectrumType {
     Illuminant,
 }
 
-define_spectrum!(RGBSpectrum, 3);
+pub type RGBSpectrum = CoefficientSpectrum<3>;
 impl RGBSpectrum {
     pub fn from_rgb(rgb: &[Float], _typ: SpectrumType) -> RGBSpectrum {
         let mut s = RGBSpectrum::default();

@@ -4,12 +4,14 @@ use crate::core::{
     pbrt::{clamp, lerp, Float, INV_2_PI, INV_PI, PI},
     transform::{Point3Ref, Transformf, Vector3Ref},
 };
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 pub trait TextureMapping2D {
     fn as_any(&self) -> &dyn Any;
     fn map(&self, si: &SurfaceInteraction, dstdx: &mut Vector2f, dstdy: &mut Vector2f) -> Point2f;
 }
+
+pub type TextureMapping2DDt = Arc<Box<dyn TextureMapping2D + Sync + Send>>;
 
 pub struct UVMapping2D {
     su: Float,
@@ -160,6 +162,8 @@ pub trait TextureMapping3D {
     fn map(&self, si: &SurfaceInteraction, dpdx: &mut Vector3f, dpdy: &mut Vector3f) -> Point3f;
 }
 
+pub type TextureMapping3DDt = Arc<Box<dyn TextureMapping3D + Sync + Send>>;
+
 pub struct IdentityMapping3D {
     world_to_texture: Transformf,
 }
@@ -186,6 +190,8 @@ pub trait Texture<T> {
     fn as_any(&self) -> &dyn Any;
     fn evaluate(&self, si: &SurfaceInteraction) -> T;
 }
+
+pub type TextureDt<T> = Arc<Box<dyn Texture<T>>>;
 
 pub fn lanczos(x: Float, tau: Float) -> Float {
     let mut x = x.abs();
