@@ -337,12 +337,12 @@ impl Integrator for SPPMIntegrator {
                                         node.next = Some(grid[h].load(Ordering::SeqCst));
                                         node.clone()
                                     };
-                                    grid[h].compare_exchange_weak(
+                                    while let Err(_) = grid[h].compare_exchange_weak(
                                         node.next.unwrap(),
                                         node.index,
                                         Ordering::SeqCst,
                                         Ordering::SeqCst,
-                                    );
+                                    ) {}
                                 }
                             }
                         }

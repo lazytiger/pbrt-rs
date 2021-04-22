@@ -6,7 +6,7 @@ use super::RealNum;
 use crate::core::{
     efloat::EFloat,
     medium::MediumDt,
-    pbrt::{gamma, next_float_down, next_float_up, Float},
+    pbrt::{clamp, gamma, next_float_down, next_float_up, Float, PI},
     transform::{AnimatedTransform, Point3Ref, Transform, Transformf, Vector3Ref},
 };
 use derive_more::{Deref, DerefMut};
@@ -1188,5 +1188,20 @@ impl From<(&AnimatedTransform, &RayDifferentials)> for RayDifferentials {
             let t = at.interpolate(r.time);
             (&t, r).into()
         }
+    }
+}
+
+#[inline]
+pub fn spherical_theta(v: &Vector3f) -> Float {
+    clamp(v.z, -1.0, 1.0).acos()
+}
+
+#[inline]
+pub fn spherical_phi(v: &Vector3f) -> Float {
+    let p = v.y.atan2(v.x);
+    if p < 0.0 {
+        p + 2.0 * PI
+    } else {
+        p
     }
 }
