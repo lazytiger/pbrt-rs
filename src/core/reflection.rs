@@ -509,7 +509,7 @@ pub trait BxDF {
 }
 
 pub struct BaseBxDF {
-    typ: BxDFType,
+    pub(crate) typ: BxDFType,
 }
 
 impl BaseBxDF {
