@@ -98,6 +98,6 @@ pub trait Shape: Debug {
     }
 }
 
-pub type ShapeDt = Arc<Box<dyn Shape>>;
-pub type ShapeDtMut = Arc<Mutex<Box<dyn Shape>>>;
-pub type ShapeDtRw = Arc<RwLock<Box<dyn Shape>>>;
+pub type ShapeDt = Arc<Box<dyn Shape + Sync + Send>>;
+pub type ShapeDtMut = Arc<Mutex<Box<dyn Shape + Sync + Send>>>;
+pub type ShapeDtRw = Arc<RwLock<Box<dyn Shape + Sync + Send>>>;

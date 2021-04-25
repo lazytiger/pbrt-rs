@@ -1,7 +1,7 @@
 use crate::core::{
     geometry::{Point2f, Ray, Vector3f},
     interaction::MediumInteraction,
-    pbrt::{any_equal, Float},
+    pbrt::{any_equal, Float, INV_4_PI},
     sampler::SamplerDtRw,
     spectrum::Spectrum,
 };
@@ -68,4 +68,9 @@ impl HenyeyGreenstein {
     pub fn sample_p(&self, wo: &Vector3f, wi: &mut Vector3f, sample: &Point2f) -> Float {
         todo!()
     }
+}
+
+pub fn phase_hg(cos_theta: Float, g: Float) -> Float {
+    let denom = 1.0 + g * g + 2.0 * g * cos_theta;
+    INV_4_PI * (1.0 - g * g) / (denom * denom.sqrt())
 }
