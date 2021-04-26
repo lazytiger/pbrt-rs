@@ -1,7 +1,7 @@
 use crate::{
     core::{
         geometry::{Normal3f, Point2f, Vector3f},
-        interaction::{BaseInteraction, SurfaceInteraction},
+        interaction::{BaseInteraction, SpawnRayTo, SurfaceInteraction},
         interpolation::{
             catmull_rom_weights, integrate_catmull_rom, invert_catmull_rom, sample_catmull_rom_2d,
         },
@@ -205,7 +205,7 @@ impl BaseSeparableBSSRDF {
         let mut ptr = chain.clone();
         let mut n_found = 0;
         loop {
-            let mut r = base.spawn_ray(&p_target);
+            let mut r = base.spawn_ray_to(p_target);
             if r.d == Vector3f::default()
                 || !scene.intersect(&mut r, Arc::get_mut(&mut ptr).unwrap().get_mut_si())
             {

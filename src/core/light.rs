@@ -1,6 +1,6 @@
 use crate::core::{
     geometry::{Normal3f, Point2f, Ray, RayDifferentials, Vector3f},
-    interaction::{Interaction, InteractionDt, SurfaceInteraction},
+    interaction::{Interaction, InteractionDt, SpawnRayTo, SurfaceInteraction},
     medium::MediumInterface,
     pbrt::Float,
     sampler::{Sampler, SamplerDt, SamplerDtRw},
@@ -41,10 +41,10 @@ pub trait Light: Debug {
         vis: &mut VisibilityTester,
     ) -> Spectrum;
     fn power(&self) -> Spectrum;
-    fn pre_process(&self, _scene: &Scene) {}
+    fn pre_process(&self, scene: &Scene) {}
 
     fn le(&self, _r: &RayDifferentials) -> Spectrum {
-        todo!()
+        Spectrum::new(0.0)
     }
 
     fn pdf_li(&self, iref: &dyn Interaction, wi: &Vector3f) -> Float;
@@ -79,6 +79,23 @@ pub struct BaseLight {
     pub world_to_light: Transformf,
 }
 
+impl BaseLight {
+    pub fn new(
+        flags: LightFlags,
+        light_to_world: Transformf,
+        medium_interface: MediumInterface,
+        n_samples: usize,
+    ) -> Self {
+        Self {
+            flags,
+            n_samples: std::cmp::max(1, n_samples),
+            medium_interface,
+            light_to_world,
+            world_to_light: light_to_world.inverse(),
+        }
+    }
+}
+
 macro_rules! impl_base_light {
     () => {
         todo!()
@@ -98,11 +115,39 @@ impl VisibilityTester {
             p1: Some(p1),
         }
     }
-    pub fn un_occluded(&self, _scene: &Scene) -> bool {
-        todo!()
+    pub fn un_occluded(&self, scene: &Scene) -> bool {
+        scene.intersect_p(
+            &self
+                .p0
+                .clone()
+                .unwrap()
+                .as_base()
+                .spawn_ray_to(self.p1.clone().unwrap().as_base()),
+        )
     }
-    pub fn tr(&self, _scene: &Scene, _sampler: SamplerDtRw) -> Spectrum {
-        todo!()
+    pub fn tr(&self, scene: &Scene, sampler: SamplerDtRw) -> Spectrum {
+        let mut ray = self
+            .p0
+            .clone()
+            .unwrap()
+            .as_base()
+            .spawn_ray_to(self.p1.clone().unwrap().as_base());
+        let mut tr = Spectrum::new(1.0);
+        loop {
+            let mut isect = SurfaceInteraction::default();
+            let hit_surface = scene.intersect(&mut ray, &mut isect);
+            if hit_surface && isect.primitive.clone().unwrap().get_material().is_none() {
+                return Spectrum::new(0.0);
+            }
+            if let Some(medium) = &ray.medium {
+                tr *= medium.tr(&ray, sampler.clone());
+            }
+            if !hit_surface {
+                break;
+            }
+            ray = isect.spawn_ray_to(self.p1.clone().unwrap().as_base());
+        }
+        tr
     }
     pub fn p0(&self) -> InteractionDt {
         self.p0.as_ref().unwrap().clone()
