@@ -75,9 +75,9 @@ pub trait Shape: Debug {
         let it: InteractionDt = Arc::new(Box::new(BaseInteraction::new(
             p,
             Default::default(),
-            0.0,
             Default::default(),
             Vector3f::new(0.0, 0.0, 1.0),
+            0.0,
             Default::default(),
         )));
         let mut solid_angle = 0.0;

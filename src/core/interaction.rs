@@ -114,9 +114,9 @@ impl BaseInteraction {
     pub fn new(
         p: Point3f,
         n: Normal3f,
-        time: Float,
         error: Vector3f,
         wo: Vector3f,
+        time: Float,
         medium_interface: MediumInterface,
     ) -> Self {
         Self {
@@ -262,9 +262,9 @@ impl SurfaceInteraction {
             base: BaseInteraction::new(
                 p,
                 dpdu.cross(&dpdv).normalize(),
-                time,
                 error,
                 wo,
+                time,
                 Default::default(),
             ),
             uv,
