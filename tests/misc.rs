@@ -73,3 +73,17 @@ fn expr_test() {
         data: [f32; N],
     }
 }
+
+static mut A: usize = 32;
+
+unsafe fn my_test() {
+    A = 3;
+}
+
+#[test]
+fn test_thread() {
+    let thread = std::thread::spawn(|| unsafe {
+        my_test();
+    });
+    thread.join().unwrap()
+}

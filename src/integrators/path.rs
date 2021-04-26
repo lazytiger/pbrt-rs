@@ -97,7 +97,11 @@ impl Integrator for PathIntegrator {
                 continue;
             }
 
-            let distrib = self.light_distribution.as_ref().unwrap().lookup(&isect.p);
+            let distrib = self
+                .light_distribution
+                .as_ref()
+                .unwrap()
+                .lookup(&isect.p, Some(&scene));
             if isect
                 .bsdf
                 .as_ref()
@@ -168,7 +172,12 @@ impl Integrator for PathIntegrator {
                         scene,
                         sampler.clone(),
                         false,
-                        Some(self.light_distribution.as_ref().unwrap().lookup(&pi.p)),
+                        Some(
+                            self.light_distribution
+                                .as_ref()
+                                .unwrap()
+                                .lookup(&pi.p, Some(&scene)),
+                        ),
                     );
 
                 let f = pi.bsdf.as_ref().unwrap().sample_f(

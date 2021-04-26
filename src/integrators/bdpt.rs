@@ -351,7 +351,8 @@ impl Integrator for BDPTIntegrator {
                                 0,
                             );
 
-                            let light_distr = light_distribution.lookup(camera_vertices[0].p());
+                            let light_distr =
+                                light_distribution.lookup(camera_vertices[0].p(), Some(scene));
 
                             let n_light = generate_light_sub_path(
                                 scene,

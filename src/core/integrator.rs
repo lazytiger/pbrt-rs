@@ -264,7 +264,7 @@ pub fn estimate_direct(
     ld
 }
 
-pub fn compute_light_power_distribution(scene: &Scene) -> Option<Box<Distribution1D>> {
+pub fn compute_light_power_distribution(scene: &Scene) -> Option<Distribution1D> {
     if scene.lights.is_empty() {
         return None;
     }
@@ -272,7 +272,7 @@ pub fn compute_light_power_distribution(scene: &Scene) -> Option<Box<Distributio
     for light in &scene.lights {
         light_power.push(light.power().y_value());
     }
-    Some(Box::new(Distribution1D::new(light_power.as_slice())))
+    Some(Distribution1D::new(light_power.as_slice()))
 }
 
 pub struct SamplerIntegrator {

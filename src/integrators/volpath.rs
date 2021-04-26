@@ -86,7 +86,11 @@ impl Integrator for VolPathIntegrator {
                     break;
                 }
 
-                let light_distrib = self.light_distribution.as_ref().unwrap().lookup(&mi.p);
+                let light_distrib = self
+                    .light_distribution
+                    .as_ref()
+                    .unwrap()
+                    .lookup(&mi.p, Some(&scene));
                 let wo = -ray.d;
                 let mut wi = Vector3f::default();
                 mi.phase.as_ref().unwrap().sample_p(
@@ -126,7 +130,11 @@ impl Integrator for VolPathIntegrator {
                     continue;
                 }
 
-                let light_distrib = self.light_distribution.as_ref().unwrap().lookup(&isect.p);
+                let light_distrib = self
+                    .light_distribution
+                    .as_ref()
+                    .unwrap()
+                    .lookup(&isect.p, Some(&scene));
                 l += beta
                     * uniform_sample_one_light(
                         &isect,
@@ -187,7 +195,12 @@ impl Integrator for VolPathIntegrator {
                             scene,
                             sampler.clone(),
                             true,
-                            Some(self.light_distribution.as_ref().unwrap().lookup(&pi.p)),
+                            Some(
+                                self.light_distribution
+                                    .as_ref()
+                                    .unwrap()
+                                    .lookup(&pi.p, Some(&scene)),
+                            ),
                         );
                     let f = pi.bsdf.as_ref().unwrap().sample_f(
                         &pi.wo,
