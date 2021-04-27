@@ -5,6 +5,7 @@ use crate::{
         geometry::{Bounds2i, Point2f, Point2i, Ray, RayDifferentials, Vector3f},
         interaction::{Interaction, InteractionDt, MediumInteraction, SurfaceInteraction},
         light::{is_delta_light, Light, LightDt, VisibilityTester},
+        medium::PhaseFunction,
         pbrt::{any_equal, Float},
         reflection::{BxDF, BxDFType},
         sampler::{Sampler, SamplerDt, SamplerDtMut, SamplerDtRw},

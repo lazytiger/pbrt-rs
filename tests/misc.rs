@@ -1,5 +1,5 @@
 use pbrt::core::pbrt::{gamma, next_float_down, next_float_up};
-use std::intrinsics::transmute;
+use std::{intrinsics::transmute, marker::PhantomData, rc::Rc};
 
 #[test]
 fn test_float() {
@@ -74,16 +74,43 @@ fn expr_test() {
     }
 }
 
-static mut A: usize = 32;
-
-unsafe fn my_test() {
-    A = 3;
-}
-
 #[test]
-fn test_thread() {
-    let thread = std::thread::spawn(|| unsafe {
-        my_test();
-    });
-    thread.join().unwrap()
+fn local_test() {
+    use std::{marker::PhantomData, sync::Once};
+
+    #[derive(Copy, Clone)]
+    pub struct MyFFI {
+        call_fn: extern "C" fn() -> i32,
+        phantom: PhantomData<*mut ()>, // !Send + !Sync
+    }
+
+    impl MyFFI {
+        pub fn get() -> Option<Self> {
+            static INIT: Once = Once::new();
+            thread_local! {
+                static FFI: Option<MyFFI> = {
+                    let mut ffi = None;
+                    INIT.call_once(|| ffi = Some(MyFFI::init()));
+                    ffi
+                }
+            }
+
+            FFI.with(|&ffi| ffi)
+        }
+
+        fn init() -> Self {
+            todo!()
+        }
+
+        pub fn call(&self) -> i32 {
+            (self.call_fn)()
+        }
+    }
+
+    pub fn test() {
+        std::thread::spawn(|| {
+            let ffi = MyFFI::get().unwrap();
+            ffi.call();
+        });
+    }
 }

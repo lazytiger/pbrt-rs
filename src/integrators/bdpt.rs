@@ -13,6 +13,7 @@ use crate::{
         light::{is_delta_light, LightDt, LightFlags, VisibilityTester},
         lightdistrib::create_light_sample_distribution,
         material::TransportMode,
+        medium::PhaseFunction,
         pbrt::{any_equal, Float, PI},
         reflection::BxDFType,
         sampler::SamplerDtRw,

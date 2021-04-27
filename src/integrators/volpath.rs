@@ -6,6 +6,7 @@ use crate::{
         interaction::{MediumInteraction, SurfaceInteraction},
         lightdistrib::{create_light_sample_distribution, LightDistributionDt},
         material::TransportMode,
+        medium::PhaseFunction,
         pbrt::Float,
         reflection::BxDFType,
         sampler::SamplerDtRw,
