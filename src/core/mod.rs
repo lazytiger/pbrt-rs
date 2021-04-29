@@ -1,6 +1,5 @@
 use crate::Options;
 
-pub mod arena;
 pub mod bssrdf;
 pub mod camera;
 pub mod efloat;
@@ -15,6 +14,7 @@ pub mod lightdistrib;
 pub mod lowdiscrepancy;
 pub mod material;
 pub mod medium;
+pub mod memory;
 pub mod microfacet;
 pub mod mipmap;
 pub mod parallel;
@@ -44,7 +44,6 @@ pub trait RealNum<T>:
     + Sub<Output = T>
     + Mul<Output = T>
     + Div<Output = T>
-    + Neg<Output = T>
     + AddAssign
     + SubAssign
     + MulAssign
@@ -200,3 +199,9 @@ implement_real_num!(i32, Roots, 0, 1, 2, 3);
 implement_real_num!(i64, Roots, 0, 1, 2, 3);
 implement_real_num!(i128, Roots, 0, 1, 2, 3);
 implement_real_num!(isize, Roots, 0, 1, 2, 3);
+implement_real_num!(u8, Roots, 0, 1, 2, 3);
+implement_real_num!(u16, Roots, 0, 1, 2, 3);
+implement_real_num!(u32, Roots, 0, 1, 2, 3);
+implement_real_num!(u64, Roots, 0, 1, 2, 3);
+implement_real_num!(u128, Roots, 0, 1, 2, 3);
+implement_real_num!(usize, Roots, 0, 1, 2, 3);

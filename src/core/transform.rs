@@ -9,7 +9,7 @@ use crate::core::{
 use std::{
     cmp::Ordering,
     mem::swap,
-    ops::{Add, Mul, Sub},
+    ops::{Add, Mul, Neg, Sub},
 };
 
 pub fn solve_linear_system_2x2(
@@ -197,7 +197,7 @@ pub struct Transform<T> {
     pub m_inv: Matrix4x4<T>,
 }
 
-impl<T: RealNum<T>> Transform<T> {
+impl<T: RealNum<T> + Neg<Output = T>> Transform<T> {
     pub fn new() -> Transform<T> {
         Transform {
             m: Matrix4x4::new(),
@@ -348,7 +348,7 @@ pub struct Point3Ref<'a, T>(pub &'a Point3<T>);
 pub struct Normal3Ref<'a, T>(pub &'a Normal3<T>);
 pub struct Vector3Ref<'a, T>(pub &'a Vector3<T>);
 
-impl<'a, T: RealNum<T>> Mul<Point3Ref<'a, T>> for &Transform<T> {
+impl<'a, T: RealNum<T> + Neg<Output = T>> Mul<Point3Ref<'a, T>> for &Transform<T> {
     type Output = Point3<T>;
 
     fn mul(self, rhs: Point3Ref<'a, T>) -> Self::Output {
@@ -368,7 +368,7 @@ impl<'a, T: RealNum<T>> Mul<Point3Ref<'a, T>> for &Transform<T> {
     }
 }
 
-impl<'a, T: RealNum<T>> Mul<Vector3Ref<'a, T>> for &Transform<T> {
+impl<'a, T: RealNum<T> + Neg<Output = T>> Mul<Vector3Ref<'a, T>> for &Transform<T> {
     type Output = Vector3<T>;
 
     fn mul(self, rhs: Vector3Ref<'a, T>) -> Self::Output {
@@ -385,7 +385,7 @@ impl<'a, T: RealNum<T>> Mul<Vector3Ref<'a, T>> for &Transform<T> {
     }
 }
 
-impl<'a, T: RealNum<T>> Mul<Normal3Ref<'a, T>> for &Transform<T> {
+impl<'a, T: RealNum<T> + Neg<Output = T>> Mul<Normal3Ref<'a, T>> for &Transform<T> {
     type Output = Normal3<T>;
 
     fn mul(self, rhs: Normal3Ref<'a, T>) -> Self::Output {

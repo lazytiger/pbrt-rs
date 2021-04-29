@@ -1,10 +1,10 @@
 use crate::{
     core::{
-        arena::{Arena, ArenaRw, Indexed},
         geometry::{Bounds3f, IntersectP, Point3f, Ray, Union, Vector3f},
         interaction::SurfaceInteraction,
         light::LightDt,
         material::{Material, MaterialDt, TransportMode},
+        memory::{Arena, ArenaRw, Indexed},
         pbrt::Float,
         primitive::{Primitive, PrimitiveDt},
         RealNum,

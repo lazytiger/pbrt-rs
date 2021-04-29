@@ -1,6 +1,5 @@
 use crate::{
     core::{
-        arena::{Arena, Indexed},
         camera::CameraDt,
         geometry::{
             Bounds2i, Bounds3f, Normal3f, Point2f, Point2i, Point3f, Point3i, RayDifferentials,
@@ -13,6 +12,7 @@ use crate::{
         interaction::SurfaceInteraction,
         lowdiscrepancy::radical_inverse,
         material::TransportMode,
+        memory::{Arena, Indexed},
         pbrt::{clamp, lerp, Float},
         reflection::{BxDFType, BSDF},
         sampler::SamplerDtRw,

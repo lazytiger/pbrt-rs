@@ -67,7 +67,7 @@ macro_rules! make_vector {
             $(pub $field:T,)+
         }
 
-        impl<T:RealNum<T>> $name<T> {
+        impl<T:RealNum<T> + std::ops::Neg<Output=T>> $name<T> {
             pub fn new($($field:T),+) ->Self  {
                $name { $($field:$field,)+}
             }
@@ -287,7 +287,7 @@ macro_rules! make_vector {
             }
         }
 
-        impl<T: RealNum<T>> Neg for $name<T> {
+        impl<T: RealNum<T>+ std::ops::Neg<Output=T>> Neg for $name<T> {
             type Output = $name<T>;
 
             fn neg(self) -> Self::Output {
@@ -347,7 +347,7 @@ pub type Point3i = Point3<i32>;
 pub type Normal3<T> = Vector3<T>;
 pub type Normal3f = Normal3<Float>;
 
-impl<T: RealNum<T>> Vector3<T> {
+impl<T: RealNum<T> + std::ops::Neg<Output = T>> Vector3<T> {
     pub fn cross(&self, v: &Vector3<T>) -> Self {
         let v1x = self.x;
         let v1y = self.y;
@@ -425,7 +425,7 @@ macro_rules! make_bounds {
             pub max: $p<T>,
         }
 
-        impl<T: RealNum<T>> $name<T> {
+        impl<T: RealNum<T> + std::ops::Neg<Output=T>> $name<T> {
             pub fn new() -> Self {
                 Self {
                     min: $p {
@@ -510,7 +510,7 @@ macro_rules! make_bounds {
             }
         }
 
-        impl<T: RealNum<T>> Union<&$name<T>> for $name<T> {
+        impl<T: RealNum<T> + std::ops::Neg<Output=T>> Union<&$name<T>> for $name<T> {
             fn union(&self, b:&Self) -> Self {
                 Self {
                     min:self.min.min(&b.min),
@@ -519,7 +519,7 @@ macro_rules! make_bounds {
             }
         }
 
-        impl<T: RealNum<T>> Union<&$p<T>> for $name<T> {
+        impl<T: RealNum<T> + std::ops::Neg<Output=T>> Union<&$p<T>> for $name<T> {
             fn union(&self, p:&$p<T>) -> Self {
                 Self {
                     min:self.min.min(p),
@@ -528,7 +528,7 @@ macro_rules! make_bounds {
             }
         }
 
-        impl<T: RealNum<T>> From<$p<T>> for $name<T> {
+        impl<T: RealNum<T> + std::ops::Neg<Output=T>> From<$p<T>> for $name<T> {
             fn from(p: $p<T>) -> Self {
                 Self {
                     min: p.clone(),
@@ -536,7 +536,7 @@ macro_rules! make_bounds {
                 }
             }
         }
-        impl<T: RealNum<T>> From<($p<T>, $p<T>)> for $name<T> {
+        impl<T: RealNum<T> + std::ops::Neg<Output=T>> From<($p<T>, $p<T>)> for $name<T> {
             fn from(ps: ($p<T>, $p<T>)) -> Self {
                 Self {
                     min: $p{
@@ -569,7 +569,7 @@ macro_rules! make_bounds {
             }
         }
 
-        impl<T: RealNum<T>> Default for $name<T> {
+        impl<T: RealNum<T> + std::ops::Neg<Output=T>> Default for $name<T> {
             fn default() -> Self {
                 Self::new()
             }
@@ -645,7 +645,7 @@ impl<'a> Iterator for Bounds2iIterator<'a> {
 }
 
 make_bounds!(Bounds3, Point3, Vector3, x, y, z);
-impl<T: RealNum<T>> Bounds3<T> {
+impl<T: RealNum<T> + std::ops::Neg<Output = T>> Bounds3<T> {
     pub fn corner(&self, corner: usize) -> Point3<T> {
         Point3 {
             x: self[(corner & 1)].x,
@@ -884,7 +884,9 @@ impl From<(&Transformf, &RayDifferentials)> for RayDifferentials {
     }
 }
 
-impl<'a, T: RealNum<T>> From<(&Transform<T>, Point3Ref<'a, T>, &mut Vector3<T>)> for Point3<T> {
+impl<'a, T: RealNum<T> + std::ops::Neg<Output = T>>
+    From<(&Transform<T>, Point3Ref<'a, T>, &mut Vector3<T>)> for Point3<T>
+{
     fn from(data: (&Transform<T>, Point3Ref<'a, T>, &mut Vector3<T>)) -> Self {
         let t = data.0;
         let p = data.1 .0;
@@ -920,7 +922,7 @@ impl<'a, T: RealNum<T>> From<(&Transform<T>, Point3Ref<'a, T>, &mut Vector3<T>)>
     }
 }
 
-impl<'a, T: RealNum<T>>
+impl<'a, T: RealNum<T> + std::ops::Neg<Output = T>>
     From<(
         &Transform<T>,
         Point3Ref<'a, T>,
@@ -985,7 +987,9 @@ impl<'a, T: RealNum<T>>
     }
 }
 
-impl<'a, T: RealNum<T>> From<(&Transform<T>, Vector3Ref<'a, T>, &mut Vector3<T>)> for Vector3<T> {
+impl<'a, T: RealNum<T> + std::ops::Neg<Output = T>>
+    From<(&Transform<T>, Vector3Ref<'a, T>, &mut Vector3<T>)> for Vector3<T>
+{
     fn from(data: (&Transform<T>, Vector3Ref<'a, T>, &mut Vector3<T>)) -> Self {
         let t = data.0;
         let v = data.1 .0;
@@ -1008,7 +1012,7 @@ impl<'a, T: RealNum<T>> From<(&Transform<T>, Vector3Ref<'a, T>, &mut Vector3<T>)
     }
 }
 
-impl<'a, T: RealNum<T>>
+impl<'a, T: RealNum<T> + std::ops::Neg<Output = T>>
     From<(
         &Transform<T>,
         Vector3Ref<'a, T>,

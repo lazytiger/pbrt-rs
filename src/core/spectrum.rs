@@ -109,7 +109,7 @@ const CIE_Y_INTEGRAL: Float = 106.856895;
 
 #[derive(Copy, Clone, PartialEq)]
 pub struct CoefficientSpectrum<const N: usize> {
-    c: [Float; N],
+    pub(crate) c: [Float; N],
 }
 
 impl<const N: usize> Default for CoefficientSpectrum<N> {
