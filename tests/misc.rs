@@ -1,5 +1,5 @@
 use pbrt::core::pbrt::{gamma, next_float_down, next_float_up};
-use std::{intrinsics::transmute, marker::PhantomData, rc::Rc};
+use std::{f32::consts::PI, intrinsics::transmute, marker::PhantomData, rc::Rc};
 
 #[test]
 fn test_float() {
@@ -113,4 +113,25 @@ fn local_test() {
             ffi.call();
         });
     }
+}
+
+#[test]
+fn test_angle() {
+    println!("{}", (2.0 / 180.0 * PI).sin());
+}
+
+#[no_mangle]
+extern "C" fn export_xxx() {}
+
+static SIZE: Option<Rc<usize>> = None;
+
+fn call_rc() {
+    println!("{:?}", SIZE);
+}
+
+#[test]
+fn test_rc() {
+    std::thread::spawn(|| {
+        call_rc();
+    });
 }
