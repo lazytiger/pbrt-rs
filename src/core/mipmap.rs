@@ -11,6 +11,7 @@ use crate::{
 };
 use std::ops::{Add, AddAssign, Div, Mul};
 
+#[derive(PartialOrd, PartialEq)]
 pub enum ImageWrap {
     Repeat,
     Black,

@@ -119,19 +119,3 @@ fn local_test() {
 fn test_angle() {
     println!("{}", (2.0 / 180.0 * PI).sin());
 }
-
-#[no_mangle]
-extern "C" fn export_xxx() {}
-
-static SIZE: Option<Rc<usize>> = None;
-
-fn call_rc() {
-    println!("{:?}", SIZE);
-}
-
-#[test]
-fn test_rc() {
-    std::thread::spawn(|| {
-        call_rc();
-    });
-}
