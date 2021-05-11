@@ -347,6 +347,16 @@ pub type Point3i = Point3<i32>;
 pub type Normal3<T> = Vector3<T>;
 pub type Normal3f = Normal3<Float>;
 
+impl From<Point3f> for Point3i {
+    fn from(p: Point3f) -> Self {
+        Self {
+            x: p.x as i32,
+            y: p.y as i32,
+            z: p.z as i32,
+        }
+    }
+}
+
 impl<T: RealNum<T> + std::ops::Neg<Output = T>> Vector3<T> {
     pub fn cross(&self, v: &Vector3<T>) -> Self {
         let v1x = self.x;
@@ -741,6 +751,7 @@ impl IntersectP<(&Ray, &Vector3f, [usize; 3])> for Bounds3f {
 }
 
 pub type Bounds3f = Bounds3<Float>;
+pub type Bounds3i = Bounds3<i32>;
 
 #[derive(Clone, Default)]
 pub struct Ray {
