@@ -1,8 +1,9 @@
-use crate::core::pbrt::{clamp, find_interval, lerp, Float};
 use std::{
     cmp::Ordering,
-    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign},
 };
+
+use crate::core::pbrt::{clamp, find_interval, lerp, Float};
 
 fn spectrum_sampls_sorted(lambda: &[Float], _: &[Float], _n: usize) -> bool {
     lambda.is_sorted()
@@ -107,7 +108,7 @@ pub fn rgb_to_xyz(rgb: &[Float], xyz: &mut [Float]) {
 
 const CIE_Y_INTEGRAL: Float = 106.856895;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct CoefficientSpectrum<const N: usize> {
     pub(crate) c: [Float; N],
 }
@@ -119,6 +120,8 @@ impl<const N: usize> Default for CoefficientSpectrum<N> {
 }
 
 impl<const N: usize> CoefficientSpectrum<N> {
+    pub(crate) const N: usize = N;
+
     pub fn new(v: Float) -> Self {
         Self { c: [v; N] }
     }
@@ -168,10 +171,6 @@ impl<const N: usize> CoefficientSpectrum<N> {
             }
         }
         false
-    }
-
-    pub fn n_samples() -> usize {
-        N
     }
 
     pub fn is_black(&self) -> bool {
@@ -372,13 +371,25 @@ impl<const N: usize> From<Float> for CoefficientSpectrum<N> {
     }
 }
 
+impl<const N: usize> Neg for &CoefficientSpectrum<N> {
+    type Output = CoefficientSpectrum<N>;
+
+    fn neg(self) -> Self::Output {
+        let mut ret = *self;
+        for i in 0..N {
+            ret.c[i] = -self.c[i];
+        }
+        ret
+    }
+}
+
 pub type SampledSpectrum = CoefficientSpectrum<N_SPECTRAL_SAMPLES>;
 
 macro_rules! define_xyz {
     ($cie:ident) => {{
         let mut name = SampledSpectrum::default();
-        let n_samples = SampledSpectrum::n_samples() as Float;
-        for i in 0..SampledSpectrum::n_samples() {
+        let n_samples = SampledSpectrum::N as Float;
+        for i in 0..SampledSpectrum::N {
             let wl0 = lerp(
                 i as Float / n_samples,
                 SAMPLED_LAMBDA_START,
@@ -398,8 +409,8 @@ macro_rules! define_xyz {
 macro_rules! define_rgb2spect {
     ($color:ident) => {{
         let mut name = SampledSpectrum::default();
-        let n_samples = SampledSpectrum::n_samples() as Float;
-        for i in 0..SampledSpectrum::n_samples() {
+        let n_samples = SampledSpectrum::N as Float;
+        for i in 0..SampledSpectrum::N {
             let wl0 = lerp(
                 i as Float / n_samples,
                 SAMPLED_LAMBDA_START,

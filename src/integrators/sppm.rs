@@ -97,7 +97,7 @@ impl SPPMPixel {
             radius: 0.0,
             ld: Default::default(),
             vp: Default::default(),
-            phi: vec![0.0; Spectrum::n_samples()],
+            phi: vec![0.0; Spectrum::N],
             m: Default::default(),
             n: 0.0,
             tau: Default::default(),
@@ -429,7 +429,7 @@ impl Integrator for SPPMIntegrator {
                                             &mut wi,
                                             BxDFType::all(),
                                         );
-                                    for i in 0..Spectrum::n_samples() {
+                                    for i in 0..Spectrum::N {
                                         pixel_mut.phi[i] += phi[i];
                                     }
                                     pixel_mut.m += 1;
@@ -503,14 +503,14 @@ impl Integrator for SPPMIntegrator {
                         let n_new = p.n + gamma * p.m as Float;
                         let r_new = p.radius * (n_new / (p.n + p.m as Float)).sqrt();
                         let mut phi = Spectrum::default();
-                        for j in 0..Spectrum::n_samples() {
+                        for j in 0..Spectrum::N {
                             phi[j] = p.phi[j];
                         }
                         p.tau = (p.tau + phi * p.vp.beta) * (r_new * r_new) / (p.radius * p.radius);
                         p.n = n_new;
                         p.radius = r_new;
                         p.m = 0;
-                        for j in 0..Spectrum::n_samples() {
+                        for j in 0..Spectrum::N {
                             p.phi[j] = 0.0;
                         }
                     }

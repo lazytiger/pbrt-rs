@@ -102,7 +102,7 @@ impl ImageTexture {
     }
 
     fn convert_in(from: &RGBSpectrum, to: &mut RGBSpectrum, scale: Float, gamma: bool) {
-        for i in 0..RGBSpectrum::n_samples() {
+        for i in 0..RGBSpectrum::N {
             (*to)[i] = scale * {
                 if gamma {
                     inverse_gamma_correct(from[i])

@@ -159,11 +159,11 @@ impl BaseSeparableBSSRDF {
         }
 
         let ch = clamp(
-            (u1 * Spectrum::n_samples() as Float) as isize,
+            (u1 * Spectrum::N as Float) as isize,
             0,
-            Spectrum::n_samples() as isize - 1,
+            Spectrum::N as isize - 1,
         ) as usize;
-        u1 = u1 * Spectrum::n_samples() as Float - ch as Float;
+        u1 = u1 * Spectrum::N as Float - ch as Float;
 
         let r = self.sampler_sr(ch, u2[0]);
         if r < 0.0 {
@@ -260,9 +260,9 @@ impl BaseSeparableBSSRDF {
         ];
         let mut pdf = 0.0;
         let axis_prob = [0.25, 0.25, 0.5];
-        let ch_prob = 1.0 / Spectrum::n_samples() as Float;
+        let ch_prob = 1.0 / Spectrum::N as Float;
         for axis in 0..3 {
-            for ch in 0..Spectrum::n_samples() {
+            for ch in 0..Spectrum::N {
                 pdf +=
                     self.pdf_sr(ch, r_proj[axis]) * n_local[axis].abs() * ch_prob * axis_prob[axis];
             }
@@ -354,7 +354,7 @@ impl BSSRDF for TabulateBSSRDF {
 impl SeparableBSSRDF for TabulateBSSRDF {
     fn sr(&self, r: f32) -> Spectrum {
         let mut ssr = Spectrum::new(0.0);
-        for ch in 0..Spectrum::n_samples() {
+        for ch in 0..Spectrum::N {
             let r_optical = r * self.sigma_t[ch];
             let mut rho_offset = 0;
             let mut radius_offset = 0;
@@ -655,7 +655,7 @@ pub fn subsurface_from_diffuse(
     sigma_a: &mut Spectrum,
     sigma_s: &mut Spectrum,
 ) {
-    for c in 0..Spectrum::n_samples() {
+    for c in 0..Spectrum::N {
         let rho = invert_catmull_rom(
             t.n_rho_samples,
             t.rho_samples.as_slice(),
