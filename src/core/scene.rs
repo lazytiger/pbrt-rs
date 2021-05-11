@@ -6,6 +6,7 @@ use crate::core::{
     sampler::{Sampler, SamplerDt, SamplerDtRw},
     spectrum::Spectrum,
 };
+use std::sync::Arc;
 
 pub struct Scene {
     pub lights: Vec<LightDt>,
@@ -15,7 +16,7 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(aggregate: PrimitiveDt, lights: Vec<LightDt>) -> Self {
+    pub fn new(aggregate: PrimitiveDt, mut lights: Vec<LightDt>) -> Self {
         let world_bound = aggregate.world_bound();
         let mut scene = Self {
             lights: lights.clone(),
@@ -23,8 +24,8 @@ impl Scene {
             world_bound,
             infinite_lights: vec![],
         };
-        for light in lights {
-            light.pre_process(&scene);
+        for mut light in lights {
+            Arc::get_mut(&mut light).unwrap().pre_process(&scene);
             if (light.flags() & LightFlags::INFINITE).is_empty() {
                 scene.infinite_lights.push(light);
             }

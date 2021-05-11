@@ -41,7 +41,7 @@ pub trait Light: Debug {
         vis: &mut VisibilityTester,
     ) -> Spectrum;
     fn power(&self) -> Spectrum;
-    fn pre_process(&self, scene: &Scene) {}
+    fn pre_process(&mut self, scene: &Scene) {}
 
     fn le(&self, _r: &RayDifferentials) -> Spectrum {
         Spectrum::new(0.0)
