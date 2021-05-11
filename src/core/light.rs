@@ -71,6 +71,7 @@ pub trait Light: Debug {
     fn flags(&self) -> LightFlags;
 }
 
+#[derive(Debug)]
 pub struct BaseLight {
     pub flags: LightFlags,
     pub n_samples: usize,
@@ -96,9 +97,16 @@ impl BaseLight {
     }
 }
 
+#[macro_export]
 macro_rules! impl_base_light {
     () => {
-        todo!()
+        fn n_samples(&self) -> usize {
+            self.base.n_samples
+        }
+
+        fn flags(&self) -> LightFlags {
+            self.base.flags
+        }
     };
 }
 

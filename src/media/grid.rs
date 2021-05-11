@@ -139,8 +139,8 @@ impl Medium for GridDensityMedium {
 
             let density = self.density(&ray.point(t));
             tr *= 1.0 - (density * self.inv_max_density).max(0.0);
-            const rr_threshold: Float = 0.1;
-            if tr < rr_threshold {
+            const RR_THRESHOLD: Float = 0.1;
+            if tr < RR_THRESHOLD {
                 let q = (1.0 - tr).max(0.05);
                 if sampler.write().unwrap().get_1d() < q {
                     return 0.0.into();

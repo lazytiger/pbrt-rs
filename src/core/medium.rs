@@ -4,7 +4,7 @@ use crate::core::{
     pbrt::{any_equal, Float, INV_4_PI, PI},
     reflection::cos2_theta,
     sampler::SamplerDtRw,
-    spectrum::Spectrum,
+    spectrum::{Spectrum, SpectrumType::Reflectance},
 };
 use std::{
     any::Any,
@@ -23,7 +23,14 @@ pub fn get_medium_scattering_properties(
     sigma_a: &mut Spectrum,
     sigma_s: &mut Spectrum,
 ) -> bool {
-    todo!()
+    for mss in SUBSURFACE_PARAMETER_TABLE {
+        if name == mss.name {
+            *sigma_a = Spectrum::from_rgb(&mss.sigma_a, Reflectance);
+            *sigma_s = Spectrum::from_rgb(&mss.sigma_prime_s, Reflectance);
+            return true;
+        }
+    }
+    false
 }
 
 pub fn phase_hg(cos_theta: Float, g: Float) -> Float {
