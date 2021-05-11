@@ -6,6 +6,7 @@ pub mod efloat;
 pub mod film;
 pub mod filter;
 pub mod geometry;
+pub mod imageio;
 pub mod integrator;
 pub mod interaction;
 pub mod interpolation;

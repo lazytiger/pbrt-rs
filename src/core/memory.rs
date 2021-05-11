@@ -48,7 +48,7 @@ impl<T: Indexed> Arena<T> {
 
 pub type ArenaRw<T> = Arc<RwLock<Arena<T>>>;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct BlockedArray<T, const LOG_BLOCK_SIZE: usize> {
     data: Vec<T>,
     u_res: usize,

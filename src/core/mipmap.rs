@@ -11,7 +11,7 @@ use crate::{
 };
 use std::ops::{Add, AddAssign, Div, Mul};
 
-#[derive(PartialOrd, PartialEq)]
+#[derive(PartialOrd, PartialEq, Debug)]
 pub enum ImageWrap {
     Repeat,
     Black,
@@ -25,6 +25,8 @@ struct ResampleWeight {
 }
 
 const WEIGHT_LUT_SIZE: usize = 128;
+
+#[derive(Debug)]
 pub struct MIPMap<T> {
     do_trilinear: bool,
     max_anisotropy: Float,
