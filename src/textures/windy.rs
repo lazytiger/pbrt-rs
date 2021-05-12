@@ -5,8 +5,9 @@ use crate::core::{
     texture::{fbm, Texture, TextureMapping3DDt},
 };
 use derive_more::{Deref, DerefMut};
-use std::any::Any;
+use std::{any::Any, fmt::Debug};
 
+#[derive(Debug)]
 pub struct WindyTexture {
     mapping: TextureMapping3DDt,
 }
@@ -19,6 +20,7 @@ impl WindyTexture {
 
 impl<T> Texture<T> for WindyTexture
 where
+    T: Debug,
     T: 'static,
     T: From<Float>,
 {

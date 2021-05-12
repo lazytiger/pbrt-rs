@@ -8,10 +8,12 @@ use crate::core::{
 use derive_more::{Deref, DerefMut};
 use std::{
     any::Any,
+    fmt::Debug,
     marker::PhantomData,
     ops::{Add, Mul},
 };
 
+#[derive(Debug)]
 pub struct BilerpTexture<T> {
     mapping: TextureMapping2DDt,
     v00: T,
@@ -32,7 +34,7 @@ impl<T> BilerpTexture<T> {
     }
 }
 
-impl<T> Texture<T> for BilerpTexture<T>
+impl<T: Debug> Texture<T> for BilerpTexture<T>
 where
     T: 'static,
     T: Add<Output = T>,

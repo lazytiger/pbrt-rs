@@ -8,6 +8,7 @@ use crate::core::{
 use derive_more::{Deref, DerefMut};
 use std::any::Any;
 
+#[derive(Debug)]
 pub struct MarbleTexture {
     mapping: TextureMapping3DDt,
     octaves: Float,

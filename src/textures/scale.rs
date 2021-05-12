@@ -4,8 +4,9 @@ use crate::core::{
     texture::{Texture, TextureDt},
 };
 use derive_more::{Deref, DerefMut};
-use std::{any::Any, ops::Mul};
+use std::{any::Any, fmt::Debug, ops::Mul};
 
+#[derive(Debug)]
 pub struct ScaleTexture<T1, T2> {
     tex1: TextureDt<T1>,
     tex2: TextureDt<T2>,
@@ -21,6 +22,8 @@ impl<T1, T2> Texture<T2> for ScaleTexture<T1, T2>
 where
     T1: 'static,
     T2: 'static,
+    T1: Debug,
+    T2: Debug,
     T2: Mul<T1, Output = T2>,
 {
     fn as_any(&self) -> &dyn Any {

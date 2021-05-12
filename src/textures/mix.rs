@@ -6,10 +6,12 @@ use crate::core::{
 use derive_more::{Deref, DerefMut};
 use std::{
     any::Any,
+    fmt::Debug,
     ops::{Add, Mul},
     process::Output,
 };
 
+#[derive(Debug)]
 pub struct MixTexture<T> {
     tex1: TextureDt<T>,
     tex2: TextureDt<T>,
@@ -22,7 +24,7 @@ impl<T> MixTexture<T> {
     }
 }
 
-impl<T> Texture<T> for MixTexture<T>
+impl<T: Debug> Texture<T> for MixTexture<T>
 where
     T: 'static,
     T: Mul<Float, Output = T>,

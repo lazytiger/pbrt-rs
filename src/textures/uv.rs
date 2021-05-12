@@ -7,6 +7,7 @@ use crate::core::{
 use derive_more::{Deref, DerefMut};
 use std::any::Any;
 
+#[derive(Debug)]
 pub struct UVTexture {
     mapping: TextureMapping2DDt,
 }

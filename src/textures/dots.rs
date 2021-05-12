@@ -4,8 +4,9 @@ use crate::core::{
     texture::{noise, Texture, TextureDt, TextureMapping2DDt},
 };
 use derive_more::{Deref, DerefMut};
-use std::{any::Any, cmp::max};
+use std::{any::Any, cmp::max, fmt::Debug};
 
+#[derive(Debug)]
 pub struct DotsTexture<T> {
     mapping: TextureMapping2DDt,
     outside_dot: TextureDt<T>,
@@ -26,7 +27,7 @@ impl<T> DotsTexture<T> {
     }
 }
 
-impl<T> Texture<T> for DotsTexture<T>
+impl<T: Debug> Texture<T> for DotsTexture<T>
 where
     T: 'static,
 {

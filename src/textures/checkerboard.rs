@@ -7,14 +7,17 @@ use crate::core::{
 use derive_more::{Deref, DerefMut};
 use std::{
     any::Any,
+    fmt::Debug,
     ops::{Add, Mul},
 };
 
+#[derive(Debug)]
 pub enum AAMethod {
     None,
     ClosedForm,
 }
 
+#[derive(Debug)]
 pub struct Checkerboard2DTexture<T> {
     mapping: TextureMapping2DDt,
     tex1: TextureDt<T>,
@@ -38,7 +41,7 @@ impl<T> Checkerboard2DTexture<T> {
     }
 }
 
-impl<T> Texture<T> for Checkerboard2DTexture<T>
+impl<T: Debug> Texture<T> for Checkerboard2DTexture<T>
 where
     T: 'static,
     T: Mul<Float, Output = T>,
@@ -90,6 +93,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct Checkerboard3DTexture<T> {
     mapping: TextureMapping3DDt,
     tex1: TextureDt<T>,
@@ -106,7 +110,7 @@ impl<T> Checkerboard3DTexture<T> {
     }
 }
 
-impl<T> Texture<T> for Checkerboard3DTexture<T>
+impl<T: Debug> Texture<T> for Checkerboard3DTexture<T>
 where
     T: 'static,
 {

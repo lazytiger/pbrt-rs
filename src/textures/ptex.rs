@@ -1,7 +1,8 @@
 use crate::core::{interaction::SurfaceInteraction, pbrt::Float, texture::Texture};
 use derive_more::{Deref, DerefMut};
-use std::any::Any;
+use std::{any::Any, fmt::Debug};
 
+#[derive(Debug)]
 pub struct PtexTexture {
     valid: bool,
     filename: String,
@@ -20,6 +21,7 @@ impl PtexTexture {
 
 impl<T> Texture<T> for PtexTexture
 where
+    T: Debug,
     T: 'static,
     T: Default,
 {

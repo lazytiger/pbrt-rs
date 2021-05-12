@@ -57,6 +57,7 @@ impl TexInfo {
     }
 }
 
+#[derive(Debug)]
 pub struct ImageTexture {
     mapping: TextureMapping2DDt,
     mipmap: Arc<MIPMap<RGBSpectrum>>,

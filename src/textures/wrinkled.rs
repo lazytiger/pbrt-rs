@@ -5,8 +5,9 @@ use crate::core::{
     texture::{turbulence, Texture, TextureMapping3DDt},
 };
 use derive_more::{Deref, DerefMut};
-use std::any::Any;
+use std::{any::Any, fmt::Debug};
 
+#[derive(Debug)]
 pub struct WrinkleTexture {
     mapping: TextureMapping3DDt,
     octaves: Float,
@@ -25,6 +26,7 @@ impl WrinkleTexture {
 
 impl<T> Texture<T> for WrinkleTexture
 where
+    T: Debug,
     T: 'static,
     T: From<Float>,
 {

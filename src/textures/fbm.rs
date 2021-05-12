@@ -6,8 +6,9 @@ use crate::core::{
     texture::{fbm, Texture, TextureMapping3DDt},
 };
 use derive_more::{Deref, DerefMut};
-use std::any::Any;
+use std::{any::Any, fmt::Debug};
 
+#[derive(Debug)]
 pub struct FBmTexture {
     mapping: TextureMapping3DDt,
     omega: Float,
@@ -24,7 +25,7 @@ impl FBmTexture {
     }
 }
 
-impl<T> Texture<T> for FBmTexture
+impl<T: Debug> Texture<T> for FBmTexture
 where
     T: 'static,
     T: From<Float>,

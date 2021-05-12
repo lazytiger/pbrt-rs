@@ -4,15 +4,16 @@ use crate::core::{
     pbrt::{clamp, lerp, Float, INV_2_PI, INV_PI, PI},
     transform::{Point3Ref, Transformf, Vector3Ref},
 };
-use std::{any::Any, sync::Arc};
+use std::{any::Any, fmt::Debug, sync::Arc};
 
-pub trait TextureMapping2D {
+pub trait TextureMapping2D: Debug {
     fn as_any(&self) -> &dyn Any;
     fn map(&self, si: &SurfaceInteraction, dstdx: &mut Vector2f, dstdy: &mut Vector2f) -> Point2f;
 }
 
 pub type TextureMapping2DDt = Arc<Box<dyn TextureMapping2D + Sync + Send>>;
 
+#[derive(Debug)]
 pub struct UVMapping2D {
     su: Float,
     sv: Float,
@@ -44,7 +45,7 @@ impl TextureMapping2D for UVMapping2D {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct SphericalMapping2D {
     world_to_texture: Transformf,
 }
@@ -91,6 +92,7 @@ impl TextureMapping2D for SphericalMapping2D {
     }
 }
 
+#[derive(Debug)]
 pub struct CylindricalMapping2D {
     world_to_texture: Transformf,
 }
@@ -131,6 +133,7 @@ impl TextureMapping2D for CylindricalMapping2D {
     }
 }
 
+#[derive(Debug)]
 pub struct PlanarMapping2D {
     vs: Vector3f,
     vt: Vector3f,
@@ -157,13 +160,14 @@ impl TextureMapping2D for PlanarMapping2D {
     }
 }
 
-pub trait TextureMapping3D {
+pub trait TextureMapping3D: Debug {
     fn as_any(&self) -> &dyn Any;
     fn map(&self, si: &SurfaceInteraction, dpdx: &mut Vector3f, dpdy: &mut Vector3f) -> Point3f;
 }
 
 pub type TextureMapping3DDt = Arc<Box<dyn TextureMapping3D + Sync + Send>>;
 
+#[derive(Debug)]
 pub struct IdentityMapping3D {
     world_to_texture: Transformf,
 }
@@ -186,7 +190,7 @@ impl TextureMapping3D for IdentityMapping3D {
     }
 }
 
-pub trait Texture<T> {
+pub trait Texture<T>: Debug {
     fn as_any(&self) -> &dyn Any;
     fn evaluate(&self, si: &SurfaceInteraction) -> T;
 }
