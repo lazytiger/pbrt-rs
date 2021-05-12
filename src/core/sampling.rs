@@ -65,6 +65,7 @@ pub fn latin_hyper_cube<T: IndexMut<usize, Output = Float>>(
     }
 }
 
+#[derive(Debug)]
 pub struct Distribution1D {
     pub(crate) func: Vec<Float>,
     cdf: Vec<Float>,
@@ -164,6 +165,7 @@ pub fn rejection_sample_disk(rng: &mut RNG) -> Point2f {
     p
 }
 
+#[derive(Debug)]
 pub struct Distribution2D {
     conditional: Vec<Distribution1D>,
     marginal: Distribution1D,

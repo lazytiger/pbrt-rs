@@ -704,6 +704,10 @@ impl RGBSpectrum {
             Self::from_xyz(&xyz, SpectrumType::Reflectance)
         }
     }
+
+    pub fn to_rgb_spectrum(&self) -> RGBSpectrum {
+        *self
+    }
 }
 
 #[cfg(not(feature = "sampled_spectrum"))]
